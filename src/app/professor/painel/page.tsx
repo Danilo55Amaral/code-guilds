@@ -12,10 +12,12 @@ import { CoinIcon, DifficultyBadge } from "@/components/GameUI";
 import MissionEditor from "@/components/MissionEditor";
 import StudentDetails from "@/components/StudentDetails";
 import BroadcastComposer from "@/components/BroadcastComposer";
+import TutorialModal from "@/components/TutorialModal";
+import { teacherTutorial } from "@/engine/tutorial";
 
 export default function PainelProfessorPage() {
   const router = useRouter();
-  const { currentTeacher, ready: teachersReady, logout: teacherLogout } = useTeachers();
+  const { currentTeacher, ready: teachersReady, logout: teacherLogout, finishTutorial } = useTeachers();
   const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
@@ -23,10 +25,17 @@ export default function PainelProfessorPage() {
   // aberta já mostra o item dado/excluído na hora.
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const { messages: selectedMessages, send: sendMessage } = useMessages(selectedStudentId);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   useEffect(() => {
     if (teachersReady && !currentTeacher) router.replace("/professor");
   }, [teachersReady, currentTeacher, router]);
+
+  // Primeiro acesso do professor ao painel: o tutorial abre sozinho.
+  const needsTutorial = !!currentTeacher && !currentTeacher.tutorialDone;
+  useEffect(() => {
+    if (needsTutorial) setTutorialOpen(true);
+  }, [needsTutorial]);
 
   if (!teachersReady || !currentTeacher || !ready || !missionsReady) return null;
 
@@ -82,6 +91,11 @@ export default function PainelProfessorPage() {
     setSelectedStudentId(null);
   }
 
+  function closeTutorial() {
+    setTutorialOpen(false);
+    if (!teacher.tutorialDone) finishTutorial(teacher.id);
+  }
+
   function logout() {
     teacherLogout();
     router.push("/professor");
@@ -95,6 +109,9 @@ export default function PainelProfessorPage() {
           <h1 className="text-2xl font-bold text-white">Visão Geral da Turma</h1>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => setTutorialOpen(true)} className="cg-btn-secondary !px-4 !py-2 text-xs" title="Ver o tutorial do painel">
+            ❓ Tutorial
+          </button>
           {teacher.isAdmin && (
             <Link href="/admin/painel" className="cg-btn-primary !px-4 !py-2 text-xs">
               🛡 Painel ADM
@@ -220,6 +237,8 @@ export default function PainelProfessorPage() {
           onClose={() => setEditorTarget(null)}
         />
       )}
+
+      {tutorialOpen && <TutorialModal steps={teacherTutorial(teacher.isAdmin)} label="Tutorial do professor" onClose={closeTutorial} />}
     </div>
   );
 }

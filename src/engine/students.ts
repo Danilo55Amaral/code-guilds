@@ -43,6 +43,7 @@ export interface Student {
   inventory: InventoryItem[];
   completedMissionIds: string[];
   onboardingStep: OnboardingStep;
+  tutorialDone?: boolean; // já viu (ou pulou) o tutorial da Academia
   createdAt: string;
 }
 

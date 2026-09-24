@@ -1,19 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStudents } from "@/engine/store";
 import { Student, xpToNextLevel } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
+import { STUDENT_TUTORIAL } from "@/engine/tutorial";
 import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
 import MusicToggle from "./MusicToggle";
+import TutorialModal from "./TutorialModal";
 import { CoinCount, HouseAnimalIcon, LevelPill, XPBar } from "./GameUI";
 
 export default function AcademyHeader({ student }: { student: Student }) {
   const house = student.houseId ? getHouse(student.houseId) : null;
-  const { logout } = useStudents();
+  const { logout, patchActive } = useStudents();
   const router = useRouter();
+  // Primeiro acesso à Academia (depois de casa e avatar): o tutorial abre sozinho.
+  const [tutorialOpen, setTutorialOpen] = useState(!student.tutorialDone);
+
+  function closeTutorial() {
+    setTutorialOpen(false);
+    if (!student.tutorialDone) patchActive({ tutorialDone: true });
+  }
 
   function sair() {
     logout();
@@ -52,6 +62,9 @@ export default function AcademyHeader({ student }: { student: Student }) {
             <HouseAnimalIcon house={house} size={18} />
           </span>
         )}
+        <button onClick={() => setTutorialOpen(true)} className="cg-btn-secondary !px-3 !py-1.5 text-xs" title="Ver o tutorial da plataforma">
+          ❓ Tutorial
+        </button>
         <Link href="/professor" className="cg-btn-secondary !px-3 !py-1.5 text-xs">
           🔒 Área do Professor
         </Link>
@@ -59,6 +72,8 @@ export default function AcademyHeader({ student }: { student: Student }) {
           🚪 Sair
         </button>
       </div>
+
+      {tutorialOpen && <TutorialModal steps={STUDENT_TUTORIAL} label="Tutorial do aluno" onClose={closeTutorial} />}
     </header>
   );
 }

@@ -34,6 +34,7 @@ src/
     houses.ts     -> as 4 casas (cores, lema, brasão)
     missions.ts    -> missões e seus quizzes (dados estáticos, editados em código por enquanto)
     students.ts     -> cadastro de aluno, login/senha e sessão, professor do aluno, XP/nível/moedas, inventário
+    tutorial.ts     -> passos do tutorial de primeiro acesso (aluno e professor)
     teachers.ts     -> cadastro de professores (semeado com o Danilo, que é o ADM), login e sessão do professor
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
@@ -61,6 +62,7 @@ src/
     BroadcastComposer.tsx -> comunicados do professor pra toda a turma ou pra uma casa, com o histórico de leitura
     TeacherLoginCard.tsx -> tela de login compartilhada entre /professor e /admin
     TeacherEditor.tsx   -> cadastro/edição/exclusão de professor no Painel ADM
+    TutorialModal.tsx   -> tour em passos do primeiro acesso (aluno e professor), com "Pular tutorial"
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
   app/
     entrar/, casa-selecao/, avatar/  -> onboarding
@@ -73,6 +75,8 @@ public/
 ```
 
 ## O que já funciona de verdade
+
+- Tutorial de primeiro acesso — o aluno vê um tour da Academia (missões, XP e níveis, inventário, Minha Casa, mensagens) ao entrar pela primeira vez, depois de escolher casa e avatar; o professor vê um tour do Painel do Mestre (alunos, ficha, comunicados, missões — e, pro ADM, o Painel ADM) na primeira vez que abre o painel. Dá pra pular a qualquer momento (botão, ✕ ou Esc), navegar com ← →, e rever pelo botão ❓ Tutorial no topo. O "já viu" fica salvo no cadastro (`tutorialDone`), então vale em qualquer aba desse navegador. Os textos ficam em `engine/tutorial.ts`
 
 - Vários professores — cada aluno escolhe o professor no cadastro e só vê as missões desse professor. No Painel do Mestre, cada professor só vê, cria e altera as próprias missões e só vê e altera os próprios alunos (ficha, itens, acesso, mensagens, comunicados). Alunos e missões de antes dessa versão ficam com o Professor Danilo
 - Painel ADM (`/admin`, com as credenciais do Professor Danilo) — cadastra, edita e exclui professores (o ADM não pode ser excluído; ao excluir um professor, os alunos e as missões dele passam pra outro professor escolhido na hora), vê todos os alunos e todas as missões com filtro por professor, troca o professor de um aluno, cria/edita/exclui qualquer missão (escolhendo o professor dono) e tem na ficha de qualquer aluno as mesmas ações do professor (dar/excluir itens, alterar acesso, mensagens, excluir aluno)

@@ -16,6 +16,7 @@ export interface Teacher {
   email: string; // sempre minúsculo
   password: string;
   isAdmin: boolean;
+  tutorialDone?: boolean; // já viu (ou pulou) o tutorial do Painel do Mestre
   createdAt: string;
 }
 
@@ -110,6 +111,10 @@ export function updateTeacher(id: string, patch: { name?: string; email?: string
     ...(patch.password !== undefined && { password: patch.password }),
   };
   writeAll(all);
+}
+
+export function markTeacherTutorialDone(id: string) {
+  writeAll(readAll().map((t) => (t.id === id ? { ...t, tutorialDone: true } : t)));
 }
 
 /** O ADM não pode ser excluído. Quem chama transfere antes os alunos e missões do professor. */

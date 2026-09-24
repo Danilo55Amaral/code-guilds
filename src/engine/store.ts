@@ -23,6 +23,7 @@ import {
   createTeacher,
   updateTeacher,
   removeTeacher,
+  markTeacherTutorialDone,
 } from "./teachers";
 import {
   Message,
@@ -262,9 +263,14 @@ export function useTeachers() {
     emitChange();
   }, []);
 
+  const finishTutorial = useCallback((id: string) => {
+    markTeacherTutorialDone(id);
+    emitChange();
+  }, []);
+
   const currentTeacher = teachers.find((t) => t.id === sessionId) ?? null;
 
-  return { teachers, currentTeacher, ready, login, logout, addTeacher, editTeacher, deleteTeacher };
+  return { teachers, currentTeacher, ready, login, logout, addTeacher, editTeacher, deleteTeacher, finishTutorial };
 }
 
 /** Ofertas de venda de itens entre alunos — as que o aluno recebeu e as que ele fez. */
