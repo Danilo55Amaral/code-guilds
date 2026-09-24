@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useStudents, useMessages } from "@/engine/store";
+import { useStudents, useMessages, useOffers } from "@/engine/store";
 
 interface NavItem {
   href: string;
@@ -26,15 +26,19 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 const MESSAGES_HREF = "/academia/casa/mensagens";
+const INVENTORY_HREF = "/academia/inventario";
 
 export default function AcademySidebar() {
   const pathname = usePathname();
   const { activeStudent } = useStudents();
   const { unreadCount } = useMessages(activeStudent?.id ?? null);
+  const { received: offersReceived } = useOffers(activeStudent?.id ?? null);
 
   function renderLink(item: NavItem, isChild: boolean) {
     const active = pathname === item.href;
-    const badge = item.href === MESSAGES_HREF && unreadCount > 0 ? unreadCount : null;
+    // mensagens não lidas no "Mensagens"; ofertas de compra esperando resposta no "Inventário"
+    const count = item.href === MESSAGES_HREF ? unreadCount : item.href === INVENTORY_HREF ? offersReceived.length : 0;
+    const badge = count > 0 ? count : null;
     return (
       <Link
         key={item.href}

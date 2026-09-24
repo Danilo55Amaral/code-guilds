@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Mission, RARITY_ICON, RARITY_META, PASS_THRESHOLD_PERCENT } from "@/engine/missions";
 import { playDeathSound, playVictoryFanfare } from "@/engine/sfx";
-import { CoinIcon, RarityBadge } from "./GameUI";
+import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
 import { SoundToggleButton, useSceneSound } from "./SceneSound";
 
 // ============================================================================
@@ -198,6 +198,7 @@ export function VictoryScreen({
               <div className="mt-1">
                 <RarityBadge rarity={mission.rewardItem.rarity} />
               </div>
+              <ItemStats value={mission.rewardItem.value} xp={mission.rewardItem.xp} className="mt-1" />
             </div>
           </div>
 

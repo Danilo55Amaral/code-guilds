@@ -24,7 +24,7 @@ export default function CasaSelecaoPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col justify-center px-4 py-12">
+    <div className="mx-auto flex cg-screen max-w-3xl flex-col justify-center px-4 py-12">
       <p className="mb-2 text-right text-[11px] font-medium uppercase tracking-wider text-slate-500">Passo 1 de 3 — Escolha sua Casa</p>
       <h1 className="mb-8 text-4xl font-bold leading-tight text-white">
         O Chapéu Seletor de Código

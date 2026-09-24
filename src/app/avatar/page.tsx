@@ -123,7 +123,7 @@ export default function AvatarPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 py-10">
+    <div className="mx-auto cg-screen max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Passo 2 de 3 — Forje seu Avatar</p>
         {house && (

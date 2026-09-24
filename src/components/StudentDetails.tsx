@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Student, OnboardingStep, XP_PER_LEVEL } from "@/engine/students";
+import { Student, OnboardingStep, xpToNextLevel } from "@/engine/students";
 import {
   SKIN_TONES,
   EYE_COLORS,
@@ -12,11 +12,12 @@ import {
   EYEWEAR_LABELS,
   HAT_LABELS,
 } from "@/engine/avatar";
-import { Mission, Rarity, RARITY_META, RARITY_ICON } from "@/engine/missions";
+import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import ItemEconomyFields from "./ItemEconomyFields";
 import { getHouse } from "@/engine/houses";
 import { Message, MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
 import Avatar from "./Avatar";
-import { CoinIcon, HousePill, LevelPill, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
+import { CoinIcon, HousePill, ItemStats, LevelPill, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
 
 const ONBOARDING_LABELS: Record<OnboardingStep, string> = {
   casa: "Escolhendo a casa",
@@ -49,19 +50,24 @@ export default function StudentDetails({
   onRemoveItem,
   onSendMessage,
   onDeleteStudent,
+  onUpdateCredentials,
   onClose,
 }: {
   student: Student;
   missions: Mission[];
   messages: Message[];
-  onGrantItem: (item: { name: string; rarity: Rarity }) => void;
+  onGrantItem: (item: { name: string; rarity: Rarity; value: number; xp: number }) => void;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
   onDeleteStudent: () => void;
+  /** Troca login/senha; devolve a mensagem de erro, ou null se salvou. */
+  onUpdateCredentials: (username: string, password: string) => string | null;
   onClose: () => void;
 }) {
   const [itemName, setItemName] = useState("");
   const [itemRarity, setItemRarity] = useState<Rarity>("comum");
+  const [itemValue, setItemValue] = useState(RARITY_DEFAULT_VALUE.comum);
+  const [itemXp, setItemXp] = useState(0);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [grantedMsg, setGrantedMsg] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -69,6 +75,28 @@ export default function StudentDetails({
   const [messageBody, setMessageBody] = useState("");
   const [sentMsg, setSentMsg] = useState<string | null>(null);
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [editingAccess, setEditingAccess] = useState(false);
+  const [newUsername, setNewUsername] = useState(student.username);
+  const [newPassword, setNewPassword] = useState(student.password);
+  const [accessError, setAccessError] = useState<string | null>(null);
+  const [accessSaved, setAccessSaved] = useState(false);
+
+  function startEditingAccess() {
+    setNewUsername(student.username);
+    setNewPassword(student.password);
+    setAccessError(null);
+    setEditingAccess(true);
+  }
+
+  function saveAccess() {
+    const error = onUpdateCredentials(newUsername, newPassword);
+    setAccessError(error);
+    if (error) return;
+    setEditingAccess(false);
+    setAccessSaved(true);
+    setTimeout(() => setAccessSaved(false), 3000);
+  }
 
   const house = student.houseId ? getHouse(student.houseId) : null;
   // Sugestões pro campo "Dar item": os itens que as missões já oferecem como recompensa.
@@ -77,7 +105,7 @@ export default function StudentDetails({
   function handleGrant() {
     const name = itemName.trim();
     if (!name) return;
-    onGrantItem({ name, rarity: itemRarity });
+    onGrantItem({ name, rarity: itemRarity, value: itemValue, xp: itemXp });
     setGrantedMsg(`🎁 "${name}" entregue para ${student.name}.`);
     setTimeout(() => setGrantedMsg(null), 3000);
     setItemName("");
@@ -194,9 +222,9 @@ export default function StudentDetails({
                 {student.email} • Turma {student.turma}
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
-                <XPBar xp={student.xp} xpToNext={XP_PER_LEVEL} className="w-40" />
+                <XPBar xp={student.xp} xpToNext={xpToNextLevel(student.level)} className="w-40" />
                 <span className="text-xs text-slate-500">
-                  {student.xp}/{XP_PER_LEVEL} XP
+                  {student.xp}/{xpToNextLevel(student.level)} XP
                 </span>
                 <span className="flex items-center gap-1 text-sm font-semibold text-amber-300">
                   <CoinIcon /> {student.coins}
@@ -251,6 +279,53 @@ export default function StudentDetails({
             </div>
           </div>
 
+          <div className="mb-6 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <SectionTitle>🔑 Acesso do aluno</SectionTitle>
+              {!editingAccess && (
+                <button onClick={startEditingAccess} className="mb-2 text-[11px] font-medium text-slate-400 hover:text-white">
+                  ✏️ Alterar
+                </button>
+              )}
+            </div>
+            {editingAccess ? (
+              <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Login" className="cg-input" />
+                  <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Nova senha" className="cg-input" />
+                </div>
+                {accessError && <p className="text-xs text-rose-300">{accessError}</p>}
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingAccess(false)} className="cg-btn-secondary !px-4 !py-2 text-xs">
+                    Cancelar
+                  </button>
+                  <button onClick={saveAccess} className="cg-btn-primary !px-4 !py-2 text-xs">
+                    Salvar acesso
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow label="Login">
+                  <span className="font-mono">{student.username}</span>
+                </InfoRow>
+                <InfoRow label="Senha">
+                  {student.password ? (
+                    <span className="inline-flex items-center gap-2">
+                      <span className="font-mono">{showPassword ? student.password : "•".repeat(student.password.length)}</span>
+                      <button onClick={() => setShowPassword((v) => !v)} title={showPassword ? "Esconder senha" : "Mostrar senha"} className="text-xs opacity-70 hover:opacity-100">
+                        {showPassword ? "🙈" : "👁"}
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="text-amber-300">⚠️ Sem senha — clique em Alterar para definir</span>
+                  )}
+                </InfoRow>
+                {accessSaved && <p className="pb-1 text-xs text-emerald-300">✓ Acesso atualizado.</p>}
+              </>
+            )}
+          </div>
+
           <div className="mb-6">
             <SectionTitle>Missões concluídas</SectionTitle>
             {student.completedMissionIds.length === 0 ? (
@@ -283,6 +358,7 @@ export default function StudentDetails({
                         <p className="truncate text-sm font-medium text-white">{item.name}</p>
                         <div className="mt-0.5 flex items-center gap-2">
                           <RarityBadge rarity={item.rarity} />
+                          <ItemStats value={item.value} xp={item.xp} />
                           <span className="text-[11px] text-slate-500">{formatDate(item.obtainedAt)}</span>
                         </div>
                       </div>
@@ -331,7 +407,16 @@ export default function StudentDetails({
             <div className="flex flex-col gap-3">
               <input
                 value={itemName}
-                onChange={(e) => setItemName(e.target.value)}
+                onChange={(e) => {
+                  setItemName(e.target.value);
+                  // escolheu um item de missão da lista? já preenche raridade, valor e XP dele
+                  const known = missions.find((m) => m.rewardItem.name === e.target.value)?.rewardItem;
+                  if (known) {
+                    setItemRarity(known.rarity);
+                    setItemValue(known.value);
+                    setItemXp(known.xp);
+                  }
+                }}
                 onKeyDown={(e) => e.key === "Enter" && handleGrant()}
                 list="cg-item-suggestions"
                 placeholder="Nome do item (ex.: Anel do Iterador)"
@@ -348,6 +433,7 @@ export default function StudentDetails({
                     key={r}
                     type="button"
                     onClick={() => setItemRarity(r)}
+                    title={`Valor sugerido: ${RARITY_DEFAULT_VALUE[r]} moedas`}
                     className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
                       itemRarity === r ? "border-white bg-white text-[#0a0a0f]" : "border-slate-700 text-slate-300 hover:border-slate-500"
                     }`}
@@ -356,6 +442,14 @@ export default function StudentDetails({
                   </button>
                 ))}
               </div>
+              <ItemEconomyFields
+                value={itemValue}
+                xp={itemXp}
+                onChange={(patch) => {
+                  if (patch.value !== undefined) setItemValue(patch.value);
+                  if (patch.xp !== undefined) setItemXp(patch.xp);
+                }}
+              />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-emerald-300">{grantedMsg}</p>
                 <button onClick={handleGrant} disabled={!itemName.trim()} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">

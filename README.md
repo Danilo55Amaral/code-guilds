@@ -9,16 +9,16 @@ npm install
 npm run dev
 ```
 
-Abra http://localhost:3000 — o fluxo de primeiro acesso te leva por: cadastro → escolha de casa → criação de avatar → academia.
+Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ainda não tem conta clica em "Criar conta" e passa por: cadastro → escolha de casa → criação de avatar → academia.
 
 ## Fluxo completo
 
-1. `/entrar` — cadastro (nome, e-mail, turma)
+1. `/entrar` — tela de login com duas abas: **Entrar** (login + senha) e **Criar conta** (nome, e-mail, turma, login, senha). Vários alunos podem ter conta no mesmo navegador
 2. `/casa-selecao` — Passo 1/3, escolhe uma das 4 casas
 3. `/avatar` — Passo 2/3, editor de avatar em abas: pele e olhos, cabelo, rosto, roupa e acessórios (óculos e chapéus), com miniaturas de cada opção e botão 🎲 Aleatório
 4. `/academia/missoes` — lista de missões/quizzes, desbloqueadas por nível
-5. `/academia/inventario` — itens ganhos nas missões
-6. `/academia/casa` — painel da casa, pontos das 4 casas, ranking real dos colegas cadastrados no mesmo navegador
+5. `/academia/inventario` — cartão do personagem (abre a Ficha do Personagem), ofertas de compra recebidas e os itens: cada um pode ser usado (se der XP), vendido (pro sistema ou pra um colega) ou excluído
+6. `/academia/casa` — painel da casa, pontos das 4 casas e ranking dos colegas da mesma casa; clicar num colega abre o perfil dele (avatar, nome, nível, moedas e itens)
 7. `/academia/casa/mensagens` — submenu de "Minha Casa": avisos e mensagens do professor (o sino 🔔 no cabeçalho mostra as não lidas)
 8. `/academia/guildas`, `/academia/lore`, `/academia/eventos` — ainda em construção (só mostram "em breve"): história de cada casa, modo história e próximos eventos
 9. `/professor` → `/professor/painel` — login e painel do professor (credenciais de demo abaixo)
@@ -32,13 +32,14 @@ src/
   engine/
     houses.ts     -> as 4 casas (cores, lema, brasão)
     missions.ts    -> missões e seus quizzes (dados estáticos, editados em código por enquanto)
-    students.ts     -> cadastro de aluno, XP/nível/moedas, inventário
+    students.ts     -> cadastro de aluno, login/senha e sessão, XP/nível/moedas, inventário
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
+    market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
     sfx.ts            -> sons das cenas gerados no navegador (Web Audio + voz sintetizada): risada da Morte, fanfarra de vitória, jingle de nível; e a preferência de som/mudo
     music.ts          -> música de fundo medieval da Academia, composta e tocada via Web Audio (loop de ~30s)
-    store.ts          -> hooks useStudents(), useMissions() e useMessages() — mesmo padrão do usePeople() do Rejuvenation Lab Simulator
+    store.ts          -> hooks useStudents(), useMissions(), useMessages() e useOffers() — mesmo padrão do usePeople() do Rejuvenation Lab Simulator
   components/
     Avatar.tsx        -> avatar em SVG puro, montado em camadas (cabelo de trás, roupa, rosto, olhos/boca, cabelo da frente, óculos, chapéu)
     GameUI.tsx         -> XPBar, badges de raridade/dificuldade
@@ -49,6 +50,10 @@ src/
     AcademyHeader.tsx, AcademySidebar.tsx -> layout da Academia
     ComingSoon.tsx      -> placeholder "em breve" das telas ainda não construídas
     Pagination.tsx      -> controles de paginação (Anterior/números/Próxima), reutilizável
+    HousemateSheet.tsx  -> perfil de um colega da mesma casa (avatar, nome, nível, moedas e itens — sem dados pessoais)
+    SellItemModal.tsx   -> janela de venda de um item (pro sistema ou oferta pra um colega)
+    ItemEconomyFields.tsx -> campos de valor em moedas e XP ao usar (professor: editor de missão e "Dar item")
+    CharacterSheet.tsx  -> Ficha do Personagem do próprio aluno (avatar animado, nível, XP adquirido, moedas, missões, itens por raridade)
     StudentDetails.tsx  -> ficha do aluno no painel do professor (dados, avatar, inventário, dar/excluir item, enviar mensagem, excluir aluno)
     NotificationBell.tsx -> sino de notificações do cabeçalho da Academia
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
@@ -63,13 +68,20 @@ public/
 
 ## O que já funciona de verdade
 
+- Economia de itens — todo item tem um valor em moedas e, se for consumível, uma quantidade de XP. No Inventário o aluno pode: ✨ **Usar** (o item some e ele ganha o XP — pode até subir de nível, com a cena animada), 💰 **Vender pro sistema** (recebe o valor na hora), 🤝 **Vender pra um colega** (escolhe o colega e o preço; o item fica reservado até o colega comprar — se tiver moedas — ou recusar, e aí volta) e 🗑 **Excluir** (com confirmação). Ofertas recebidas aparecem no topo do Inventário e com contador no menu
+- Professor define o valor e o XP de cada item — no editor de missão (item de recompensa) e no "Dar item" da ficha do aluno; escolhendo um item de missão da lista, raridade/valor/XP já vêm preenchidos. Itens criados antes disso ganham valor pela raridade (Comum 10, Raro 30, Épico 80, Lendário 200) e não são consumíveis
+- Contas de aluno com login e senha — a tela de login aparece sempre que alguém entra na plataforma (a sessão fica no sessionStorage e dura só enquanto a aba está aberta). "Criar conta" permite cadastrar quantos alunos quiser no mesmo navegador, com validação de login repetido, senha mínima de 4 caracteres e confirmação de senha. O botão 🚪 Sair no cabeçalho da Academia troca de conta. O login é sempre minúsculo e sem espaços/acentos
+- Acesso do aluno no painel do professor — a ficha mostra o login e a senha (escondida, com 👁 pra mostrar) e o professor pode alterar os dois. Alunos cadastrados antes dessa versão ganham um login tirado do e-mail e ficam sem senha até o professor definir uma
+- Colegas de casa — no ranking de Minha Casa cada colega aparece com o avatar, o XP e as moedas; clicando, abre o perfil com avatar animado, nome, nível, moedas e itens
+- Ficha do Personagem — no Inventário, o cartão do aluno abre a ficha: avatar grande flutuando com o brilho da casa, nível, XP total adquirido, moedas, missões concluídas, progresso até o próximo nível, identificação (nome, e-mail, turma, casa, data de entrada), itens por raridade e o visual do avatar. Fecha no ✕, no Esc ou clicando fora
 - Avatar redesenhado — personagem com orelhas, sombreamento, olhos com íris colorida e brilho, sobrancelhas e boca que mudam com a expressão, e roupa (túnica, moletom, manto de mago ou armadura). Acessórios: óculos (redondo, de programador, escuro, visor futurista, monóculo, tapa-olho) e chapéus (mago, coroa, boné gamer, elmo, pirata, fones gamer). Alunos cadastrados antes continuam funcionando: o avatar antigo é convertido na leitura
 - Cadastro multi-aluno no mesmo navegador (mesmo padrão do Rejuvenation Lab Simulator), com "aluno ativo"
-- Progressão de XP com estouro de nível tratado corretamente (pode subir mais de um nível de uma vez)
+- Progressão de XP crescente: do nível 1 pro 2 são 500 XP, e cada nível seguinte pede 150 XP a mais que o anterior (500 → 650 → 800 → 950 → … → 1.850 no nível 10 → 5.450 no nível 34). Estouro de nível tratado corretamente (pode subir mais de um nível de uma vez) — ver `xpToNextLevel()` em `students.ts`
+- Painel do professor mostra quantos alunos há em cada uma das 4 casas
 - Quiz funcional com 4 missões e 2 perguntas cada, feedback certo/errado, explicação, recompensas reais aplicadas ao aluno
 - Telas animadas de fim de missão — vitória: baú tremendo e abrindo, raios de luz, item subindo, confete, título dourado e XP/moedas contando; derrota: corte de foice, tela tremendo, vinheta vermelha, o Ceifador flutuando com a foice balançando e "VOCÊ MORREU". As animações ficam em `globals.css` (classes `cg-anim-*`) e respeitam a opção de reduzir movimento do sistema. Na derrota também toca som: corte da foice, estrondo, zumbido sombrio e a voz grave da Morte rindo "Rá, rá, rá… Você morreu!" — tudo gerado no navegador (sem arquivo de áudio), com botão 🔊/🔇 na tela que fica salvo por navegador
-- Música de fundo estilo RPG medieval (flauta, alaúde, baixo, tambor e eco de salão, em ré dórico) — começa sozinha ao entrar na Academia, fica em loop e continua ao trocar de página; o botão 🎶 ao lado do sino desliga/liga. Nas cenas de derrota, vitória e subir de nível a música pausa (pra dar lugar ao som da cena) e volta do mesmo ponto quando a cena fecha.
-- Sons das cenas — vitória: rufar de caixa enquanto o baú treme, "tan-tan-tan-TAAAN" de trompetes com prato quando a tampa abre, "bling" de moeda em cada recompensa e acorde final em Dó maior; subir de nível: subida mágica, sinos quando o número troca, arpejos 8 bits e acorde final brilhante. Todas as cenas têm o botão 🔊/🔇 (mesma preferência) Desligar vale pra aba atual (sessionStorage): numa nova entrada na plataforma a música volta a tocar. Se o navegador bloquear som antes de qualquer interação (ex.: recarregou a página), ela começa no primeiro clique/tecla
+- Música de fundo estilo RPG medieval (flauta, alaúde, baixo, tambor e eco de salão, em ré dórico) — começa sozinha ao entrar na Academia, fica em loop e continua ao trocar de página; o botão 🎶 ao lado do sino desliga/liga. Nas cenas de derrota, vitória e subir de nível a música pausa (pra dar lugar ao som da cena) e volta do mesmo ponto quando a cena fecha. Desligar vale pra aba atual (sessionStorage): numa nova entrada na plataforma a música volta a tocar. Se o navegador bloquear som antes de qualquer interação (ex.: recarregou a página), ela começa no primeiro clique/tecla.
+- Sons das cenas — vitória: rufar de caixa enquanto o baú treme, "tan-tan-tan-TAAAN" de trompetes com prato quando a tampa abre, "bling" de moeda em cada recompensa e acorde final em Dó maior; subir de nível: subida mágica, sinos quando o número troca, arpejos 8 bits e acorde final brilhante. Todas as cenas têm o botão 🔊/🔇 (mesma preferência)
 - Cena de subir de nível — depois de coletar as recompensas, se o XP fez o aluno subir: brasão hexagonal com anéis girando, ondas de choque, o número do nível antigo sai e o novo entra, faíscas subindo, "SUBIU DE NÍVEL!" e a lista das missões que acabaram de ser desbloqueadas (avisa também quando sobe vários níveis de uma vez)
 - Mensagens do professor pro aluno — na ficha do aluno, "Enviar mensagem" (tipo Aviso ou Mensagem); o professor vê o histórico e se cada uma já foi lida. O aluno recebe no sino 🔔 do cabeçalho (contador de não lidas + últimas 5) e na página Minha Casa → Mensagens, onde pode marcar como lida
 - Exclusão de aluno pelo professor (com confirmação) — apaga o aluno, o progresso e as mensagens dele; se era o aluno logado naquele navegador, ele é deslogado
@@ -84,7 +96,7 @@ public/
 
 - Persistência real (hoje é 100% localStorage, por dispositivo/navegador — sem backend, sem sincronização entre alunos/professor; uma missão criada pelo professor num navegador não aparece pros alunos em outro dispositivo)
 - Mais missões/quizzes de exemplo
-- Autenticação real (o login de aluno e de professor aqui são simplificados, sem senha de verdade pro aluno)
+- Autenticação real (o login de aluno e de professor aqui são simplificados: as senhas ficam em texto puro no localStorage, justamente pro professor conseguir ver — serve pra demonstração, não pra produção)
 
 ## Ajuste: missão concluída não dá pra refazer pra ganhar recompensa de novo
 

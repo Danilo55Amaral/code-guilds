@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Mission, Difficulty, Rarity, DIFFICULTY_META, RARITY_META } from "@/engine/missions";
+import { Mission, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import ItemEconomyFields from "./ItemEconomyFields";
 
 type OptionKey = "a" | "b" | "c" | "d";
 
@@ -23,6 +24,8 @@ interface MissionDraft {
   rewardCoins: number;
   rewardItemName: string;
   rewardItemRarity: Rarity;
+  rewardItemValue: number;
+  rewardItemXp: number;
   questions: QuestionDraft[];
 }
 
@@ -43,6 +46,8 @@ function emptyDraft(): MissionDraft {
     rewardCoins: 50,
     rewardItemName: "",
     rewardItemRarity: "comum",
+    rewardItemValue: RARITY_DEFAULT_VALUE.comum,
+    rewardItemXp: 0,
     questions: [emptyQuestion()],
   };
 }
@@ -58,6 +63,8 @@ function missionToDraft(m: Mission): MissionDraft {
     rewardCoins: m.rewardCoins,
     rewardItemName: m.rewardItem.name,
     rewardItemRarity: m.rewardItem.rarity,
+    rewardItemValue: m.rewardItem.value,
+    rewardItemXp: m.rewardItem.xp,
     questions: m.questions.map((q) => ({
       prompt: q.prompt,
       code: q.code ?? "",
@@ -82,7 +89,7 @@ function draftToMission(d: MissionDraft): Omit<Mission, "id"> {
     description: d.description.trim(),
     rewardXp: d.rewardXp,
     rewardCoins: d.rewardCoins,
-    rewardItem: { name: d.rewardItemName.trim() || "Item Misterioso", rarity: d.rewardItemRarity },
+    rewardItem: { name: d.rewardItemName.trim() || "Item Misterioso", rarity: d.rewardItemRarity, value: d.rewardItemValue, xp: d.rewardItemXp },
     questions: d.questions.map((q, i) => ({
       id: `q${i + 1}`,
       prompt: q.prompt.trim(),
@@ -240,6 +247,7 @@ export default function MissionEditor({
                     key={r}
                     type="button"
                     onClick={() => setDraft((d) => ({ ...d, rewardItemRarity: r }))}
+                    title={`Valor sugerido: ${RARITY_DEFAULT_VALUE[r]} moedas`}
                     className={`rounded-lg border px-1.5 py-2 text-[11px] font-medium transition-colors ${
                       draft.rewardItemRarity === r ? "border-white bg-white text-[#0a0a0f]" : "border-slate-700 text-slate-300 hover:border-slate-500"
                     }`}
@@ -248,6 +256,19 @@ export default function MissionEditor({
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="sm:col-span-2">
+              <ItemEconomyFields
+                value={draft.rewardItemValue}
+                xp={draft.rewardItemXp}
+                onChange={(patch) =>
+                  setDraft((d) => ({
+                    ...d,
+                    ...(patch.value !== undefined && { rewardItemValue: patch.value }),
+                    ...(patch.xp !== undefined && { rewardItemXp: patch.xp }),
+                  }))
+                }
+              />
             </div>
           </div>
 

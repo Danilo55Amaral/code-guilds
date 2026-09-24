@@ -1,0 +1,121 @@
+// ============================================================================
+// MARKET — venda de itens entre alunos. Mesmo padrão de CRUD em localStorage
+// de students.ts/messages.ts.
+//
+// Vender pra um colega vira uma OFERTA: o item sai do inventário do vendedor e
+// fica guardado na oferta até o comprador decidir. Comprar desconta as moedas
+// do comprador, paga o vendedor e entrega o item; recusar (ou o vendedor
+// cancelar) devolve o item pro vendedor. Assim ninguém recebe item nem perde
+// moedas sem concordar, e o mesmo item não pode ser vendido duas vezes.
+// ============================================================================
+
+import { InventoryItem, getStudent, updateStudent } from "./students";
+
+export interface Offer {
+  id: string;
+  sellerId: string;
+  buyerId: string;
+  item: InventoryItem;
+  price: number;
+  createdAt: string;
+}
+
+export type MarketResult = { ok: true } | { ok: false; error: string };
+
+const OFFERS_KEY = "cg-offers";
+
+function readAll(): Offer[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(OFFERS_KEY);
+    return raw ? (JSON.parse(raw) as Offer[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeAll(offers: Offer[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(OFFERS_KEY, JSON.stringify(offers));
+}
+
+/** Ofertas que o aluno recebeu (pode comprar/recusar), mais recentes primeiro. */
+export function listOffersTo(studentId: string): Offer[] {
+  return readAll()
+    .filter((o) => o.buyerId === studentId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Ofertas que o aluno fez (pode cancelar), mais recentes primeiro. */
+export function listOffersFrom(studentId: string): Offer[] {
+  return readAll()
+    .filter((o) => o.sellerId === studentId)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function createOffer(data: { sellerId: string; buyerId: string; itemId: string; price: number }): MarketResult {
+  const seller = getStudent(data.sellerId);
+  const buyer = getStudent(data.buyerId);
+  if (!seller || !buyer) return { ok: false, error: "Aluno não encontrado." };
+  if (seller.id === buyer.id) return { ok: false, error: "Você não pode vender pra você mesmo." };
+  const item = seller.inventory.find((i) => i.id === data.itemId);
+  if (!item) return { ok: false, error: "Esse item não está mais no seu inventário." };
+  const price = Math.round(data.price);
+  if (!Number.isFinite(price) || price < 0) return { ok: false, error: "Preço inválido." };
+
+  // o item fica "guardado" na oferta até o comprador decidir
+  updateStudent(seller.id, { inventory: seller.inventory.filter((i) => i.id !== item.id) });
+  writeAll([
+    ...readAll(),
+    {
+      id: `o_${Date.now()}_${Math.round(Math.random() * 9999)}`,
+      sellerId: seller.id,
+      buyerId: buyer.id,
+      item,
+      price,
+      createdAt: new Date().toISOString(),
+    },
+  ]);
+  return { ok: true };
+}
+
+function returnItemToSeller(offer: Offer) {
+  const seller = getStudent(offer.sellerId);
+  if (seller) updateStudent(seller.id, { inventory: [...seller.inventory, offer.item] });
+}
+
+export function acceptOffer(offerId: string): MarketResult {
+  const offer = readAll().find((o) => o.id === offerId);
+  if (!offer) return { ok: false, error: "Essa oferta não existe mais." };
+  const buyer = getStudent(offer.buyerId);
+  const seller = getStudent(offer.sellerId);
+  if (!buyer) return { ok: false, error: "Comprador não encontrado." };
+  if (buyer.coins < offer.price) return { ok: false, error: `Moedas insuficientes — faltam ${offer.price - buyer.coins}.` };
+
+  updateStudent(buyer.id, {
+    coins: buyer.coins - offer.price,
+    inventory: [...buyer.inventory, { ...offer.item, obtainedAt: new Date().toISOString() }],
+  });
+  if (seller) updateStudent(seller.id, { coins: seller.coins + offer.price });
+  writeAll(readAll().filter((o) => o.id !== offerId));
+  return { ok: true };
+}
+
+/** Recusar (comprador) e cancelar (vendedor) dão no mesmo: o item volta pro vendedor. */
+export function withdrawOffer(offerId: string) {
+  const offer = readAll().find((o) => o.id === offerId);
+  if (!offer) return;
+  returnItemToSeller(offer);
+  writeAll(readAll().filter((o) => o.id !== offerId));
+}
+
+/**
+ * Usado quando o aluno é excluído: ofertas que ele recebeu devolvem o item pro
+ * vendedor; ofertas que ele fez somem junto com ele.
+ */
+export function deleteOffersOf(studentId: string) {
+  readAll()
+    .filter((o) => o.buyerId === studentId && o.sellerId !== studentId)
+    .forEach(returnItemToSeller);
+  writeAll(readAll().filter((o) => o.buyerId !== studentId && o.sellerId !== studentId));
+}

@@ -26,7 +26,7 @@ export default function ProfessorLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+    <div className="flex cg-screen items-center justify-center px-4 py-12">
       <div className="cg-card w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-[#0a0a0f]">M</div>

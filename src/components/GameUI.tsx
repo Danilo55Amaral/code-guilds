@@ -29,6 +29,18 @@ export function DifficultyBadge({ difficulty }: { difficulty: Difficulty }) {
   );
 }
 
+/** Valor em moedas e XP ao usar de um item (o XP só aparece se o item for consumível). */
+export function ItemStats({ value, xp, className = "" }: { value: number; xp: number; className?: string }) {
+  return (
+    <span className={`inline-flex flex-wrap items-center justify-center gap-2 text-[11px] font-semibold ${className}`}>
+      <span className="inline-flex items-center gap-0.5 text-amber-300">
+        <CoinIcon size={12} /> {value}
+      </span>
+      {xp > 0 && <span className="text-violet-300">✨ +{xp} XP</span>}
+    </span>
+  );
+}
+
 export function MessageKindBadge({ kind }: { kind: MessageKind }) {
   const m = MESSAGE_KIND_META[kind];
   return (

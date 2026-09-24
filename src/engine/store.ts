@@ -9,10 +9,12 @@ import {
   createStudent,
   removeStudent,
   updateStudent,
+  login as loginStudent,
 } from "./students";
 import { Mission } from "./missions";
 import { listMissions, createMission, updateMission, deleteMission } from "./missionsStore";
 import { Message, MessageKind, listMessages, sendMessage, markAsRead, markAllAsRead, deleteMessagesOf } from "./messages";
+import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
 
 /**
@@ -48,7 +50,7 @@ export function useStudents() {
 
   useSyncOnChange(sync);
 
-  const signUp = useCallback((data: { name: string; email: string; turma: string }) => {
+  const signUp = useCallback((data: { name: string; email: string; turma: string; username: string; password: string }) => {
     const s = createStudent(data);
     emitChange();
     return s;
@@ -70,6 +72,12 @@ export function useStudents() {
     emitChange();
   }, []);
 
+  const login = useCallback((username: string, password: string) => {
+    const result = loginStudent(username, password);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
   const selectStudent = useCallback((id: string) => {
     setActiveStudentId(id);
     emitChange();
@@ -79,6 +87,7 @@ export function useStudents() {
   // removeStudent já o desloga — não troca pra outro aluno, senão o próximo
   // a abrir a Academia cairia na conta de outra pessoa.
   const deleteStudent = useCallback((id: string) => {
+    deleteOffersOf(id);
     removeStudent(id);
     deleteMessagesOf(id);
     emitChange();
@@ -93,7 +102,7 @@ export function useStudents() {
 
   const activeStudent = students.find((s) => s.id === activeId) ?? null;
 
-  return { students, activeStudent, activeId, ready, signUp, patchActive, patchStudent, selectStudent, deleteStudent, logout, refresh };
+  return { students, activeStudent, activeId, ready, signUp, login, patchActive, patchStudent, selectStudent, deleteStudent, logout, refresh };
 }
 
 export function useMissions() {
@@ -160,4 +169,36 @@ export function useMessages(studentId: string | null) {
   const unreadCount = messages.filter((m) => !m.readAt).length;
 
   return { messages, unreadCount, ready, send, markRead, markAllRead };
+}
+
+/** Ofertas de venda de itens entre alunos — as que o aluno recebeu e as que ele fez. */
+export function useOffers(studentId: string | null) {
+  const [received, setReceived] = useState<Offer[]>([]);
+  const [sent, setSent] = useState<Offer[]>([]);
+
+  const sync = useCallback(() => {
+    setReceived(studentId ? listOffersTo(studentId) : []);
+    setSent(studentId ? listOffersFrom(studentId) : []);
+  }, [studentId]);
+
+  useSyncOnChange(sync);
+
+  const offer = useCallback((data: { sellerId: string; buyerId: string; itemId: string; price: number }) => {
+    const result = createOffer(data);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const accept = useCallback((offerId: string) => {
+    const result = acceptOffer(offerId);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const withdraw = useCallback((offerId: string) => {
+    withdrawOffer(offerId);
+    emitChange();
+  }, []);
+
+  return { received, sent, offer, accept, withdraw };
 }

@@ -5,7 +5,7 @@
 // navegador, o localStorage é semeado com as 4 missões padrão.
 // ============================================================================
 
-import { Mission, MISSIONS as DEFAULT_MISSIONS } from "./missions";
+import { Mission, MISSIONS as DEFAULT_MISSIONS, normalizeRewardItem } from "./missions";
 
 const MISSIONS_KEY = "cg-missions";
 
@@ -27,7 +27,8 @@ function readAll(): Mission[] {
       writeAll(DEFAULT_MISSIONS);
       return DEFAULT_MISSIONS;
     }
-    return JSON.parse(raw) as Mission[];
+    // Missões salvas antes de o item ter valor/XP ganham os padrões da raridade.
+    return (JSON.parse(raw) as Mission[]).map((m) => ({ ...m, rewardItem: normalizeRewardItem(m.rewardItem) }));
   } catch {
     return DEFAULT_MISSIONS;
   }

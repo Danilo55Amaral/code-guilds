@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { Student, XP_PER_LEVEL } from "@/engine/students";
+import { useRouter } from "next/navigation";
+import { useStudents } from "@/engine/store";
+import { Student, xpToNextLevel } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
@@ -10,6 +12,13 @@ import { CoinCount, HouseAnimalIcon, LevelPill, XPBar } from "./GameUI";
 
 export default function AcademyHeader({ student }: { student: Student }) {
   const house = student.houseId ? getHouse(student.houseId) : null;
+  const { logout } = useStudents();
+  const router = useRouter();
+
+  function sair() {
+    logout();
+    router.push("/entrar");
+  }
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-[#0a0a0f] px-6 py-3">
@@ -26,9 +35,9 @@ export default function AcademyHeader({ student }: { student: Student }) {
             )}
           </div>
           <div className="mt-1 flex items-center gap-2">
-            <XPBar xp={student.xp} xpToNext={XP_PER_LEVEL} className="w-32" />
+            <XPBar xp={student.xp} xpToNext={xpToNextLevel(student.level)} className="w-32" />
             <span className="text-[11px] text-slate-500">
-              {student.xp}/{XP_PER_LEVEL} XP
+              {student.xp}/{xpToNextLevel(student.level)} XP
             </span>
           </div>
         </div>
@@ -46,6 +55,9 @@ export default function AcademyHeader({ student }: { student: Student }) {
         <Link href="/professor" className="cg-btn-secondary !px-3 !py-1.5 text-xs">
           🔒 Área do Professor
         </Link>
+        <button onClick={sair} className="cg-btn-secondary !px-3 !py-1.5 text-xs" title="Sair da conta">
+          🚪 Sair
+        </button>
       </div>
     </header>
   );

@@ -26,6 +26,11 @@
     @apply rounded-full border border-slate-700 bg-[#12121a] px-5 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500;
   }
 
+  /* Tela cheia descontando o rodapé de copyright (3rem, no layout raiz). */
+  .cg-screen {
+    min-height: calc(100vh - 3rem);
+  }
+
   .cg-input {
     @apply w-full rounded-xl border border-slate-700 bg-[#0d0d14] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-400 focus:outline-none;
   }

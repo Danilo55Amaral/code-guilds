@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStudents, useMissions, useMessages } from "@/engine/store";
 import { Mission, Rarity } from "@/engine/missions";
-import { grantItem, removeItem } from "@/engine/students";
+import { grantItem, removeItem, validateCredentials, normalizeUsername } from "@/engine/students";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES } from "@/engine/houses";
 import { CoinIcon, DifficultyBadge } from "@/components/GameUI";
@@ -50,7 +50,7 @@ export default function PainelProfessorPage() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
 
-  function handleGrantItem(item: { name: string; rarity: Rarity }) {
+  function handleGrantItem(item: { name: string; rarity: Rarity; value: number; xp: number }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
   }
@@ -65,6 +65,14 @@ export default function PainelProfessorPage() {
     sendMessage({ studentId: selectedStudent.id, ...data });
   }
 
+  function handleUpdateCredentials(username: string, password: string): string | null {
+    if (!selectedStudent) return null;
+    const error = validateCredentials(username, password, selectedStudent.id);
+    if (error) return error;
+    patchStudent(selectedStudent.id, { username: normalizeUsername(username), password });
+    return null;
+  }
+
   function handleDeleteStudent() {
     if (!selectedStudent) return;
     deleteStudent(selectedStudent.id);
@@ -77,7 +85,7 @@ export default function PainelProfessorPage() {
   }
 
   return (
-    <div className="mx-auto min-h-screen max-w-5xl px-4 py-10">
+    <div className="mx-auto cg-screen max-w-5xl px-4 py-10">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Painel do Mestre</p>
@@ -88,7 +96,7 @@ export default function PainelProfessorPage() {
         </button>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div className="cg-card p-4">
           <p className="text-[11px] uppercase tracking-wider text-slate-500">Alunos</p>
           <p className="mt-1 text-2xl font-bold text-white">{students.length}</p>
@@ -97,7 +105,7 @@ export default function PainelProfessorPage() {
           <p className="text-[11px] uppercase tracking-wider text-slate-500">Missões</p>
           <p className="mt-1 text-2xl font-bold text-white">{missions.length}</p>
         </div>
-        {HOUSES.slice(0, 2).map((h) => (
+        {HOUSES.map((h) => (
           <div key={h.id} className="cg-card p-4">
             <p className={`text-[11px] uppercase tracking-wider ${h.colorClass}`}>{h.name}</p>
             <p className="mt-1 text-2xl font-bold text-white">{students.filter((s) => s.houseId === h.id).length}</p>
@@ -122,7 +130,7 @@ export default function PainelProfessorPage() {
                   <div>
                     <p className="text-sm font-medium text-white">{s.name}</p>
                     <p className="text-xs text-slate-500">
-                      {s.email} • {s.turma}
+                      {s.email} • {s.turma} • <span className="font-mono">@{s.username}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-3 text-xs">
@@ -184,6 +192,7 @@ export default function PainelProfessorPage() {
           onRemoveItem={handleRemoveItem}
           onSendMessage={handleSendMessage}
           onDeleteStudent={handleDeleteStudent}
+          onUpdateCredentials={handleUpdateCredentials}
           onClose={() => setSelectedStudentId(null)}
         />
       )}

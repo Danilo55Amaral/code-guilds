@@ -15,6 +15,26 @@ export const RARITY_META: Record<Rarity, { label: string; colorClass: string; bo
 
 export const RARITY_ICON: Record<Rarity, string> = { comum: "🔹", raro: "🔷", epico: "💠", lendario: "👑" };
 
+/** Valor em moedas usado quando um item não tem valor definido (itens antigos, criados antes do mercado). */
+export const RARITY_DEFAULT_VALUE: Record<Rarity, number> = { comum: 10, raro: 30, epico: 80, lendario: 200 };
+
+/**
+ * Item que uma missão dá de recompensa. `value` é quanto ele vale em moedas
+ * (preço de venda pro sistema); `xp` é quanto XP ele dá ao ser usado —
+ * 0 significa que o item não é consumível (não tem botão "Usar").
+ */
+export interface RewardItem {
+  name: string;
+  rarity: Rarity;
+  value: number;
+  xp: number;
+}
+
+/** Completa itens salvos antes de existir valor/XP. */
+export function normalizeRewardItem(item: { name: string; rarity: Rarity; value?: number; xp?: number }): RewardItem {
+  return { ...item, value: item.value ?? RARITY_DEFAULT_VALUE[item.rarity] ?? 10, xp: item.xp ?? 0 };
+}
+
 export const DIFFICULTY_META: Record<Difficulty, { label: string; colorClass: string; borderClass: string }> = {
   iniciante: { label: "Iniciante", colorClass: "text-emerald-300", borderClass: "border-emerald-500/40" },
   medio: { label: "Médio", colorClass: "text-amber-300", borderClass: "border-amber-500/40" },
@@ -45,7 +65,7 @@ export interface Mission {
   description: string;
   rewardXp: number;
   rewardCoins: number;
-  rewardItem: { name: string; rarity: Rarity };
+  rewardItem: RewardItem;
   questions: QuizQuestion[];
 }
 
@@ -59,7 +79,7 @@ export const MISSIONS: Mission[] = [
     description: "Domine let, const e os tipos primitivos",
     rewardXp: 120,
     rewardCoins: 50,
-    rewardItem: { name: "Fragmento de Código", rarity: "comum" },
+    rewardItem: { name: "Fragmento de Código", rarity: "comum", value: 15, xp: 40 },
     questions: [
       {
         id: "q1",
@@ -98,7 +118,7 @@ export const MISSIONS: Mission[] = [
     description: "For, while e a arte de não travar o navegador",
     rewardXp: 200,
     rewardCoins: 90,
-    rewardItem: { name: "Anel do Iterador", rarity: "raro" },
+    rewardItem: { name: "Anel do Iterador", rarity: "raro", value: 40, xp: 0 },
     questions: [
       {
         id: "q1",
@@ -137,7 +157,7 @@ export const MISSIONS: Mission[] = [
     description: "Async/Await e o reino das Promises",
     rewardXp: 350,
     rewardCoins: 150,
-    rewardItem: { name: "Orbe Async", rarity: "epico" },
+    rewardItem: { name: "Orbe Async", rarity: "epico", value: 90, xp: 150 },
     questions: [
       {
         id: "q1",
@@ -175,7 +195,7 @@ export const MISSIONS: Mission[] = [
     description: "Manipule a realidade da página",
     rewardXp: 500,
     rewardCoins: 250,
-    rewardItem: { name: "Coroa do Frontend", rarity: "lendario" },
+    rewardItem: { name: "Coroa do Frontend", rarity: "lendario", value: 250, xp: 0 },
     questions: [
       {
         id: "q1",
