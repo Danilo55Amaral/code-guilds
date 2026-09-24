@@ -104,9 +104,9 @@ export default function EntrarPage() {
   return (
     <div className="flex cg-screen flex-col items-center justify-center px-4 py-12">
       <div className="mb-8 flex items-center gap-2">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sm font-black text-[#0a0a0f]">C</div>
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-sm font-black text-cg-ink">C</div>
         <span className="text-lg font-bold tracking-tight text-white">CODEGUILDS</span>
-        <span className="rounded-full border border-slate-700 bg-[#12121a] px-2 py-0.5 text-[11px] font-medium text-slate-400">BETA</span>
+        <span className="rounded-full border border-slate-700 bg-cg-raised px-2 py-0.5 text-[11px] font-medium text-slate-400">BETA</span>
       </div>
 
       <div className="cg-card w-full max-w-md p-8">
@@ -133,13 +133,13 @@ export default function EntrarPage() {
           </div>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-[#0d0d14] p-1">
+        <div className="mt-6 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-cg-sunken p-1">
           {(Object.keys(MODE_LABELS) as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                mode === m ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:text-slate-200"
+                mode === m ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"
               }`}
             >
               {MODE_LABELS[m]}
@@ -228,7 +228,7 @@ export default function EntrarPage() {
 
       <div className="mt-8 flex items-center gap-3">
         {HOUSES.map((h) => (
-          <div key={h.id} className="h-11 w-11 overflow-hidden rounded-full border border-slate-800 bg-[#101018] p-1.5 opacity-80">
+          <div key={h.id} className="h-11 w-11 overflow-hidden rounded-full border border-slate-800 bg-cg-card p-1.5 opacity-80">
             <Image src={h.crest} alt={h.name} width={44} height={44} className="h-full w-full object-contain" />
           </div>
         ))}

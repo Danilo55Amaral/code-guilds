@@ -57,7 +57,7 @@ export default function CasaSelecaoPage() {
                 <p className="mt-1.5 text-sm text-slate-400">{h.description}</p>
               </div>
               {active && (
-                <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs text-[#0a0a0f]">
+                <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs text-cg-ink">
                   ✓
                 </div>
               )}

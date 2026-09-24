@@ -120,7 +120,7 @@ export default function LevelUpScreen({
   const sound = useSceneSound(playLevelUpJingle);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(50%_40%_at_50%_40%,rgba(139,92,246,0.25),transparent)]" aria-hidden="true" />
       <Sparkles />
       <div className="fixed right-1 top-1 z-10">
@@ -141,7 +141,7 @@ export default function LevelUpScreen({
             <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">🔓 Novas missões desbloqueadas</p>
             <div className="flex flex-col gap-2">
               {unlockedMissions.map((m) => (
-                <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2">
+                <div key={m.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2">
                   <span className="flex items-center gap-2 text-sm font-medium text-white">
                     <span className="text-lg">{m.icon}</span> {m.title}
                   </span>

@@ -63,7 +63,7 @@ export default function QuizModal({
             <p className="mt-1 text-sm text-slate-400">
               Você acertou {correctCount}/{total} perguntas ({percent}%)
             </p>
-            <p className="mt-6 rounded-xl border border-slate-800 bg-[#0d0d14] p-4 text-xs text-slate-500">
+            <p className="mt-6 rounded-xl border border-slate-800 bg-cg-sunken p-4 text-xs text-slate-500">
               Você já concluiu esta missão antes, então não ganha XP, moedas nem item de novo — isso aqui foi só revisão.
             </p>
             <button onClick={() => onComplete(correctCount)} className="cg-btn-primary mt-6 w-full">
@@ -125,7 +125,7 @@ export default function QuizModal({
 
         <p className="mb-3 text-lg font-semibold text-white">{question.prompt}</p>
         {question.code && (
-          <pre className="mb-4 overflow-x-auto rounded-xl border border-slate-800 bg-[#0d0d14] p-3 text-xs text-slate-300">
+          <pre className="mb-4 overflow-x-auto rounded-xl border border-slate-800 bg-cg-sunken p-3 text-xs text-slate-300">
             <code>{question.code}</code>
           </pre>
         )}
@@ -154,7 +154,7 @@ export default function QuizModal({
         </div>
 
         {answered && (
-          <div className="mt-4 rounded-xl border border-slate-800 bg-[#0d0d14] p-4">
+          <div className="mt-4 rounded-xl border border-slate-800 bg-cg-sunken p-4">
             <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-slate-500">Explicação</p>
             <p className="text-sm text-slate-300">{question.explanation}</p>
             <button onClick={next} className="cg-btn-primary mt-3 w-full">

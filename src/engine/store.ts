@@ -40,6 +40,7 @@ import {
 } from "./messages";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
+import { Theme, getTheme, setTheme, applyTheme } from "./theme";
 
 /**
  * Inscreve um "sync" nos avisos de mudança: tanto os avisos internos
@@ -271,6 +272,26 @@ export function useTeachers() {
   const currentTeacher = teachers.find((t) => t.id === sessionId) ?? null;
 
   return { teachers, currentTeacher, ready, login, logout, addTeacher, editTeacher, deleteTeacher, finishTutorial };
+}
+
+/** Tema escuro/claro. Também acompanha a troca feita em outra aba (evento "storage"). */
+export function useTheme() {
+  const [theme, setThemeState] = useState<Theme>("dark");
+
+  const sync = useCallback(() => {
+    const t = getTheme();
+    applyTheme(t);
+    setThemeState(t);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const toggle = useCallback(() => {
+    setTheme(getTheme() === "dark" ? "light" : "dark");
+    emitChange();
+  }, []);
+
+  return { theme, toggle };
 }
 
 /** Ofertas de venda de itens entre alunos — as que o aluno recebeu e as que ele fez. */

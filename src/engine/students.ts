@@ -12,7 +12,7 @@
 // ============================================================================
 
 import { HouseId, getHouse } from "./houses";
-import { Mission, Rarity, DEFAULT_ITEM_ICON, normalizeRewardItem, normalizeSearch } from "./missions";
+import { Mission, Rarity, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH, normalizeRewardItem, normalizeSearch } from "./missions";
 import { AvatarConfig, DEFAULT_AVATAR, normalizeAvatar } from "./avatar";
 import { DEFAULT_TEACHER_ID } from "./teachers";
 
@@ -20,6 +20,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   icon: string; // emoji do item (itens antigos ganham o da raridade na leitura)
+  description: string; // "" = item antigo, sem descrição
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -199,7 +200,7 @@ export function createStudent(data: { name: string; email: string; turma: string
     level: 1,
     xp: 0,
     coins: 0,
-    inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", icon: "✨", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
+    inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", icon: "✨", description: "Presente de boas-vindas da Academia. Usar dá um pouco de XP pra começar a jornada.", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
     completedMissionIds: [],
     onboardingStep: "casa",
     createdAt: new Date().toISOString(),
@@ -266,11 +267,15 @@ export function addXp(student: Student, amount: number): { level: number; xp: nu
 // ============================================================================
 
 /** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). */
-export function grantItem(student: Student, item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }): Student {
+export function grantItem(
+  student: Student,
+  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number },
+): Student {
   const newItem: InventoryItem = {
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
     icon: item.icon.trim() || DEFAULT_ITEM_ICON,
+    description: item.description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
     xp: Math.max(0, Math.round(item.xp)),
@@ -328,6 +333,7 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: mission.rewardItem.name,
     icon: mission.rewardItem.icon,
+    description: mission.rewardItem.description,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
     xp: mission.rewardItem.xp,

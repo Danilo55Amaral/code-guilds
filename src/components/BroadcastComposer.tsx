@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Student } from "@/engine/students";
 import { HOUSES, HouseId } from "@/engine/houses";
 import { useBroadcasts } from "@/engine/store";
-import { MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, audienceLabel, formatMessageDate } from "@/engine/messages";
+import { MessageKind, MESSAGE_KIND_META, COMPOSABLE_MESSAGE_KINDS, MESSAGE_MAX_LENGTH, audienceLabel, formatMessageDate } from "@/engine/messages";
 import { MessageAudienceBadge, MessageKindBadge } from "./GameUI";
 import { PaginationFooter, usePagination } from "./Pagination";
 
@@ -52,7 +52,7 @@ export default function BroadcastComposer({ students, senderId }: { students: St
             type="button"
             onClick={() => setTarget(t.id)}
             className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-              target === t.id ? "border-white bg-white text-[#0a0a0f]" : `border-slate-700 hover:border-slate-500 ${t.colorClass}`
+              target === t.id ? "border-white bg-white text-cg-ink" : `border-slate-700 hover:border-slate-500 ${t.colorClass}`
             }`}
           >
             {t.label} <span className="text-slate-500">({t.count})</span>
@@ -62,13 +62,13 @@ export default function BroadcastComposer({ students, senderId }: { students: St
 
       <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">Tipo</p>
       <div className="mb-3 grid grid-cols-2 gap-2">
-        {(Object.keys(MESSAGE_KIND_META) as MessageKind[]).map((k) => (
+        {COMPOSABLE_MESSAGE_KINDS.map((k) => (
           <button
             key={k}
             type="button"
             onClick={() => setKind(k)}
             className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-              kind === k ? "border-white bg-white text-[#0a0a0f]" : "border-slate-700 text-slate-300 hover:border-slate-500"
+              kind === k ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"
             }`}
           >
             {MESSAGE_KIND_META[k].icon} {MESSAGE_KIND_META[k].label}
@@ -105,7 +105,7 @@ export default function BroadcastComposer({ students, senderId }: { students: St
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">Enviados ({broadcasts.length})</p>
           <div className="flex flex-col gap-2">
             {pager.pageItems.map((b) => (
-              <div key={b.broadcastId} className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+              <div key={b.broadcastId} className="rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3">
                 <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                   <span className="flex flex-wrap items-center gap-1.5">
                     <MessageKindBadge kind={b.kind} />

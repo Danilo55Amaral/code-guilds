@@ -44,13 +44,13 @@ export default function AcademySidebar() {
         key={item.href}
         href={item.href}
         className={`flex flex-1 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors sm:flex-none ${isChild ? "sm:ml-5 sm:py-2 sm:text-xs" : ""} ${
-          active ? "bg-white text-[#0a0a0f]" : "border border-slate-800 bg-[#101018] text-slate-300 hover:border-slate-600"
+          active ? "bg-white text-cg-ink" : "border border-slate-800 bg-cg-card text-slate-300 hover:border-slate-600"
         }`}
       >
         <span>{item.icon}</span>
         {item.label}
         {badge !== null && (
-          <span className="ml-auto rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-white">{badge > 9 ? "9+" : badge}</span>
+          <span className="ml-auto rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-cg-onaccent">{badge > 9 ? "9+" : badge}</span>
         )}
       </Link>
     );

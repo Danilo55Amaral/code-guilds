@@ -55,8 +55,8 @@ export default function SellItemModal({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="mb-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] p-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{item.icon}</div>
+          <div className="mb-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-cg-sunken p-3">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-cg-tile text-2xl">{item.icon}</div>
             <div className="min-w-0">
               <p className="truncate font-semibold text-white">{item.name}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -66,7 +66,7 @@ export default function SellItemModal({
             </div>
           </div>
 
-          <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-[#0d0d14] p-1">
+          <div className="mb-5 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-cg-sunken p-1">
             {(["sistema", "colega"] as Mode[]).map((m) => (
               <button
                 key={m}
@@ -75,7 +75,7 @@ export default function SellItemModal({
                   setError(null);
                 }}
                 className={`rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                  mode === m ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:text-slate-200"
+                  mode === m ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 {m === "sistema" ? "🏛️ Para o sistema" : "🤝 Para um colega"}
@@ -107,7 +107,7 @@ export default function SellItemModal({
                         key={b.id}
                         onClick={() => setBuyerId(b.id)}
                         className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-left transition-colors ${
-                          buyerId === b.id ? "border-white bg-white/10" : "border-slate-800 bg-[#0d0d14] hover:border-slate-600"
+                          buyerId === b.id ? "border-white bg-white/10" : "border-slate-800 bg-cg-sunken hover:border-slate-600"
                         }`}
                       >
                         <Avatar config={b.avatar} size={30} ringColor={buyerId === b.id ? house?.hex : undefined} />

@@ -93,7 +93,7 @@ export default function Pagination({
             onClick={() => onChange(item)}
             aria-current={item === page ? "page" : undefined}
             className={`h-8 min-w-8 rounded-lg px-2.5 text-xs font-medium transition-colors ${
-              item === page ? "bg-white text-[#0a0a0f]" : "border border-slate-800 bg-[#101018] text-slate-400 hover:border-slate-600 hover:text-slate-200"
+              item === page ? "bg-white text-cg-ink" : "border border-slate-800 bg-cg-card text-slate-400 hover:border-slate-600 hover:text-slate-200"
             }`}
           >
             {item}

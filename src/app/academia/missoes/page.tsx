@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { useStudents, useMissions } from "@/engine/store";
-import { Mission, hasPassed, matchesSearch, requiredCorrect } from "@/engine/missions";
+import { useStudents, useMissions, useMessages } from "@/engine/store";
+import { SYSTEM_SENDER_ID, missionRewardMessage } from "@/engine/messages";
+import { Mission, RewardItem, hasPassed, matchesSearch, requiredCorrect } from "@/engine/missions";
 import { applyMissionReward } from "@/engine/students";
 import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 import QuizModal from "@/components/QuizModal";
 import Pagination from "@/components/Pagination";
 import LevelUpScreen from "@/components/LevelUpScreen";
+import ItemDetailsModal from "@/components/ItemDetailsModal";
 
 const MISSIONS_PER_PAGE = 10;
 
@@ -24,8 +26,10 @@ const EMPTY_MESSAGES: Record<StatusFilter, string> = {
 export default function MissoesPage() {
   const { activeStudent, patchActive } = useStudents();
   const { missions: allMissions, ready: missionsReady } = useMissions();
+  const { send: sendMessage } = useMessages(activeStudent?.id ?? null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
+  const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("todas");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
@@ -79,6 +83,17 @@ export default function MissoesPage() {
     }
     const result = applyMissionReward(activeStudent, activeMission);
     patchActive(result.student);
+    sendMessage({
+      studentId: activeStudent.id,
+      senderId: SYSTEM_SENDER_ID,
+      kind: "missao",
+      body: missionRewardMessage({
+        mission: activeMission,
+        item: activeMission.rewardItem,
+        xp: activeMission.rewardXp,
+        coins: activeMission.rewardCoins,
+      }),
+    });
     // A cena de nível abre logo depois que a tela de recompensas fecha.
     if (result.leveledUp) setLevelUp({ from: activeStudent.level, to: result.newLevel });
     setActiveMission(null);
@@ -89,7 +104,7 @@ export default function MissoesPage() {
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-white">Missões</h1>
 
-        <div className="inline-flex gap-1 rounded-xl border border-slate-800 bg-[#101018] p-1">
+        <div className="inline-flex gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
           {(Object.keys(FILTER_LABELS) as StatusFilter[]).map((f) => (
             <button
               key={f}
@@ -98,7 +113,7 @@ export default function MissoesPage() {
                 setPage(1);
               }}
               className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                filter === f ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:text-slate-200"
+                filter === f ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"
               }`}
             >
               {FILTER_LABELS[f]}
@@ -140,7 +155,7 @@ export default function MissoesPage() {
             return (
               <div key={m.id} className="cg-card flex flex-wrap items-center justify-between gap-4 p-5">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#1a1a24] text-xl">{m.icon}</div>
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-cg-tile text-xl">{m.icon}</div>
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-white">{m.title}</p>
@@ -154,9 +169,14 @@ export default function MissoesPage() {
                       <span className="flex items-center gap-1 text-amber-300">
                         <CoinIcon size={14} /> {m.rewardCoins}
                       </span>
-                      <span className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setViewingReward(m.rewardItem)}
+                        title="Ver detalhes do item de recompensa"
+                        className="flex items-center gap-1 hover:text-slate-300 hover:underline"
+                      >
                         {m.rewardItem.icon} {m.rewardItem.name} <RarityBadge rarity={m.rewardItem.rarity} />
-                      </span>
+                      </button>
                       {!completed && (
                         <span className="text-slate-500">
                           🎯 Mín. {requiredCorrect(m.questions.length)}/{m.questions.length} acertos
@@ -174,7 +194,7 @@ export default function MissoesPage() {
                     {completed ? "👁 Visualizar" : "Iniciar Missão →"}
                   </button>
                 ) : (
-                  <span className="shrink-0 rounded-full border border-slate-800 bg-[#0d0d14] px-4 py-2 text-xs font-medium text-slate-600">
+                  <span className="shrink-0 rounded-full border border-slate-800 bg-cg-sunken px-4 py-2 text-xs font-medium text-slate-600">
                     🔒 Bloqueada — Nv {m.minLevel}
                   </span>
                 )}
@@ -192,6 +212,8 @@ export default function MissoesPage() {
           </p>
         </>
       )}
+
+      {viewingReward && <ItemDetailsModal item={viewingReward} onClose={() => setViewingReward(null)} />}
 
       {levelUp && (
         <LevelUpScreen

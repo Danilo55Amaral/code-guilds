@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Student, StudentProfile, OnboardingStep, xpToNextLevel } from "@/engine/students";
+import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel } from "@/engine/students";
 import {
   SKIN_TONES,
   EYE_COLORS,
@@ -12,15 +12,16 @@ import {
   EYEWEAR_LABELS,
   HAT_LABELS,
 } from "@/engine/avatar";
-import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON } from "@/engine/missions";
+import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import ItemEconomyFields from "./ItemEconomyFields";
 import EmojiPicker from "./EmojiPicker";
+import ItemDetailsModal from "./ItemDetailsModal";
 import { PaginationFooter, usePagination } from "./Pagination";
 
 const MESSAGES_PER_PAGE = 5;
 import { HOUSES, HouseId, getHouse } from "@/engine/houses";
 import { Teacher } from "@/engine/teachers";
-import { Message, MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
+import { Message, MessageKind, MESSAGE_KIND_META, COMPOSABLE_MESSAGE_KINDS, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
 import Avatar from "./Avatar";
 import { CoinIcon, HousePill, ItemStats, LevelPill, MessageAudienceBadge, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
 
@@ -66,7 +67,7 @@ export default function StudentDetails({
   /** Missões do professor do aluno. */
   missions: Mission[];
   messages: Message[];
-  onGrantItem: (item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) => void;
+  onGrantItem: (item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) => void;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
   onDeleteStudent: () => void;
@@ -82,6 +83,8 @@ export default function StudentDetails({
 }) {
   const [itemName, setItemName] = useState("");
   const [itemIcon, setItemIcon] = useState(DEFAULT_ITEM_ICON);
+  const [itemDescription, setItemDescription] = useState("");
+  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   const [itemRarity, setItemRarity] = useState<Rarity>("comum");
   const [itemValue, setItemValue] = useState(RARITY_DEFAULT_VALUE.comum);
   const [itemXp, setItemXp] = useState(0);
@@ -151,10 +154,12 @@ export default function StudentDetails({
   function handleGrant() {
     const name = itemName.trim();
     if (!name) return;
-    onGrantItem({ name, icon: itemIcon, rarity: itemRarity, value: itemValue, xp: itemXp });
-    setGrantedMsg(`${itemIcon || DEFAULT_ITEM_ICON} "${name}" entregue para ${student.name}.`);
+    if (!name || !itemDescription.trim()) return;
+    onGrantItem({ name, icon: itemIcon, description: itemDescription, rarity: itemRarity, value: itemValue, xp: itemXp });
+    setGrantedMsg(`${itemIcon || DEFAULT_ITEM_ICON} "${name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
     setTimeout(() => setGrantedMsg(null), 3000);
     setItemName("");
+    setItemDescription("");
   }
 
   function handleRemove(itemId: string) {
@@ -215,16 +220,16 @@ export default function StudentDetails({
           )}
 
           {composerOpen && (
-            <div className="mb-6 rounded-xl border border-slate-700 bg-[#0d0d14] p-4">
+            <div className="mb-6 rounded-xl border border-slate-700 bg-cg-sunken p-4">
               <SectionTitle>Nova mensagem para {student.name}</SectionTitle>
               <div className="mb-3 grid grid-cols-2 gap-2">
-                {(Object.keys(MESSAGE_KIND_META) as MessageKind[]).map((k) => (
+                {COMPOSABLE_MESSAGE_KINDS.map((k) => (
                   <button
                     key={k}
                     type="button"
                     onClick={() => setMessageKind(k)}
                     className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                      messageKind === k ? "border-white bg-white text-[#0a0a0f]" : "border-slate-700 text-slate-300 hover:border-slate-500"
+                      messageKind === k ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"
                     }`}
                   >
                     {MESSAGE_KIND_META[k].icon} {MESSAGE_KIND_META[k].label}
@@ -280,14 +285,14 @@ export default function StudentDetails({
           </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2">
+            <div className="rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2">
               <SectionTitle>Cadastro</SectionTitle>
               {teachers && onChangeTeacher && (
                 <InfoRow label="Professor">
                   <select
                     value={student.teacherId}
                     onChange={(e) => onChangeTeacher(e.target.value)}
-                    className="rounded-lg border border-slate-700 bg-[#0d0d14] px-2 py-1 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
+                    className="rounded-lg border border-slate-700 bg-cg-sunken px-2 py-1 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
                   >
                     {teachers.map((t) => (
                       <option key={t.id} value={t.id}>
@@ -302,7 +307,7 @@ export default function StudentDetails({
                   value={student.houseId ?? ""}
                   onChange={(e) => handleChangeHouse(e.target.value as HouseId)}
                   aria-label="Casa do aluno"
-                  className={`rounded-lg border border-slate-700 bg-[#0d0d14] px-2 py-1 text-sm focus:border-slate-400 focus:outline-none ${house ? house.colorClass : "text-slate-400"}`}
+                  className={`rounded-lg border border-slate-700 bg-cg-sunken px-2 py-1 text-sm focus:border-slate-400 focus:outline-none ${house ? house.colorClass : "text-slate-400"}`}
                 >
                   {!house && (
                     <option value="" disabled>
@@ -324,7 +329,7 @@ export default function StudentDetails({
               </InfoRow>
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2">
+            <div className="rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2">
               <SectionTitle>Avatar</SectionTitle>
               <InfoRow label="Tom de pele">
                 <span className="inline-flex items-center gap-2">
@@ -359,7 +364,7 @@ export default function StudentDetails({
             </div>
           </div>
 
-          <div className="mb-6 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+          <div className="mb-6 rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <SectionTitle>👤 Dados do aluno</SectionTitle>
               {!editingProfile && (
@@ -406,7 +411,7 @@ export default function StudentDetails({
             )}
           </div>
 
-          <div className="mb-6 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+          <div className="mb-6 rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <SectionTitle>🔑 Acesso do aluno</SectionTitle>
               {!editingAccess && (
@@ -478,18 +483,18 @@ export default function StudentDetails({
             ) : (
               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {inventory.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-lg">{item.icon}</div>
+                  <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2.5">
+                    <button type="button" onClick={() => setViewingItem(item)} title="Ver detalhes do item" className="flex min-w-0 items-center gap-3 text-left">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-cg-tile text-lg">{item.icon}</div>
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-medium text-white">{item.name}</p>
+                        <p className="truncate text-sm font-medium text-white hover:underline">{item.name}</p>
                         <div className="mt-0.5 flex items-center gap-2">
                           <RarityBadge rarity={item.rarity} />
                           <ItemStats value={item.value} xp={item.xp} />
                           <span className="text-[11px] text-slate-500">{formatDate(item.obtainedAt)}</span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                     <button
                       onClick={() => handleRemove(item.id)}
                       onBlur={() => setConfirmRemoveId((id) => (id === item.id ? null : id))}
@@ -508,13 +513,13 @@ export default function StudentDetails({
           </div>
 
           <div className="mb-6">
-            <SectionTitle>Mensagens enviadas ({messages.length})</SectionTitle>
+            <SectionTitle>Mensagens do aluno ({messages.length})</SectionTitle>
             {messages.length === 0 ? (
-              <p className="text-sm text-slate-500">Nenhuma mensagem enviada para este aluno ainda.</p>
+              <p className="text-sm text-slate-500">Este aluno ainda não recebeu nenhuma mensagem.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {messagesPager.pageItems.map((m) => (
-                  <div key={m.id} className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+                  <div key={m.id} className="rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3">
                     <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                       <span className="flex flex-wrap items-center gap-1.5">
                         <MessageKindBadge kind={m.kind} />
@@ -533,7 +538,7 @@ export default function StudentDetails({
             <PaginationFooter pager={messagesPager} noun="mensagens" />
           </div>
 
-          <div className="rounded-xl border border-slate-800 bg-[#0d0d14] p-4">
+          <div className="rounded-xl border border-slate-800 bg-cg-sunken p-4">
             <SectionTitle>Dar item</SectionTitle>
             <div className="flex flex-col gap-3">
               <input
@@ -544,6 +549,7 @@ export default function StudentDetails({
                   const known = missions.find((m) => m.rewardItem.name === e.target.value)?.rewardItem;
                   if (known) {
                     setItemIcon(known.icon);
+                    setItemDescription(known.description);
                     setItemRarity(known.rarity);
                     setItemValue(known.value);
                     setItemXp(known.xp);
@@ -567,12 +573,26 @@ export default function StudentDetails({
                     onClick={() => setItemRarity(r)}
                     title={`Valor sugerido: ${RARITY_DEFAULT_VALUE[r]} moedas`}
                     className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                      itemRarity === r ? "border-white bg-white text-[#0a0a0f]" : "border-slate-700 text-slate-300 hover:border-slate-500"
+                      itemRarity === r ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"
                     }`}
                   >
                     {RARITY_ICON[r]} {RARITY_META[r].label}
                   </button>
                 ))}
+              </div>
+              <div>
+                <textarea
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  maxLength={ITEM_DESCRIPTION_MAX_LENGTH}
+                  rows={2}
+                  placeholder="Descrição do item (aparece quando o aluno clica nele)"
+                  aria-label="Descrição do item"
+                  className="cg-input resize-y"
+                />
+                <p className="mt-1 text-right text-[11px] text-slate-500">
+                  {itemDescription.length}/{ITEM_DESCRIPTION_MAX_LENGTH}
+                </p>
               </div>
               <div>
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone do item</p>
@@ -588,7 +608,12 @@ export default function StudentDetails({
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs text-emerald-300">{grantedMsg}</p>
-                <button onClick={handleGrant} disabled={!itemName.trim()} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">
+                <button
+                  onClick={handleGrant}
+                  disabled={!itemName.trim() || !itemDescription.trim()}
+                  title={itemName.trim() && itemDescription.trim() ? undefined : "Preencha o nome e a descrição do item."}
+                  className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30"
+                >
                   🎁 Dar item
                 </button>
               </div>
@@ -596,6 +621,8 @@ export default function StudentDetails({
           </div>
         </div>
       </div>
+
+      {viewingItem && <ItemDetailsModal item={viewingItem} onClose={() => setViewingItem(null)} />}
     </div>
   );
 }

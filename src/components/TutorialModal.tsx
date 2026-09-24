@@ -35,7 +35,7 @@ export default function TutorialModal({ steps, label, onClose }: { steps: Tutori
         </div>
 
         <div className="px-6 py-6 text-center">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#1a1a24] text-3xl">{step.icon}</div>
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-cg-tile text-3xl">{step.icon}</div>
           <h2 className="text-lg font-bold text-white">{step.title}</h2>
           <p className="mt-3 text-sm leading-relaxed text-slate-300">{step.body}</p>
         </div>

@@ -20,11 +20,11 @@ export default function AcademiaLayout({ children }: { children: React.ReactNode
   }, [ready, activeStudent, router]);
 
   if (!ready || !activeStudent || activeStudent.onboardingStep !== "completo") {
-    return <div className="flex cg-screen items-center justify-center bg-[#08080c] text-sm text-slate-500">Carregando…</div>;
+    return <div className="flex cg-screen items-center justify-center bg-cg-bg text-sm text-slate-500">Carregando…</div>;
   }
 
   return (
-    <div className="cg-screen bg-[#08080c]">
+    <div className="cg-screen bg-cg-bg">
       <AcademyHeader student={activeStudent} />
       <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:flex-row">
         <AcademySidebar />

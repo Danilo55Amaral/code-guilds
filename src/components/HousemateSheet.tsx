@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
-import { Student } from "@/engine/students";
+import { useEffect, useState } from "react";
+import { InventoryItem, Student } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
+import ItemDetailsModal from "./ItemDetailsModal";
 import { CoinCount, HousePill, ItemStats, LevelPill, RarityBadge } from "./GameUI";
 
 // ============================================================================
@@ -17,11 +18,15 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
   // Mais recentes primeiro
   const inventory = [...student.inventory].sort((a, b) => b.obtainedAt.localeCompare(a.obtainedAt));
 
+  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
+
+  // Com o card de um item aberto, o Esc fecha só o item (o card cuida disso).
   useEffect(() => {
+    if (viewingItem) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, viewingItem]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
@@ -34,7 +39,7 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="relative mb-5 flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-800 bg-[#0d0d14] px-4 py-6">
+          <div className="relative mb-5 flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-800 bg-cg-sunken px-4 py-6">
             <div
               className="pointer-events-none absolute inset-0"
               style={{ background: `radial-gradient(60% 45% at 50% 35%, ${house?.hex ?? "#6366f1"}33, transparent)` }}
@@ -62,21 +67,31 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
           ) : (
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {inventory.map((item, i) => (
-                <div
+                <button
                   key={item.id}
-                  className="cg-anim-rise flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-[#0d0d14] p-3 text-center"
+                  type="button"
+                  onClick={() => setViewingItem(item)}
+                  title="Ver detalhes do item"
+                  className="cg-anim-rise flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-cg-sunken p-3 text-center transition-colors hover:border-slate-600"
                   style={{ animationDelay: `${0.1 + i * 0.05}s` }}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{item.icon}</div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cg-tile text-xl">{item.icon}</div>
                   <p className="text-xs font-semibold text-white">{item.name}</p>
                   <RarityBadge rarity={item.rarity} />
                   <ItemStats value={item.value} xp={item.xp} />
-                </div>
+                </button>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {viewingItem && (
+        // Fica dentro do fundo do perfil: sem parar o clique aqui, fechar o item fecharia o perfil também.
+        <div onClick={(e) => e.stopPropagation()}>
+          <ItemDetailsModal item={viewingItem} onClose={() => setViewingItem(null)} />
+        </div>
+      )}
     </div>
   );
 }

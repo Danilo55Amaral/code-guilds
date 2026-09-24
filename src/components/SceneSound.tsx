@@ -44,7 +44,7 @@ export function SoundToggleButton({ muted, onClick }: { muted: boolean; onClick:
     <button
       onClick={onClick}
       title={muted ? "Ligar o som" : "Desligar o som"}
-      className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-[#101018] text-sm transition-colors hover:border-slate-500"
+      className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-cg-card text-sm transition-colors hover:border-slate-500"
     >
       {muted ? "🔇" : "🔊"}
     </button>

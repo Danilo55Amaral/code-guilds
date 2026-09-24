@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
-import { MessageKind } from "@/engine/messages";
+import { MessageKind, itemGiftMessage } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
 import StudentList from "@/components/StudentList";
@@ -14,6 +14,7 @@ import MissionList from "@/components/MissionList";
 import StudentDetails from "@/components/StudentDetails";
 import BroadcastComposer from "@/components/BroadcastComposer";
 import TutorialModal from "@/components/TutorialModal";
+import ThemeToggle from "@/components/ThemeToggle";
 import { teacherTutorial } from "@/engine/tutorial";
 
 export default function PainelProfessorPage() {
@@ -63,9 +64,15 @@ export default function PainelProfessorPage() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
 
-  function handleGrantItem(item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) {
+  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
+    sendMessage({
+      studentId: selectedStudent.id,
+      senderId: teacher.id,
+      kind: "presente",
+      body: itemGiftMessage({ studentName: selectedStudent.name, item, giverName: teacher.name, giverRole: "professor" }),
+    });
   }
 
   function handleRemoveItem(itemId: string) {
@@ -122,7 +129,8 @@ export default function PainelProfessorPage() {
           <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Painel do Mestre • Professor {teacher.name}</p>
           <h1 className="text-2xl font-bold text-white">Visão Geral da Turma</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button onClick={() => setTutorialOpen(true)} className="cg-btn-secondary !px-4 !py-2 text-xs" title="Ver o tutorial do painel">
             ❓ Tutorial
           </button>

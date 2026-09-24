@@ -54,7 +54,7 @@ export default function TeacherList({
               <button
                 key={t.id}
                 onClick={() => onSelect(t)}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2.5 text-left transition-colors hover:border-slate-600"
               >
                 <div className="min-w-0">
                   <p className="flex items-center gap-2 text-sm font-medium text-white">

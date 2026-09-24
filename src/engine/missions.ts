@@ -26,6 +26,7 @@ export const RARITY_DEFAULT_VALUE: Record<Rarity, number> = { comum: 10, raro: 3
 export interface RewardItem {
   name: string;
   icon: string; // emoji escolhido pelo professor
+  description: string; // aparece no card do item; "" = item antigo, sem descrição
   rarity: Rarity;
   value: number;
   xp: number;
@@ -34,11 +35,21 @@ export interface RewardItem {
 /** Ícone sugerido pra um item novo (o professor troca no seletor de emojis). */
 export const DEFAULT_ITEM_ICON = "🎁";
 
-/** Completa itens salvos antes de existir valor/XP/ícone — os sem ícone ficam com o da raridade, como antes. */
-export function normalizeRewardItem(item: { name: string; rarity: Rarity; icon?: string; value?: number; xp?: number }): RewardItem {
+export const ITEM_DESCRIPTION_MAX_LENGTH = 300;
+
+/** Completa itens salvos antes de existir valor/XP/ícone/descrição — os sem ícone ficam com o da raridade, como antes. */
+export function normalizeRewardItem(item: {
+  name: string;
+  rarity: Rarity;
+  icon?: string;
+  description?: string;
+  value?: number;
+  xp?: number;
+}): RewardItem {
   return {
     ...item,
     icon: item.icon || RARITY_ICON[item.rarity] || DEFAULT_ITEM_ICON,
+    description: item.description ?? "",
     value: item.value ?? RARITY_DEFAULT_VALUE[item.rarity] ?? 10,
     xp: item.xp ?? 0,
   };
@@ -93,7 +104,14 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Domine let, const e os tipos primitivos",
     rewardXp: 120,
     rewardCoins: 50,
-    rewardItem: { name: "Fragmento de Código", icon: "💾", rarity: "comum", value: 15, xp: 40 },
+    rewardItem: {
+      name: "Fragmento de Código",
+      icon: "💾",
+      description: "Um pedaço de código esquecido no Vazio. Usar libera o conhecimento guardado nele em forma de XP.",
+      rarity: "comum",
+      value: 15,
+      xp: 40,
+    },
     questions: [
       {
         id: "q1",
@@ -132,7 +150,14 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "For, while e a arte de não travar o navegador",
     rewardXp: 200,
     rewardCoins: 90,
-    rewardItem: { name: "Anel do Iterador", icon: "💍", rarity: "raro", value: 40, xp: 0 },
+    rewardItem: {
+      name: "Anel do Iterador",
+      icon: "💍",
+      description: "Forjado num loop que quase nunca terminou. Quem o usa percorre qualquer lista sem perder um elemento.",
+      rarity: "raro",
+      value: 40,
+      xp: 0,
+    },
     questions: [
       {
         id: "q1",
@@ -171,7 +196,14 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Async/Await e o reino das Promises",
     rewardXp: 350,
     rewardCoins: 150,
-    rewardItem: { name: "Orbe Async", icon: "🔮", rarity: "epico", value: 90, xp: 150 },
+    rewardItem: {
+      name: "Orbe Async",
+      icon: "🔮",
+      description: "Uma esfera que promete poder… e cumpre, mas só quando estiver pronta. Usar resolve a promessa em XP.",
+      rarity: "epico",
+      value: 90,
+      xp: 150,
+    },
     questions: [
       {
         id: "q1",
@@ -209,7 +241,14 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Manipule a realidade da página",
     rewardXp: 500,
     rewardCoins: 250,
-    rewardItem: { name: "Coroa do Frontend", icon: "👑", rarity: "lendario", value: 250, xp: 0 },
+    rewardItem: {
+      name: "Coroa do Frontend",
+      icon: "👑",
+      description: "Símbolo de quem domina o DOM. Dizem que quem a usa enxerga cada elemento da página antes de ele ser renderizado.",
+      rarity: "lendario",
+      value: 250,
+      xp: 0,
+    },
     questions: [
       {
         id: "q1",

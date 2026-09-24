@@ -36,7 +36,7 @@ export default function EmojiPicker({
   const group = EMOJI_GROUPS[groupIndex];
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-[#0d0d14] p-3">
+    <div className="rounded-xl border border-slate-700 bg-cg-sunken p-3">
       <div className="mb-3 flex flex-wrap gap-1">
         {EMOJI_GROUPS.map((g, i) => (
           <button
@@ -44,7 +44,7 @@ export default function EmojiPicker({
             type="button"
             onClick={() => setGroupIndex(i)}
             className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
-              i === groupIndex ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+              i === groupIndex ? "bg-white text-cg-ink" : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
             }`}
           >
             {g.label}
@@ -70,7 +70,7 @@ export default function EmojiPicker({
       </div>
 
       <div className="mt-3 flex items-center gap-2 border-t border-slate-800 pt-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-xl" title="Ícone escolhido">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cg-tile text-xl" title="Ícone escolhido">
           {value || "🧩"}
         </span>
         <input

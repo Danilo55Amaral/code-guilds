@@ -7,10 +7,12 @@
 // do comprador, paga o vendedor e entrega o item; recusar (ou o vendedor
 // cancelar) devolve o item pro vendedor. Assim ninguém recebe item nem perde
 // moedas sem concordar, e o mesmo item não pode ser vendido duas vezes.
+// Quando a compra fecha, comprador e vendedor recebem uma mensagem automática.
 // ============================================================================
 
 import { InventoryItem, getStudent, updateStudent } from "./students";
 import { normalizeRewardItem } from "./missions";
+import { SYSTEM_SENDER_ID, sendMessage, purchaseMessage, saleMessage } from "./messages";
 
 export interface Offer {
   id: string;
@@ -100,6 +102,22 @@ export function acceptOffer(offerId: string): MarketResult {
   });
   if (seller) updateStudent(seller.id, { coins: seller.coins + offer.price });
   writeAll(readAll().filter((o) => o.id !== offerId));
+
+  // Os dois lados recebem a confirmação na caixa de mensagens (e no sino).
+  sendMessage({
+    studentId: buyer.id,
+    senderId: SYSTEM_SENDER_ID,
+    kind: "compra",
+    body: purchaseMessage({ item: offer.item, sellerName: seller?.name ?? "um colega", price: offer.price }),
+  });
+  if (seller) {
+    sendMessage({
+      studentId: seller.id,
+      senderId: SYSTEM_SENDER_ID,
+      kind: "venda",
+      body: saleMessage({ item: offer.item, buyerName: buyer.name, price: offer.price }),
+    });
+  }
   return { ok: true };
 }
 

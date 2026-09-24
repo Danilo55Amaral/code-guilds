@@ -12,7 +12,7 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="flex cg-screen items-center justify-center bg-[#08080c]">
+    <div className="flex cg-screen items-center justify-center bg-cg-bg">
       <p className="font-mono text-sm text-slate-500">Carregando…</p>
     </div>
   );

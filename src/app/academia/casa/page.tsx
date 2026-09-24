@@ -45,7 +45,7 @@ export default function CasaPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] p-3">
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-cg-sunken p-3">
           <Avatar config={activeStudent.avatar} ringColor={house.hex} size={48} />
           <div>
             <p className="text-sm font-semibold text-white">
@@ -82,7 +82,7 @@ export default function CasaPage() {
                 key={s.id}
                 onClick={() => setViewingId(s.id)}
                 className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-left transition-colors ${
-                  isYou ? "bg-white text-[#0a0a0f]" : "text-slate-300 hover:bg-white/5"
+                  isYou ? "bg-white text-cg-ink" : "text-slate-300 hover:bg-white/5"
                 }`}
               >
                 <span className="flex min-w-0 items-center gap-2 text-sm">

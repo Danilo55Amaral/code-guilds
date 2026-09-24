@@ -8,22 +8,22 @@
   }
 
   body {
-    @apply h-full bg-[#08080c] text-slate-100 antialiased;
+    @apply h-full bg-cg-bg text-slate-100 antialiased;
     background-image: radial-gradient(60% 50% at 50% 0%, rgba(99, 102, 241, 0.08), transparent 60%);
   }
 }
 
 @layer components {
   .cg-card {
-    @apply rounded-2xl border border-slate-800 bg-[#101018];
+    @apply rounded-2xl border border-slate-800 bg-cg-card;
   }
 
   .cg-btn-primary {
-    @apply rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#0a0a0f] transition-transform hover:scale-[1.02] active:scale-[0.99];
+    @apply rounded-full bg-white px-5 py-3 text-sm font-semibold text-cg-ink transition-transform hover:scale-[1.02] active:scale-[0.99];
   }
 
   .cg-btn-secondary {
-    @apply rounded-full border border-slate-700 bg-[#12121a] px-5 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500;
+    @apply rounded-full border border-slate-700 bg-cg-raised px-5 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500;
   }
 
   /* Tela cheia descontando o rodapé de copyright (3rem, no layout raiz). */
@@ -32,7 +32,7 @@
   }
 
   .cg-input {
-    @apply w-full rounded-xl border border-slate-700 bg-[#0d0d14] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-400 focus:outline-none;
+    @apply w-full rounded-xl border border-slate-700 bg-cg-sunken px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-400 focus:outline-none;
   }
 }
 
@@ -202,9 +202,12 @@
   width: 6px;
 }
 ::-webkit-scrollbar-track {
-  background-color: #08080c;
+  background-color: rgb(var(--cg-c-cg-bg, 8 8 12));
 }
 ::-webkit-scrollbar-thumb {
-  background-color: #33333f;
+  background-color: var(--cg-scrollbar-thumb, #33333f);
   border-radius: 10px;
+}
+html.light {
+  --cg-scrollbar-thumb: #c5cad6;
 }

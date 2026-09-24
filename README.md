@@ -35,6 +35,7 @@ src/
     missions.ts    -> missões e seus quizzes (dados estáticos, editados em código por enquanto)
     students.ts     -> cadastro de aluno, login/senha e sessão, professor do aluno, XP/nível/moedas, inventário
     tutorial.ts     -> passos do tutorial de primeiro acesso (aluno e professor)
+    theme.ts        -> tema escuro/claro salvo no navegador (classe `light` no <html>)
     teachers.ts     -> cadastro de professores (semeado com o Danilo, que é o ADM), login e sessão do professor
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
@@ -54,6 +55,7 @@ src/
     ComingSoon.tsx      -> placeholder "em breve" das telas ainda não construídas
     Pagination.tsx      -> controles de paginação (Anterior/números/Próxima) + usePagination() e PaginationFooter ("Mostrando 1–10 de N"), reutilizáveis
     SearchInput.tsx     -> campo de busca com lupa
+    ItemDetailsModal.tsx -> card grande de um item (ícone, raridade, valor/XP, descrição), aberto ao clicar no item
     StudentList.tsx, MissionList.tsx, TeacherList.tsx -> listas com busca e paginação dos painéis do professor e do ADM
     HousemateSheet.tsx  -> perfil de um colega da mesma casa (avatar, nome, nível, moedas e itens — sem dados pessoais)
     SellItemModal.tsx   -> janela de venda de um item (pro sistema ou oferta pra um colega)
@@ -65,6 +67,7 @@ src/
     TeacherLoginCard.tsx -> tela de login compartilhada entre /professor e /admin
     TeacherEditor.tsx   -> cadastro/edição/exclusão de professor no Painel ADM
     TutorialModal.tsx   -> tour em passos do primeiro acesso (aluno e professor), com "Pular tutorial"
+    ThemeToggle.tsx     -> botão ☀️/🌙 de tema claro/escuro (+ versão flutuante pras telas sem cabeçalho)
     EmojiPicker.tsx     -> escolha do ícone de missão e de item: 112 emojis em 7 categorias (Itens, Magia, Batalha, Código, Estudo, Criaturas, Outros) + campo pra colar outro
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
   app/
@@ -78,6 +81,15 @@ public/
 ```
 
 ## O que já funciona de verdade
+
+- Tema claro e escuro — o escuro continua sendo o padrão, idêntico ao de antes. O botão ☀️/🌙 (no cabeçalho da Academia, no Painel do Mestre, no Painel ADM e flutuando no canto das telas de login/cadastro/casa/avatar) alterna os temas: no escuro mostra o sol (vai pro claro), no claro mostra a lua (volta pro escuro). A escolha fica salva no navegador e é aplicada antes da página aparecer (sem "piscar"). Como funciona: em `tailwind.config.ts` cada cor da paleta lê uma variável CSS cujo padrão é a cor do tema escuro; a classe `light` no `<html>` só troca essas variáveis. As cenas de vitória, derrota e subir de nível continuam escuras nos dois temas (`.cg-dark-scope`)
+
+- Mensagens automáticas de missão, compra e venda — ao passar numa missão, o aluno recebe uma mensagem ⚔️ Missão com o nome daquela missão e o item, XP e moedas que ela deu; quando um colega compra um item, o comprador recebe 🛒 Compra ("comprado com sucesso de Fulano") e o vendedor recebe 💰 Venda ("vendido com sucesso pra Fulano"). As de compra/venda são geradas no próprio `acceptOffer()` do mercado
+- Filtro por tipo na página Mensagens do aluno — Todas, Avisos, Mensagens, Presentes, Missões, Compras e Vendas, cada um com contagem e um pontinho quando há não lidas; combinado com a paginação (10 por página), e trocar de filtro volta pra página 1
+
+- Mensagem de parabéns ao ganhar item — quando o professor ou o ADM dá um item pela ficha do aluno, o aluno recebe automaticamente uma mensagem do tipo 🎁 Presente (no sino e em Mensagens) com o item, a raridade e quem deu: "pelo Professor X" (Painel do Mestre) ou "pela Administração da Academia (ADM X)" (Painel ADM). O tipo Presente não aparece pra escolha ao escrever mensagens/comunicados — é só automático
+
+- Descrição e card de item — todo item novo tem descrição obrigatória (até 300 caracteres), escrita pelo professor no editor de missão (item de recompensa) e no "Dar item" da ficha do aluno. Clicar num item abre um card maior com ícone, raridade, valor/XP, a descrição e a data em que foi obtido: no Inventário (itens, ofertas recebidas e enviadas), no perfil de um colega de casa, na ficha do aluno nos painéis e no item de recompensa da lista de Missões. Fecha no ✕, no Esc ou clicando fora. Itens antigos mostram "Este item ainda não tem descrição"; missões antigas precisam ganhar a descrição do item pra serem salvas de novo no editor
 
 - Edição dos dados do aluno — na ficha do aluno (Painel do Mestre e Painel ADM), a seção "👤 Dados do aluno" tem ✏️ Alterar pra trocar nome (o que aparece junto do avatar, no ranking e nos painéis), e-mail e turma, com validação de nome e turma obrigatórios e e-mail válido. Cada professor só edita os próprios alunos; o ADM edita qualquer um
 - Troca de casa pelo professor/ADM — na seção Cadastro da ficha do aluno, a casa é um seletor: trocar move o aluno na hora (ranking, pontos das casas, contagem por casa e comunicados por casa). Se o aluno ainda estava escolhendo a casa no primeiro acesso, a escolha do professor vale e ele segue direto pro avatar

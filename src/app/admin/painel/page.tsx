@@ -7,7 +7,7 @@ import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/sto
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
-import { MessageKind } from "@/engine/messages";
+import { MessageKind, itemGiftMessage } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
 import StudentList from "@/components/StudentList";
@@ -15,6 +15,7 @@ import MissionList from "@/components/MissionList";
 import TeacherList from "@/components/TeacherList";
 import StudentDetails from "@/components/StudentDetails";
 import TeacherEditor from "@/components/TeacherEditor";
+import ThemeToggle from "@/components/ThemeToggle";
 
 type Tab = "professores" | "alunos" | "missoes";
 
@@ -91,9 +92,15 @@ export default function PainelAdminPage() {
 
   // ---- alunos ----
 
-  function handleGrantItem(item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) {
+  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
+    sendMessage({
+      studentId: selectedStudent.id,
+      senderId: admin.id,
+      kind: "presente",
+      body: itemGiftMessage({ studentName: selectedStudent.name, item, giverName: admin.name, giverRole: "adm" }),
+    });
   }
 
   function handleRemoveItem(itemId: string) {
@@ -147,7 +154,7 @@ export default function PainelAdminPage() {
     <select
       value={teacherFilter}
       onChange={(e) => setTeacherFilter(e.target.value)}
-      className="rounded-lg border border-slate-700 bg-[#0d0d14] px-3 py-1.5 text-xs text-slate-100 focus:border-slate-400 focus:outline-none"
+      className="rounded-lg border border-slate-700 bg-cg-sunken px-3 py-1.5 text-xs text-slate-100 focus:border-slate-400 focus:outline-none"
     >
       <option value={ALL_TEACHERS}>Todos os professores</option>
       {teachers.map((t) => (
@@ -165,7 +172,8 @@ export default function PainelAdminPage() {
           <p className="text-[11px] font-medium uppercase tracking-wider text-violet-300">🛡 Painel ADM • {admin.name}</p>
           <h1 className="text-2xl font-bold text-white">Visão Geral da Plataforma</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Link href="/professor/painel" className="cg-btn-secondary !px-4 !py-2 text-xs">
             Meu painel de professor
           </Link>
@@ -194,13 +202,13 @@ export default function PainelAdminPage() {
         ))}
       </div>
 
-      <div className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-800 bg-[#101018] p-1">
+      <div className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
         {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-              tab === t ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:text-slate-200"
+              tab === t ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             {TAB_LABELS[t]}

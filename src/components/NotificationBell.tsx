@@ -44,11 +44,11 @@ export default function NotificationBell({ studentId }: { studentId: string }) {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label={unreadCount > 0 ? `Notificações: ${unreadCount} não ${unreadCount === 1 ? "lida" : "lidas"}` : "Notificações"}
-        className="relative flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-[#101018] text-sm transition-colors hover:border-slate-500"
+        className="relative flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-cg-card text-sm transition-colors hover:border-slate-500"
       >
         🔔
         {unreadCount > 0 && (
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-cg-onaccent">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
@@ -75,7 +75,7 @@ export default function NotificationBell({ studentId }: { studentId: string }) {
                 <button
                   key={m.id}
                   onClick={() => openMessage(m.id)}
-                  className={`flex w-full gap-3 border-b border-slate-800/60 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-[#15151f] ${
+                  className={`flex w-full gap-3 border-b border-slate-800/60 px-4 py-3 text-left transition-colors last:border-b-0 hover:bg-cg-hover ${
                     m.readAt ? "" : "bg-violet-500/5"
                   }`}
                 >
@@ -98,7 +98,7 @@ export default function NotificationBell({ studentId }: { studentId: string }) {
           <Link
             href={MESSAGES_HREF}
             onClick={() => setOpen(false)}
-            className="block border-t border-slate-800 px-4 py-2.5 text-center text-xs font-medium text-slate-300 hover:bg-[#15151f]"
+            className="block border-t border-slate-800 px-4 py-2.5 text-center text-xs font-medium text-slate-300 hover:bg-cg-hover"
           >
             Ver todas as mensagens →
           </Link>

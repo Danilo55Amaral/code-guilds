@@ -8,6 +8,7 @@ import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components
 import Avatar from "@/components/Avatar";
 import CharacterSheet from "@/components/CharacterSheet";
 import SellItemModal from "@/components/SellItemModal";
+import ItemDetailsModal from "@/components/ItemDetailsModal";
 import LevelUpScreen from "@/components/LevelUpScreen";
 
 export default function InventarioPage() {
@@ -19,6 +20,7 @@ export default function InventarioPage() {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: "ok" | "erro" } | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
+  const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   if (!activeStudent) return null;
 
   const me = activeStudent;
@@ -105,7 +107,7 @@ export default function InventarioPage() {
             </span>
           </div>
         </div>
-        <span className="relative shrink-0 rounded-full border border-slate-700 bg-[#12121a] px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors group-hover:border-slate-500">
+        <span className="relative shrink-0 rounded-full border border-slate-700 bg-cg-raised px-3 py-1.5 text-xs font-semibold text-slate-200 transition-colors group-hover:border-slate-500">
           📜 Ver ficha
         </span>
       </button>
@@ -128,11 +130,20 @@ export default function InventarioPage() {
             {received.map((o) => {
               const canAfford = me.coins >= o.price;
               return (
-                <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
+                <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2.5">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{o.item.icon}</div>
+                    <button
+                      type="button"
+                      onClick={() => setViewingItem(o.item)}
+                      title="Ver detalhes do item"
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cg-tile text-xl transition-transform hover:scale-110"
+                    >
+                      {o.item.icon}
+                    </button>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{o.item.name}</p>
+                      <button type="button" onClick={() => setViewingItem(o.item)} className="block max-w-full truncate text-sm font-semibold text-white hover:underline">
+                        {o.item.name}
+                      </button>
                       <p className="text-[11px] text-slate-400">
                         {nameOf(o.sellerId)} quer vender por{" "}
                         <span className="inline-flex items-center gap-0.5 font-semibold text-amber-300">
@@ -179,14 +190,22 @@ export default function InventarioPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {me.inventory.map((item) => (
             <div key={item.id} className="cg-card flex flex-col items-center gap-2 p-4 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{item.icon}</div>
-              <p className="text-sm font-semibold text-white">{item.name}</p>
-              <RarityBadge rarity={item.rarity} />
-              <ItemStats value={item.value} xp={item.xp} />
+              <button
+                type="button"
+                onClick={() => setViewingItem(item)}
+                title="Ver detalhes do item"
+                className="group flex w-full flex-col items-center gap-2 rounded-xl"
+              >
+                <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cg-tile text-2xl transition-transform group-hover:scale-110">{item.icon}</div>
+                <p className="text-sm font-semibold text-white group-hover:underline">{item.name}</p>
+                <RarityBadge rarity={item.rarity} />
+                <ItemStats value={item.value} xp={item.xp} />
+                <span className="text-[10px] text-slate-500">🔍 Ver detalhes</span>
+              </button>
 
               <div className="mt-auto flex w-full flex-col gap-1.5 pt-2">
                 {item.xp > 0 && (
-                  <button onClick={() => consume(item)} className="rounded-lg bg-violet-500 px-2 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-violet-400">
+                  <button onClick={() => consume(item)} className="rounded-lg bg-violet-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-violet-400">
                     ✨ Usar (+{item.xp} XP)
                   </button>
                 )}
@@ -222,11 +241,14 @@ export default function InventarioPage() {
           <p className="mb-3 text-sm font-semibold text-slate-300">📤 Suas ofertas aguardando resposta ({sent.length})</p>
           <div className="flex flex-col gap-2">
             {sent.map((o) => (
-              <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
+              <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2.5">
                 <p className="flex min-w-0 items-center gap-2 text-sm text-slate-300">
                   <span className="text-lg">{o.item.icon}</span>
                   <span className="truncate">
-                    <span className="font-semibold text-white">{o.item.name}</span> para {nameOf(o.buyerId)} por{" "}
+                    <button type="button" onClick={() => setViewingItem(o.item)} className="font-semibold text-white hover:underline">
+                      {o.item.name}
+                    </button>{" "}
+                    para {nameOf(o.buyerId)} por{" "}
                     <span className="inline-flex items-center gap-0.5 font-semibold text-amber-300">
                       <CoinIcon size={12} /> {o.price}
                     </span>
@@ -250,6 +272,8 @@ export default function InventarioPage() {
           onClose={() => setSelling(null)}
         />
       )}
+
+      {viewingItem && <ItemDetailsModal item={viewingItem} onClose={() => setViewingItem(null)} />}
 
       {levelUp && (
         <LevelUpScreen

@@ -32,7 +32,7 @@ export default function MusicToggle() {
       title={on ? "Desligar a música" : "Ligar a música"}
       aria-label={on ? "Desligar a música" : "Ligar a música"}
       aria-pressed={on}
-      className={`relative flex h-8 w-8 items-center justify-center rounded-full border bg-[#101018] text-sm transition-colors hover:border-slate-500 ${
+      className={`relative flex h-8 w-8 items-center justify-center rounded-full border bg-cg-card text-sm transition-colors hover:border-slate-500 ${
         on ? "border-violet-500/50" : "border-slate-700"
       }`}
     >

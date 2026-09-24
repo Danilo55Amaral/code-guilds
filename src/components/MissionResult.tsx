@@ -106,7 +106,7 @@ function TreasureChest({ itemIcon }: { itemIcon: string }) {
       </div>
 
       {/* item subindo de dentro do baú */}
-      <div className="cg-anim-item-rise absolute left-1/2 top-10 z-10 -ml-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/40 bg-[#1a1a24] text-3xl shadow-[0_0_30px_rgba(251,191,36,0.6)]">
+      <div className="cg-anim-item-rise absolute left-1/2 top-10 z-10 -ml-7 flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-300/40 bg-cg-tile text-3xl shadow-[0_0_30px_rgba(251,191,36,0.6)]">
         {itemIcon}
       </div>
 
@@ -164,7 +164,7 @@ export function VictoryScreen({
   const sound = useSceneSound(playVictoryFanfare);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
       <Confetti />
       <div
         className="cg-card cg-anim-pop relative w-full max-w-md overflow-hidden p-8 text-center"
@@ -192,7 +192,7 @@ export function VictoryScreen({
                 <CoinIcon size={18} /> +{coins}
               </p>
             </div>
-            <div className={`cg-anim-rise rounded-xl border bg-[#0d0d14] p-3 ${rarity.borderClass}`} style={{ animationDelay: "1.9s" }}>
+            <div className={`cg-anim-rise rounded-xl border bg-cg-sunken p-3 ${rarity.borderClass}`} style={{ animationDelay: "1.9s" }}>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Item</p>
               <p className={`mt-1 text-xs font-bold ${rarity.colorClass}`}>{mission.rewardItem.name}</p>
               <div className="mt-1">
@@ -288,7 +288,7 @@ export function DefeatScreen({
   const sound = useSceneSound(playDeathSound);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
       {/* vinheta vermelha pulsando e o corte da foice atravessando a tela */}
       <div
         className="cg-anim-red-flash pointer-events-none fixed inset-0 bg-[radial-gradient(circle,transparent_35%,rgba(127,29,29,0.75))]"
@@ -299,7 +299,7 @@ export function DefeatScreen({
       </div>
 
       <div className="cg-anim-shake w-full max-w-md">
-        <div className="cg-card relative overflow-hidden !border-rose-900/60 !bg-[#0b0b10] p-8 text-center">
+        <div className="cg-card relative overflow-hidden !border-rose-900/60 !bg-cg-deep p-8 text-center">
           {/* névoa no pé da cena */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 overflow-hidden" aria-hidden="true">
             <div className="cg-anim-fog absolute -left-1/4 bottom-[-40px] h-32 w-[150%] rounded-full bg-slate-400/10 blur-2xl" />

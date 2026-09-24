@@ -88,7 +88,7 @@ export default function CharacterSheet({
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-[220px_minmax(0,1fr)]">
             {/* avatar animado, igual à prévia do editor */}
-            <div className="relative flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-800 bg-[#0d0d14] px-4 py-6">
+            <div className="relative flex flex-col items-center gap-3 overflow-hidden rounded-2xl border border-slate-800 bg-cg-sunken px-4 py-6">
               <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(60% 45% at 50% 35%, ${glow}33, transparent)` }} />
               <div className="relative cg-anim-float">
                 <Avatar config={av} ringColor={house?.hex} size={168} />
@@ -105,7 +105,7 @@ export default function CharacterSheet({
             <div className="flex min-w-0 flex-col gap-4">
               {/* progresso */}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Stat label="Nível" value={<span className="text-white">{student.level}</span>} className="border-slate-700 bg-[#0d0d14]" delay="0.1s" />
+                <Stat label="Nível" value={<span className="text-white">{student.level}</span>} className="border-slate-700 bg-cg-sunken" delay="0.1s" />
                 <Stat
                   label="XP adquirido"
                   value={<span className="text-violet-300">{totalXp(student.level, student.xp)}</span>}
@@ -134,7 +134,7 @@ export default function CharacterSheet({
                 />
               </div>
 
-              <div className="cg-anim-rise rounded-xl border border-slate-800 bg-[#0d0d14] p-4" style={{ animationDelay: "0.5s" }}>
+              <div className="cg-anim-rise rounded-xl border border-slate-800 bg-cg-sunken p-4" style={{ animationDelay: "0.5s" }}>
                 <div className="mb-2 flex items-center justify-between text-xs">
                   <span className="text-slate-400">Progresso para o nível {student.level + 1}</span>
                   <span className="tabular-nums text-slate-300">
@@ -145,7 +145,7 @@ export default function CharacterSheet({
                 <p className="mt-2 text-[11px] text-slate-500">Faltam {xpToNextLevel(student.level) - student.xp} XP para subir de nível.</p>
               </div>
 
-              <div className="cg-anim-rise rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2" style={{ animationDelay: "0.6s" }}>
+              <div className="cg-anim-rise rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2" style={{ animationDelay: "0.6s" }}>
                 <SectionTitle>Identificação</SectionTitle>
                 <InfoRow label="Nome">{student.name}</InfoRow>
                 <InfoRow label="E-mail">{student.email}</InfoRow>
@@ -165,7 +165,7 @@ export default function CharacterSheet({
           </div>
 
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="cg-anim-rise rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3" style={{ animationDelay: "0.7s" }}>
+            <div className="cg-anim-rise rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3" style={{ animationDelay: "0.7s" }}>
               <SectionTitle>Itens por raridade ({student.inventory.length} no total)</SectionTitle>
               <div className="grid grid-cols-2 gap-2">
                 {itemsByRarity.map(({ rarity, count }) => (
@@ -179,7 +179,7 @@ export default function CharacterSheet({
               </div>
             </div>
 
-            <div className="cg-anim-rise rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2" style={{ animationDelay: "0.8s" }}>
+            <div className="cg-anim-rise rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2" style={{ animationDelay: "0.8s" }}>
               <SectionTitle>Visual do avatar</SectionTitle>
               <InfoRow label="Cabelo">
                 <span className="inline-flex items-center gap-2">

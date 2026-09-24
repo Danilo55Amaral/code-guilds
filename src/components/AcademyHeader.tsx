@@ -10,6 +10,7 @@ import { STUDENT_TUTORIAL } from "@/engine/tutorial";
 import Avatar from "./Avatar";
 import NotificationBell from "./NotificationBell";
 import MusicToggle from "./MusicToggle";
+import ThemeToggle from "./ThemeToggle";
 import TutorialModal from "./TutorialModal";
 import { CoinCount, HouseAnimalIcon, LevelPill, XPBar } from "./GameUI";
 
@@ -31,7 +32,7 @@ export default function AcademyHeader({ student }: { student: Student }) {
   }
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-[#0a0a0f] px-4 py-3 sm:px-6">
+    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-cg-header px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
         <Avatar config={student.avatar} ringColor={house?.hex} size={44} />
         <div>
@@ -58,8 +59,9 @@ export default function AcademyHeader({ student }: { student: Student }) {
         <CoinCount coins={student.coins} />
         <NotificationBell studentId={student.id} />
         <MusicToggle />
+        <ThemeToggle />
         {house && (
-          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-[#101018] text-sm" title={house.name}>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-700 bg-cg-card text-sm" title={house.name}>
             <HouseAnimalIcon house={house} size={18} />
           </span>
         )}

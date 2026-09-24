@@ -52,7 +52,7 @@ export default function TeacherLoginCard({ variant }: { variant: keyof typeof VA
     <div className="flex cg-screen items-center justify-center px-4 py-12">
       <div className="cg-card w-full max-w-md p-8">
         <div className="mb-6 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-[#0a0a0f]">{v.badge}</div>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-cg-ink">{v.badge}</div>
           <div>
             <p className="text-sm font-bold text-white">{v.title}</p>
             <p className="text-xs text-slate-500">{v.subtitle}</p>
@@ -83,11 +83,11 @@ export default function TeacherLoginCard({ variant }: { variant: keyof typeof VA
         </form>
 
         <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-slate-800 bg-[#0d0d14] p-3">
+          <div className="rounded-lg border border-slate-800 bg-cg-sunken p-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-500">Professor Danilo (ADM)</p>
             <p className="mt-0.5 text-xs font-mono text-slate-300">{DEMO_EMAIL}</p>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-[#0d0d14] p-3">
+          <div className="rounded-lg border border-slate-800 bg-cg-sunken p-3">
             <p className="text-[10px] uppercase tracking-wider text-slate-500">Senha / Código</p>
             <p className="mt-0.5 text-xs font-mono text-slate-300">
               {DEMO_PASSWORD} • {MASTER_CODE}

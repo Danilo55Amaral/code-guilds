@@ -43,7 +43,7 @@ function Swatch({ color, label, selected, onClick }: { color: string; label: str
       aria-label={label}
       aria-pressed={selected}
       className={`h-9 w-9 rounded-full border border-black/30 transition-transform hover:scale-110 ${
-        selected ? "ring-2 ring-white ring-offset-2 ring-offset-[#101018]" : ""
+        selected ? "ring-2 ring-white ring-offset-2 ring-offset-cg-card" : ""
       }`}
       style={{ backgroundColor: color }}
     />
@@ -71,7 +71,7 @@ function OptionTile({
       onClick={onClick}
       aria-pressed={selected}
       className={`flex flex-col items-center gap-1.5 rounded-xl border p-2 transition-colors ${
-        selected ? "border-white bg-white/10" : "border-slate-800 bg-[#0d0d14] hover:border-slate-600"
+        selected ? "border-white bg-white/10" : "border-slate-800 bg-cg-sunken hover:border-slate-600"
       }`}
     >
       <Avatar config={preview} size={56} framing={framing} ringColor={selected ? ringColor : undefined} />
@@ -161,13 +161,13 @@ export default function AvatarPage() {
 
         {/* editor */}
         <div className="cg-card flex flex-col gap-5 p-5 sm:p-6">
-          <div className="flex flex-wrap gap-1 rounded-xl border border-slate-800 bg-[#0d0d14] p-1">
+          <div className="flex flex-wrap gap-1 rounded-xl border border-slate-800 bg-cg-sunken p-1">
             {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
                 className={`flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
-                  tab === t ? "bg-white text-[#0a0a0f]" : "text-slate-400 hover:text-slate-200"
+                  tab === t ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 {TAB_LABELS[t]}

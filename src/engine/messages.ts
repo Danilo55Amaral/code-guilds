@@ -8,13 +8,75 @@
 
 import { HouseId, getHouse } from "./houses";
 import { DEFAULT_TEACHER_ID } from "./teachers";
+import { Rarity, RARITY_META } from "./missions";
 
-export type MessageKind = "aviso" | "mensagem";
+export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda";
 
-export const MESSAGE_KIND_META: Record<MessageKind, { label: string; icon: string; colorClass: string; borderClass: string; bgClass: string }> = {
-  aviso: { label: "Aviso", icon: "⚠️", colorClass: "text-amber-300", borderClass: "border-amber-500/40", bgClass: "bg-amber-500/10" },
-  mensagem: { label: "Mensagem", icon: "💬", colorClass: "text-sky-300", borderClass: "border-sky-500/40", bgClass: "bg-sky-500/10" },
+export const MESSAGE_KIND_META: Record<MessageKind, { label: string; plural: string; icon: string; colorClass: string; borderClass: string; bgClass: string }> = {
+  aviso: { label: "Aviso", plural: "Avisos", icon: "⚠️", colorClass: "text-amber-300", borderClass: "border-amber-500/40", bgClass: "bg-amber-500/10" },
+  mensagem: { label: "Mensagem", plural: "Mensagens", icon: "💬", colorClass: "text-sky-300", borderClass: "border-sky-500/40", bgClass: "bg-sky-500/10" },
+  presente: { label: "Presente", plural: "Presentes", icon: "🎁", colorClass: "text-emerald-300", borderClass: "border-emerald-500/40", bgClass: "bg-emerald-500/10" },
+  missao: { label: "Missão", plural: "Missões", icon: "⚔️", colorClass: "text-violet-300", borderClass: "border-violet-500/40", bgClass: "bg-violet-500/10" },
+  compra: { label: "Compra", plural: "Compras", icon: "🛒", colorClass: "text-cyan-300", borderClass: "border-cyan-500/40", bgClass: "bg-cyan-500/10" },
+  venda: { label: "Venda", plural: "Vendas", icon: "💰", colorClass: "text-lime-300", borderClass: "border-lime-500/40", bgClass: "bg-lime-500/10" },
 };
+
+/** Ordem dos tipos nos filtros da caixa de mensagens. */
+export const MESSAGE_KINDS = Object.keys(MESSAGE_KIND_META) as MessageKind[];
+
+/** Tipos que o professor escolhe ao escrever — os outros são enviados automaticamente pela plataforma. */
+export const COMPOSABLE_MESSAGE_KINDS: MessageKind[] = ["aviso", "mensagem"];
+
+/** Remetente das mensagens automáticas da plataforma (missão concluída, compra e venda entre alunos). */
+export const SYSTEM_SENDER_ID = "sistema";
+
+type ItemSummary = { name: string; icon: string; rarity: Rarity };
+
+function describeItem(item: ItemSummary): string {
+  return `${item.icon} ${item.name} (${RARITY_META[item.rarity].label})`;
+}
+
+/** Aluno passou numa missão: o item e as recompensas daquela missão específica. */
+export function missionRewardMessage(data: { mission: { title: string; icon: string }; item: ItemSummary; xp: number; coins: number }): string {
+  return (
+    `🏆 Missão concluída: ${data.mission.icon} ${data.mission.title}!\n\n` +
+    `Como recompensa por essa missão você ganhou o item ${describeItem(data.item)}, +${data.xp} XP e ${data.coins} moedas. ` +
+    `O item já está no seu Inventário.`
+  );
+}
+
+/** Comprador: a compra de um colega deu certo. */
+export function purchaseMessage(data: { item: ItemSummary; sellerName: string; price: number }): string {
+  return (
+    `🛒 Compra realizada com sucesso! Você comprou ${describeItem(data.item)} de ${data.sellerName} por ${data.price} moedas.\n\n` +
+    `O item já está no seu Inventário.`
+  );
+}
+
+/** Vendedor: o colega aceitou a oferta. */
+export function saleMessage(data: { item: ItemSummary; buyerName: string; price: number }): string {
+  return (
+    `💰 Venda realizada com sucesso! ${data.buyerName} comprou o seu item ${describeItem(data.item)} por ${data.price} moedas.\n\n` +
+    `As moedas já foram somadas ao seu saldo.`
+  );
+}
+
+/**
+ * Texto da mensagem de parabéns que o aluno recebe quando o professor ou o ADM
+ * dá um item pra ele pela ficha do aluno.
+ */
+export function itemGiftMessage(data: {
+  studentName: string;
+  item: ItemSummary;
+  giverName: string;
+  giverRole: "professor" | "adm";
+}): string {
+  const from = data.giverRole === "adm" ? `pela Administração da Academia (ADM ${data.giverName})` : `pelo Professor ${data.giverName}`;
+  return (
+    `🎉 Parabéns, ${data.studentName}! Você ganhou um presente: ${describeItem(data.item)}, ` +
+    `dado ${from}.\n\nO item já está no seu Inventário — clique nele pra ver a descrição.`
+  );
+}
 
 export interface Message {
   id: string;
