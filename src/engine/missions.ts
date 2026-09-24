@@ -58,6 +58,7 @@ export interface QuizQuestion {
 
 export interface Mission {
   id: string;
+  teacherId: string; // professor dono — só os alunos dele veem a missão
   title: string;
   icon: string;
   difficulty: Difficulty;
@@ -69,7 +70,11 @@ export interface Mission {
   questions: QuizQuestion[];
 }
 
-export const MISSIONS: Mission[] = [
+/** O que o editor de missão preenche — o id é gerado ao criar e o professor dono vem de quem cria. */
+export type MissionContent = Omit<Mission, "id" | "teacherId">;
+
+/** Missões padrão (sem dono) — o missionsStore semeia elas como do professor padrão. */
+export const MISSIONS: Omit<Mission, "teacherId">[] = [
   {
     id: "variaveis-do-vazio",
     title: "Variáveis do Vazio",
@@ -225,7 +230,7 @@ export const MISSIONS: Mission[] = [
   },
 ];
 
-export function getMission(id: string): Mission | undefined {
+export function getMission(id: string): Omit<Mission, "teacherId"> | undefined {
   return MISSIONS.find((m) => m.id === id);
 }
 

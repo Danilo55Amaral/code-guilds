@@ -14,6 +14,7 @@
 import { HouseId } from "./houses";
 import { Mission, Rarity, normalizeRewardItem } from "./missions";
 import { AvatarConfig, DEFAULT_AVATAR, normalizeAvatar } from "./avatar";
+import { DEFAULT_TEACHER_ID } from "./teachers";
 
 export interface InventoryItem {
   id: string;
@@ -33,6 +34,7 @@ export interface Student {
   turma: string;
   username: string; // login, sempre minúsculo e sem espaços
   password: string; // "" = aluno antigo, ainda sem senha (o professor define)
+  teacherId: string; // professor escolhido no cadastro — o aluno só vê as missões dele
   houseId: HouseId | null;
   avatar: AvatarConfig;
   level: number;
@@ -93,6 +95,8 @@ function readAll(): Student[] {
         ...s,
         username,
         password: s.password ?? "",
+        // alunos de antes de existir professor ficam com o Danilo
+        teacherId: s.teacherId ?? DEFAULT_TEACHER_ID,
         avatar: normalizeAvatar(s.avatar ?? {}),
         // itens de antes do mercado ganham valor pela raridade e não são consumíveis
         inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
@@ -156,7 +160,7 @@ export function login(username: string, password: string): LoginResult {
 }
 
 /** Quem chama deve validar antes com validateCredentials(). */
-export function createStudent(data: { name: string; email: string; turma: string; username: string; password: string }): Student {
+export function createStudent(data: { name: string; email: string; turma: string; username: string; password: string; teacherId: string }): Student {
   const student: Student = {
     id: `s_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: data.name.trim(),
@@ -164,6 +168,7 @@ export function createStudent(data: { name: string; email: string; turma: string
     turma: data.turma.trim(),
     username: normalizeUsername(data.username),
     password: data.password,
+    teacherId: data.teacherId,
     houseId: null,
     avatar: DEFAULT_AVATAR,
     level: 1,
@@ -190,6 +195,11 @@ export function updateStudent(id: string, patch: Partial<Student>) {
 export function removeStudent(id: string) {
   writeAll(readAll().filter((s) => s.id !== id));
   if (getActiveStudentId() === id) setActiveStudentId(null);
+}
+
+/** Passa todos os alunos de um professor para outro (usado antes de excluir um professor). */
+export function reassignStudents(fromTeacherId: string, toTeacherId: string) {
+  writeAll(readAll().map((s) => (s.teacherId === fromTeacherId ? { ...s, teacherId: toTeacherId } : s)));
 }
 
 /** XP total que o aluno já conquistou desde o nível 1 (os níveis completos + o XP do nível atual). */

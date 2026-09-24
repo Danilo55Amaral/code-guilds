@@ -15,9 +15,10 @@ import {
 import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE } from "@/engine/missions";
 import ItemEconomyFields from "./ItemEconomyFields";
 import { getHouse } from "@/engine/houses";
+import { Teacher } from "@/engine/teachers";
 import { Message, MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
 import Avatar from "./Avatar";
-import { CoinIcon, HousePill, ItemStats, LevelPill, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
+import { CoinIcon, HousePill, ItemStats, LevelPill, MessageAudienceBadge, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
 
 const ONBOARDING_LABELS: Record<OnboardingStep, string> = {
   casa: "Escolhendo a casa",
@@ -51,9 +52,12 @@ export default function StudentDetails({
   onSendMessage,
   onDeleteStudent,
   onUpdateCredentials,
+  teachers,
+  onChangeTeacher,
   onClose,
 }: {
   student: Student;
+  /** Missões do professor do aluno. */
   missions: Mission[];
   messages: Message[];
   onGrantItem: (item: { name: string; rarity: Rarity; value: number; xp: number }) => void;
@@ -62,6 +66,9 @@ export default function StudentDetails({
   onDeleteStudent: () => void;
   /** Troca login/senha; devolve a mensagem de erro, ou null se salvou. */
   onUpdateCredentials: (username: string, password: string) => string | null;
+  /** Só o Painel ADM passa: permite trocar o professor do aluno. */
+  teachers?: Teacher[];
+  onChangeTeacher?: (teacherId: string) => void;
   onClose: () => void;
 }) {
   const [itemName, setItemName] = useState("");
@@ -236,11 +243,26 @@ export default function StudentDetails({
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2">
               <SectionTitle>Cadastro</SectionTitle>
+              {teachers && onChangeTeacher && (
+                <InfoRow label="Professor">
+                  <select
+                    value={student.teacherId}
+                    onChange={(e) => onChangeTeacher(e.target.value)}
+                    className="rounded-lg border border-slate-700 bg-[#0d0d14] px-2 py-1 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
+                  >
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </InfoRow>
+              )}
               <InfoRow label="Casa">{house ? <span className={house.colorClass}>{house.name}</span> : "Ainda não escolheu"}</InfoRow>
               <InfoRow label="Cadastrado em">{formatDate(student.createdAt)}</InfoRow>
               <InfoRow label="Primeiro acesso">{ONBOARDING_LABELS[student.onboardingStep]}</InfoRow>
               <InfoRow label="Missões concluídas">
-                {student.completedMissionIds.length}/{missions.length}
+                {missions.filter((m) => student.completedMissionIds.includes(m.id)).length}/{missions.length}
               </InfoRow>
             </div>
 
@@ -389,7 +411,10 @@ export default function StudentDetails({
                 {messages.map((m) => (
                   <div key={m.id} className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
                     <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
-                      <MessageKindBadge kind={m.kind} />
+                      <span className="flex flex-wrap items-center gap-1.5">
+                        <MessageKindBadge kind={m.kind} />
+                        {m.audience && <MessageAudienceBadge audience={m.audience} />}
+                      </span>
                       <span className="text-[11px] text-slate-500">
                         {formatMessageDate(m.createdAt)} •{" "}
                         {m.readAt ? <span className="text-emerald-400">✓ Lida em {formatMessageDate(m.readAt)}</span> : <span>Não lida</span>}

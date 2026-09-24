@@ -2,7 +2,7 @@
 
 import { useStudents, useMessages } from "@/engine/store";
 import { formatMessageDate } from "@/engine/messages";
-import { MessageKindBadge } from "@/components/GameUI";
+import { MessageAudienceBadge, MessageKindBadge } from "@/components/GameUI";
 
 export default function MensagensPage() {
   const { activeStudent } = useStudents();
@@ -46,6 +46,7 @@ export default function MensagensPage() {
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <MessageKindBadge kind={m.kind} />
+                    {m.audience && <MessageAudienceBadge audience={m.audience} />}
                     {unread && (
                       <span className="inline-flex items-center gap-1 text-[11px] font-medium text-violet-300">
                         <span className="h-1.5 w-1.5 rounded-full bg-violet-400" /> Nova

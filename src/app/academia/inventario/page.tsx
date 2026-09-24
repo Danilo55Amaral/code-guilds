@@ -13,7 +13,7 @@ import LevelUpScreen from "@/components/LevelUpScreen";
 
 export default function InventarioPage() {
   const { activeStudent, students, patchActive } = useStudents();
-  const { missions } = useMissions();
+  const { missions: allMissions } = useMissions();
   const { received, sent, offer, accept, withdraw } = useOffers(activeStudent?.id ?? null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selling, setSelling] = useState<InventoryItem | null>(null);
@@ -23,6 +23,7 @@ export default function InventarioPage() {
   if (!activeStudent) return null;
 
   const me = activeStudent;
+  const missions = allMissions.filter((m) => m.teacherId === me.teacherId);
   const house = me.houseId ? getHouse(me.houseId) : null;
   const buyers = students.filter((s) => s.id !== me.id && s.onboardingStep === "completo");
   const nameOf = (id: string) => students.find((s) => s.id === id)?.name ?? "Aluno removido";
@@ -260,7 +261,14 @@ export default function InventarioPage() {
         />
       )}
 
-      {sheetOpen && <CharacterSheet student={me} missionsTotal={missions.length} onClose={() => setSheetOpen(false)} />}
+      {sheetOpen && (
+        <CharacterSheet
+          student={me}
+          missionsTotal={missions.length}
+          missionsCompleted={missions.filter((m) => me.completedMissionIds.includes(m.id)).length}
+          onClose={() => setSheetOpen(false)}
+        />
+      )}
     </div>
   );
 }

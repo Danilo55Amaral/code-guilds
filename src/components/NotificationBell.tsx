@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMessages } from "@/engine/store";
 import { formatMessageDate } from "@/engine/messages";
-import { MessageKindBadge } from "./GameUI";
+import { MessageAudienceBadge, MessageKindBadge } from "./GameUI";
 
 const PREVIEW_LIMIT = 5;
 const MESSAGES_HREF = "/academia/casa/mensagens";
@@ -82,8 +82,11 @@ export default function NotificationBell({ studentId }: { studentId: string }) {
                   <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${m.readAt ? "bg-transparent" : "bg-violet-400"}`} />
                   <span className="min-w-0 flex-1">
                     <span className="mb-1 flex items-center justify-between gap-2">
-                      <MessageKindBadge kind={m.kind} />
-                      <span className="text-[10px] text-slate-500">{formatMessageDate(m.createdAt)}</span>
+                      <span className="flex flex-wrap items-center gap-1">
+                        <MessageKindBadge kind={m.kind} />
+                        {m.audience && <MessageAudienceBadge audience={m.audience} />}
+                      </span>
+                      <span className="shrink-0 text-[10px] text-slate-500">{formatMessageDate(m.createdAt)}</span>
                     </span>
                     <span className={`line-clamp-2 text-xs ${m.readAt ? "text-slate-400" : "text-white"}`}>{m.body}</span>
                   </span>

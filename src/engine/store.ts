@@ -9,11 +9,34 @@ import {
   createStudent,
   removeStudent,
   updateStudent,
+  reassignStudents,
   login as loginStudent,
 } from "./students";
 import { Mission } from "./missions";
-import { listMissions, createMission, updateMission, deleteMission } from "./missionsStore";
-import { Message, MessageKind, listMessages, sendMessage, markAsRead, markAllAsRead, deleteMessagesOf } from "./messages";
+import { listMissions, createMission, updateMission, deleteMission, reassignMissions } from "./missionsStore";
+import {
+  Teacher,
+  listTeachers,
+  getTeacherSessionId,
+  setTeacherSessionId,
+  teacherLogin,
+  createTeacher,
+  updateTeacher,
+  removeTeacher,
+} from "./teachers";
+import {
+  Message,
+  MessageKind,
+  MessageAudience,
+  BroadcastSummary,
+  listMessages,
+  sendMessage,
+  broadcastMessage,
+  listBroadcasts,
+  markAsRead,
+  markAllAsRead,
+  deleteMessagesOf,
+} from "./messages";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
 
@@ -50,7 +73,7 @@ export function useStudents() {
 
   useSyncOnChange(sync);
 
-  const signUp = useCallback((data: { name: string; email: string; turma: string; username: string; password: string }) => {
+  const signUp = useCallback((data: { name: string; email: string; turma: string; username: string; password: string; teacherId: string }) => {
     const s = createStudent(data);
     emitChange();
     return s;
@@ -149,7 +172,7 @@ export function useMessages(studentId: string | null) {
 
   useSyncOnChange(sync);
 
-  const send = useCallback((data: { studentId: string; kind: MessageKind; body: string }) => {
+  const send = useCallback((data: { studentId: string; senderId: string; kind: MessageKind; body: string }) => {
     const m = sendMessage(data);
     emitChange();
     return m;
@@ -169,6 +192,79 @@ export function useMessages(studentId: string | null) {
   const unreadCount = messages.filter((m) => !m.readAt).length;
 
   return { messages, unreadCount, ready, send, markRead, markAllRead };
+}
+
+/** Comunicados de um professor (turma toda ou uma casa) e o envio de novos em nome dele. */
+export function useBroadcasts(senderId: string) {
+  const [broadcasts, setBroadcasts] = useState<BroadcastSummary[]>([]);
+
+  const sync = useCallback(() => {
+    setBroadcasts(listBroadcasts(senderId));
+  }, [senderId]);
+
+  useSyncOnChange(sync);
+
+  const broadcast = useCallback(
+    (data: { studentIds: string[]; audience: MessageAudience; kind: MessageKind; body: string }) => {
+      const copies = broadcastMessage({ ...data, senderId });
+      emitChange();
+      return copies;
+    },
+    [senderId]
+  );
+
+  return { broadcasts, broadcast };
+}
+
+/** Professores cadastrados, o professor logado (sessão) e o CRUD usado pelo Painel ADM. */
+export function useTeachers() {
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setTeachers(listTeachers());
+    setSessionId(getTeacherSessionId());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const login = useCallback((email: string, password: string, adminOnly = false) => {
+    const result = teacherLogin(email, password, adminOnly);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const logout = useCallback(() => {
+    setTeacherSessionId(null);
+    emitChange();
+  }, []);
+
+  const addTeacher = useCallback((data: { name: string; email: string; password: string }) => {
+    const t = createTeacher(data);
+    emitChange();
+    return t;
+  }, []);
+
+  const editTeacher = useCallback((id: string, patch: { name?: string; email?: string; password?: string }) => {
+    updateTeacher(id, patch);
+    emitChange();
+  }, []);
+
+  // Os alunos e as missões do professor excluído passam pro professor escolhido
+  // (heirId) — ninguém fica sem professor nem missão fica sem dono.
+  const deleteTeacher = useCallback((id: string, heirId: string) => {
+    if (id === heirId) return;
+    reassignStudents(id, heirId);
+    reassignMissions(id, heirId);
+    removeTeacher(id);
+    emitChange();
+  }, []);
+
+  const currentTeacher = teachers.find((t) => t.id === sessionId) ?? null;
+
+  return { teachers, currentTeacher, ready, login, logout, addTeacher, editTeacher, deleteTeacher };
 }
 
 /** Ofertas de venda de itens entre alunos — as que o aluno recebeu e as que ele fez. */

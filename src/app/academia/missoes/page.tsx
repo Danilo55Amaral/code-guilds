@@ -16,14 +16,14 @@ type StatusFilter = "ativas" | "concluidas" | "todas";
 const FILTER_LABELS: Record<StatusFilter, string> = { todas: "Todas", ativas: "Ativas", concluidas: "Concluídas" };
 
 const EMPTY_MESSAGES: Record<StatusFilter, string> = {
-  todas: "Nenhuma missão cadastrada ainda — peça pro professor criar uma no Painel do Mestre.",
+  todas: "Seu professor ainda não criou nenhuma missão — peça pra ele criar uma no Painel do Mestre.",
   ativas: "Nenhuma missão ativa no momento — você concluiu todas. Bom trabalho!",
   concluidas: "Você ainda não concluiu nenhuma missão.",
 };
 
 export default function MissoesPage() {
   const { activeStudent, patchActive } = useStudents();
-  const { missions, ready: missionsReady } = useMissions();
+  const { missions: allMissions, ready: missionsReady } = useMissions();
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("todas");
@@ -32,6 +32,8 @@ export default function MissoesPage() {
 
   if (!activeStudent || !missionsReady) return null;
 
+  // O aluno só vê as missões do professor que escolheu no cadastro.
+  const missions = allMissions.filter((m) => m.teacherId === activeStudent.teacherId);
   const completedIds = activeStudent.completedMissionIds;
   // A busca vem antes do filtro de status, então os contadores das abas já refletem o que foi digitado.
   const searchedMissions = missions.filter((m) => matchesSearch(m, search));

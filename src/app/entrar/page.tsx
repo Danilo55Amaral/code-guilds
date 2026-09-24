@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { useStudents } from "@/engine/store";
+import { useStudents, useTeachers } from "@/engine/store";
 import { HOUSES } from "@/engine/houses";
 import { Student, validateCredentials, normalizeUsername } from "@/engine/students";
 
@@ -48,6 +48,7 @@ function PasswordInput({ value, onChange, placeholder }: { value: string; onChan
 
 export default function EntrarPage() {
   const { signUp, login, activeStudent, logout } = useStudents();
+  const { teachers } = useTeachers();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("entrar");
   const [error, setError] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export default function EntrarPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [turma, setTurma] = useState("");
+  const [teacherId, setTeacherId] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -82,6 +84,10 @@ export default function EntrarPage() {
   function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !turma.trim()) return;
+    if (!teachers.some((t) => t.id === teacherId)) {
+      setError("Escolha o seu professor.");
+      return;
+    }
     const problem = validateCredentials(username, password);
     if (problem) {
       setError(problem);
@@ -91,7 +97,7 @@ export default function EntrarPage() {
       setError("As senhas não conferem.");
       return;
     }
-    signUp({ name, email, turma, username, password });
+    signUp({ name, email, turma, username, password, teacherId });
     router.push("/casa-selecao");
   }
 
@@ -178,6 +184,20 @@ export default function EntrarPage() {
                 <Label>Turma</Label>
                 <input value={turma} onChange={(e) => setTurma(e.target.value)} placeholder="3ºA - Manhã" required className="cg-input" />
               </div>
+            </div>
+            <div>
+              <Label>Professor</Label>
+              <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} required className="cg-input">
+                <option value="" disabled>
+                  Escolha seu professor
+                </option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-slate-500">Você vai ver as missões criadas por esse professor.</p>
             </div>
             <div>
               <Label>Login</Label>

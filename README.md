@@ -13,7 +13,7 @@ Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ain
 
 ## Fluxo completo
 
-1. `/entrar` — tela de login com duas abas: **Entrar** (login + senha) e **Criar conta** (nome, e-mail, turma, login, senha). Vários alunos podem ter conta no mesmo navegador
+1. `/entrar` — tela de login com duas abas: **Entrar** (login + senha) e **Criar conta** (nome, e-mail, turma, **professor**, login, senha). Vários alunos podem ter conta no mesmo navegador
 2. `/casa-selecao` — Passo 1/3, escolhe uma das 4 casas
 3. `/avatar` — Passo 2/3, editor de avatar em abas: pele e olhos, cabelo, rosto, roupa e acessórios (óculos e chapéus), com miniaturas de cada opção e botão 🎲 Aleatório
 4. `/academia/missoes` — lista de missões/quizzes, desbloqueadas por nível
@@ -21,9 +21,10 @@ Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ain
 6. `/academia/casa` — painel da casa, pontos das 4 casas e ranking dos colegas da mesma casa; clicar num colega abre o perfil dele (avatar, nome, nível, moedas e itens)
 7. `/academia/casa/mensagens` — submenu de "Minha Casa": avisos e mensagens do professor (o sino 🔔 no cabeçalho mostra as não lidas)
 8. `/academia/guildas`, `/academia/lore`, `/academia/eventos` — ainda em construção (só mostram "em breve"): história de cada casa, modo história e próximos eventos
-9. `/professor` → `/professor/painel` — login e painel do professor (credenciais de demo abaixo)
+9. `/professor` → `/professor/painel` — login e painel do professor: cada professor só vê e altera os próprios alunos e as próprias missões
+10. `/admin` → `/admin/painel` — login e Painel ADM (mesmas credenciais do Professor Danilo): professores, alunos e missões de toda a plataforma
 
-**Login do professor (demo):** `danilo@codeguilds.com` / `prof123`, ou o código mestre `KAIROIS2024` (funciona nos dois campos).
+**Login do Professor Danilo / ADM (demo):** `danilo@codeguilds.com` / `prof123`, ou o código mestre `KAIROIS2024` nos dois campos. Outros professores são cadastrados pelo ADM e entram com o e-mail e a senha definidos lá.
 
 ## Estrutura
 
@@ -32,14 +33,15 @@ src/
   engine/
     houses.ts     -> as 4 casas (cores, lema, brasão)
     missions.ts    -> missões e seus quizzes (dados estáticos, editados em código por enquanto)
-    students.ts     -> cadastro de aluno, login/senha e sessão, XP/nível/moedas, inventário
+    students.ts     -> cadastro de aluno, login/senha e sessão, professor do aluno, XP/nível/moedas, inventário
+    teachers.ts     -> cadastro de professores (semeado com o Danilo, que é o ADM), login e sessão do professor
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
     market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
     sfx.ts            -> sons das cenas gerados no navegador (Web Audio + voz sintetizada): risada da Morte, fanfarra de vitória, jingle de nível; e a preferência de som/mudo
     music.ts          -> música de fundo medieval da Academia, composta e tocada via Web Audio (loop de ~30s)
-    store.ts          -> hooks useStudents(), useMissions(), useMessages() e useOffers() — mesmo padrão do usePeople() do Rejuvenation Lab Simulator
+    store.ts          -> hooks useStudents(), useMissions(), useMessages(), useBroadcasts(), useTeachers() e useOffers() — mesmo padrão do usePeople() do Rejuvenation Lab Simulator
   components/
     Avatar.tsx        -> avatar em SVG puro, montado em camadas (cabelo de trás, roupa, rosto, olhos/boca, cabelo da frente, óculos, chapéu)
     GameUI.tsx         -> XPBar, badges de raridade/dificuldade
@@ -56,17 +58,25 @@ src/
     CharacterSheet.tsx  -> Ficha do Personagem do próprio aluno (avatar animado, nível, XP adquirido, moedas, missões, itens por raridade)
     StudentDetails.tsx  -> ficha do aluno no painel do professor (dados, avatar, inventário, dar/excluir item, enviar mensagem, excluir aluno)
     NotificationBell.tsx -> sino de notificações do cabeçalho da Academia
+    BroadcastComposer.tsx -> comunicados do professor pra toda a turma ou pra uma casa, com o histórico de leitura
+    TeacherLoginCard.tsx -> tela de login compartilhada entre /professor e /admin
+    TeacherEditor.tsx   -> cadastro/edição/exclusão de professor no Painel ADM
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
   app/
     entrar/, casa-selecao/, avatar/  -> onboarding
     academia/missoes|inventario|casa -> as 3 telas principais (layout compartilhado)
     academia/guildas|lore|eventos    -> placeholders "em breve" (mesmo layout)
     professor/, professor/painel/    -> área do professor
+    admin/, admin/painel/            -> Painel ADM
 public/
   crests/  -> os 4 brasões das casas (ignis, noctis, flavus, sapientia)
 ```
 
 ## O que já funciona de verdade
+
+- Vários professores — cada aluno escolhe o professor no cadastro e só vê as missões desse professor. No Painel do Mestre, cada professor só vê, cria e altera as próprias missões e só vê e altera os próprios alunos (ficha, itens, acesso, mensagens, comunicados). Alunos e missões de antes dessa versão ficam com o Professor Danilo
+- Painel ADM (`/admin`, com as credenciais do Professor Danilo) — cadastra, edita e exclui professores (o ADM não pode ser excluído; ao excluir um professor, os alunos e as missões dele passam pra outro professor escolhido na hora), vê todos os alunos e todas as missões com filtro por professor, troca o professor de um aluno, cria/edita/exclui qualquer missão (escolhendo o professor dono) e tem na ficha de qualquer aluno as mesmas ações do professor (dar/excluir itens, alterar acesso, mensagens, excluir aluno)
+- Comunicados — no Painel do Mestre, o professor envia um aviso/mensagem pra todos os seus alunos ou pra todos os seus alunos de uma casa; cada aluno recebe no sino e em Mensagens, com o selo "📢 Toda a turma" ou "🏠 Casa X", e o professor vê quantos já leram
 
 - Economia de itens — todo item tem um valor em moedas e, se for consumível, uma quantidade de XP. No Inventário o aluno pode: ✨ **Usar** (o item some e ele ganha o XP — pode até subir de nível, com a cena animada), 💰 **Vender pro sistema** (recebe o valor na hora), 🤝 **Vender pra um colega** (escolhe o colega e o preço; o item fica reservado até o colega comprar — se tiver moedas — ou recusar, e aí volta) e 🗑 **Excluir** (com confirmação). Ofertas recebidas aparecem no topo do Inventário e com contador no menu
 - Professor define o valor e o XP de cada item — no editor de missão (item de recompensa) e no "Dar item" da ficha do aluno; escolhendo um item de missão da lista, raridade/valor/XP já vêm preenchidos. Itens criados antes disso ganham valor pela raridade (Comum 10, Raro 30, Épico 80, Lendário 200) e não são consumíveis

@@ -51,10 +51,13 @@ function Stat({ label, value, className = "", delay }: { label: string; value: R
 export default function CharacterSheet({
   student,
   missionsTotal,
+  missionsCompleted,
   onClose,
 }: {
   student: Student;
+  /** Missões do professor do aluno: quantas existem e quantas ele já concluiu. */
   missionsTotal: number;
+  missionsCompleted: number;
   onClose: () => void;
 }) {
   const house = student.houseId ? getHouse(student.houseId) : null;
@@ -123,7 +126,7 @@ export default function CharacterSheet({
                   label="Missões"
                   value={
                     <span className="text-emerald-300">
-                      {student.completedMissionIds.length}/{missionsTotal}
+                      {missionsCompleted}/{missionsTotal}
                     </span>
                   }
                   className="border-emerald-500/30 bg-emerald-500/10"

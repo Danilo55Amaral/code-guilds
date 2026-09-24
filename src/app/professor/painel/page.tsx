@@ -2,20 +2,22 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStudents, useMissions, useMessages } from "@/engine/store";
-import { Mission, Rarity } from "@/engine/missions";
+import Link from "next/link";
+import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
+import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { grantItem, removeItem, validateCredentials, normalizeUsername } from "@/engine/students";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES } from "@/engine/houses";
 import { CoinIcon, DifficultyBadge } from "@/components/GameUI";
 import MissionEditor from "@/components/MissionEditor";
 import StudentDetails from "@/components/StudentDetails";
+import BroadcastComposer from "@/components/BroadcastComposer";
 
 export default function PainelProfessorPage() {
   const router = useRouter();
-  const { students, ready, patchStudent, deleteStudent } = useStudents();
-  const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
-  const [authed, setAuthed] = useState<boolean | null>(null);
+  const { currentTeacher, ready: teachersReady, logout: teacherLogout } = useTeachers();
+  const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
+  const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
   // Guarda só o id: o aluno é relido da lista a cada render, então a ficha
   // aberta já mostra o item dado/excluído na hora.
@@ -23,20 +25,21 @@ export default function PainelProfessorPage() {
   const { messages: selectedMessages, send: sendMessage } = useMessages(selectedStudentId);
 
   useEffect(() => {
-    setAuthed(window.localStorage.getItem("cg-teacher-auth") === "1");
-  }, []);
+    if (teachersReady && !currentTeacher) router.replace("/professor");
+  }, [teachersReady, currentTeacher, router]);
 
-  useEffect(() => {
-    if (authed === false) router.replace("/professor");
-  }, [authed, router]);
+  if (!teachersReady || !currentTeacher || !ready || !missionsReady) return null;
 
-  if (authed !== true || !ready || !missionsReady) return null;
+  const teacher = currentTeacher;
+  // O professor só enxerga (e só altera) os próprios alunos e as próprias missões.
+  const students = allStudents.filter((s) => s.teacherId === teacher.id);
+  const missions = allMissions.filter((m) => m.teacherId === teacher.id);
 
-  function handleSave(data: Omit<Mission, "id">) {
+  function handleSave(data: MissionContent) {
     if (editorTarget && editorTarget !== "new") {
       editMission(editorTarget.id, data);
     } else {
-      addMission(data);
+      addMission({ ...data, teacherId: teacher.id });
     }
     setEditorTarget(null);
   }
@@ -62,7 +65,7 @@ export default function PainelProfessorPage() {
 
   function handleSendMessage(data: { kind: MessageKind; body: string }) {
     if (!selectedStudent) return;
-    sendMessage({ studentId: selectedStudent.id, ...data });
+    sendMessage({ studentId: selectedStudent.id, senderId: teacher.id, ...data });
   }
 
   function handleUpdateCredentials(username: string, password: string): string | null {
@@ -80,20 +83,27 @@ export default function PainelProfessorPage() {
   }
 
   function logout() {
-    window.localStorage.removeItem("cg-teacher-auth");
+    teacherLogout();
     router.push("/professor");
   }
 
   return (
     <div className="mx-auto cg-screen max-w-5xl px-4 py-10">
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Painel do Mestre</p>
+          <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Painel do Mestre • Professor {teacher.name}</p>
           <h1 className="text-2xl font-bold text-white">Visão Geral da Turma</h1>
         </div>
-        <button onClick={logout} className="cg-btn-secondary !px-4 !py-2 text-xs">
-          Sair
-        </button>
+        <div className="flex gap-2">
+          {teacher.isAdmin && (
+            <Link href="/admin/painel" className="cg-btn-primary !px-4 !py-2 text-xs">
+              🛡 Painel ADM
+            </Link>
+          )}
+          <button onClick={logout} className="cg-btn-secondary !px-4 !py-2 text-xs">
+            Sair
+          </button>
+        </div>
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
@@ -116,7 +126,7 @@ export default function PainelProfessorPage() {
       <div className="cg-card mb-6 p-5">
         <p className="mb-3 text-sm font-semibold text-slate-300">Alunos cadastrados</p>
         {students.length === 0 ? (
-          <p className="text-sm text-slate-500">Nenhum aluno cadastrado ainda neste dispositivo.</p>
+          <p className="text-sm text-slate-500">Nenhum aluno seu cadastrado ainda neste dispositivo — no cadastro, o aluno escolhe você como professor.</p>
         ) : (
           <div className="flex flex-col gap-2">
             {students.map((s) => {
@@ -139,7 +149,9 @@ export default function PainelProfessorPage() {
                     <span className="flex items-center gap-1 text-amber-300">
                       <CoinIcon size={14} /> {s.coins}
                     </span>
-                    <span className="text-slate-500">{s.completedMissionIds.length}/{missions.length} missões</span>
+                    <span className="text-slate-500">
+                      {missions.filter((m) => s.completedMissionIds.includes(m.id)).length}/{missions.length} missões
+                    </span>
                     <span className="text-slate-600">Ver aluno →</span>
                   </div>
                 </button>
@@ -149,6 +161,8 @@ export default function PainelProfessorPage() {
         )}
       </div>
 
+      <BroadcastComposer students={students} senderId={teacher.id} />
+
       <div className="cg-card p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-sm font-semibold text-slate-300">Missões cadastradas</p>
@@ -156,6 +170,7 @@ export default function PainelProfessorPage() {
             + Nova Missão
           </button>
         </div>
+        {missions.length === 0 && <p className="text-sm text-slate-500">Você ainda não criou nenhuma missão — seus alunos só veem as missões criadas por você.</p>}
         <div className="flex flex-col gap-2">
           {missions.map((m) => {
             const completions = students.filter((s) => s.completedMissionIds.includes(m.id)).length;

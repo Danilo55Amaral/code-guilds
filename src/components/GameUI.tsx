@@ -1,6 +1,6 @@
 import { Rarity, RARITY_META, Difficulty, DIFFICULTY_META } from "@/engine/missions";
-import { House } from "@/engine/houses";
-import { MessageKind, MESSAGE_KIND_META } from "@/engine/messages";
+import { House, getHouse } from "@/engine/houses";
+import { MessageKind, MessageAudience, MESSAGE_KIND_META } from "@/engine/messages";
 
 export function XPBar({ xp, xpToNext, className = "" }: { xp: number; xpToNext: number; className?: string }) {
   const pct = Math.min(100, (xp / xpToNext) * 100);
@@ -46,6 +46,23 @@ export function MessageKindBadge({ kind }: { kind: MessageKind }) {
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${m.colorClass} ${m.borderClass}`}>
       {m.icon} {m.label}
+    </span>
+  );
+}
+
+/** Selo de comunicado: "📢 Toda a turma" ou "🏠 Casa X" (na cor da casa). */
+export function MessageAudienceBadge({ audience }: { audience: MessageAudience }) {
+  if (audience.type === "turma") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full border border-violet-500/40 px-2.5 py-0.5 text-[11px] font-medium text-violet-300">
+        📢 Toda a turma
+      </span>
+    );
+  }
+  const house = getHouse(audience.houseId);
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${house.colorClass} ${house.borderClass}`}>
+      🏠 {house.name}
     </span>
   );
 }

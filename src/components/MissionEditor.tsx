@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Mission, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import { Mission, MissionContent, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import { Teacher } from "@/engine/teachers";
 import ItemEconomyFields from "./ItemEconomyFields";
 
 type OptionKey = "a" | "b" | "c" | "d";
@@ -80,7 +81,7 @@ function missionToDraft(m: Mission): MissionDraft {
   };
 }
 
-function draftToMission(d: MissionDraft): Omit<Mission, "id"> {
+function draftToMission(d: MissionDraft): MissionContent {
   return {
     title: d.title.trim(),
     icon: d.icon.trim() || "🧩",
@@ -111,16 +112,23 @@ function draftIsValid(d: MissionDraft): boolean {
 
 export default function MissionEditor({
   existingMission,
+  teachers,
+  defaultTeacherId,
   onSave,
   onDelete,
   onClose,
 }: {
   existingMission?: Mission;
-  onSave: (data: Omit<Mission, "id">) => void;
+  /** Só o Painel ADM passa: mostra a escolha do professor dono da missão. */
+  teachers?: Teacher[];
+  defaultTeacherId?: string;
+  /** teacherId só vem quando `teachers` foi passado. */
+  onSave: (data: MissionContent, teacherId?: string) => void;
   onDelete?: () => void;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<MissionDraft>(existingMission ? missionToDraft(existingMission) : emptyDraft());
+  const [teacherId, setTeacherId] = useState(existingMission?.teacherId ?? defaultTeacherId ?? teachers?.[0]?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function updateQuestion(index: number, patch: Partial<QuestionDraft>) {
@@ -144,7 +152,7 @@ export default function MissionEditor({
 
   function handleSave() {
     if (!draftIsValid(draft)) return;
-    onSave(draftToMission(draft));
+    onSave(draftToMission(draft), teachers ? teacherId : undefined);
   }
 
   const valid = draftIsValid(draft);
@@ -161,6 +169,20 @@ export default function MissionEditor({
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {teachers && (
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Professor responsável</label>
+                <select value={teacherId} onChange={(e) => setTeacherId(e.target.value)} className="cg-input">
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name} ({t.email})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-[11px] text-slate-500">Só os alunos desse professor veem a missão.</p>
+              </div>
+            )}
+
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Título</label>
               <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Ex: Recursão Amaldiçoada" className="cg-input" />
