@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { Mission, MissionContent, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import { Mission, MissionContent, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON } from "@/engine/missions";
 import { Teacher } from "@/engine/teachers";
 import ItemEconomyFields from "./ItemEconomyFields";
+import EmojiPicker from "./EmojiPicker";
 
 type OptionKey = "a" | "b" | "c" | "d";
 
@@ -24,6 +25,7 @@ interface MissionDraft {
   rewardXp: number;
   rewardCoins: number;
   rewardItemName: string;
+  rewardItemIcon: string;
   rewardItemRarity: Rarity;
   rewardItemValue: number;
   rewardItemXp: number;
@@ -46,6 +48,7 @@ function emptyDraft(): MissionDraft {
     rewardXp: 100,
     rewardCoins: 50,
     rewardItemName: "",
+    rewardItemIcon: DEFAULT_ITEM_ICON,
     rewardItemRarity: "comum",
     rewardItemValue: RARITY_DEFAULT_VALUE.comum,
     rewardItemXp: 0,
@@ -63,6 +66,7 @@ function missionToDraft(m: Mission): MissionDraft {
     rewardXp: m.rewardXp,
     rewardCoins: m.rewardCoins,
     rewardItemName: m.rewardItem.name,
+    rewardItemIcon: m.rewardItem.icon,
     rewardItemRarity: m.rewardItem.rarity,
     rewardItemValue: m.rewardItem.value,
     rewardItemXp: m.rewardItem.xp,
@@ -90,7 +94,10 @@ function draftToMission(d: MissionDraft): MissionContent {
     description: d.description.trim(),
     rewardXp: d.rewardXp,
     rewardCoins: d.rewardCoins,
-    rewardItem: { name: d.rewardItemName.trim() || "Item Misterioso", rarity: d.rewardItemRarity, value: d.rewardItemValue, xp: d.rewardItemXp },
+    rewardItem: {
+      name: d.rewardItemName.trim() || "Item Misterioso",
+      icon: d.rewardItemIcon.trim() || DEFAULT_ITEM_ICON,
+      rarity: d.rewardItemRarity, value: d.rewardItemValue, xp: d.rewardItemXp },
     questions: d.questions.map((q, i) => ({
       id: `q${i + 1}`,
       prompt: q.prompt.trim(),
@@ -188,9 +195,9 @@ export default function MissionEditor({
               <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Ex: Recursão Amaldiçoada" className="cg-input" />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone (emoji)</label>
-              <input value={draft.icon} onChange={(e) => setDraft((d) => ({ ...d, icon: e.target.value }))} placeholder="🧩" className="cg-input" />
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone</label>
+              <EmojiPicker value={draft.icon} onChange={(icon) => setDraft((d) => ({ ...d, icon }))} />
             </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Nível mínimo</label>
@@ -291,6 +298,10 @@ export default function MissionEditor({
                   }))
                 }
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Item — ícone</label>
+              <EmojiPicker value={draft.rewardItemIcon} onChange={(rewardItemIcon) => setDraft((d) => ({ ...d, rewardItemIcon }))} defaultGroup="Itens" />
             </div>
           </div>
 

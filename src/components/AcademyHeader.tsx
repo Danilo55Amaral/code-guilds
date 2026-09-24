@@ -31,7 +31,7 @@ export default function AcademyHeader({ student }: { student: Student }) {
   }
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-[#0a0a0f] px-6 py-3">
+    <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-[#0a0a0f] px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
         <Avatar config={student.avatar} ringColor={house?.hex} size={44} />
         <div>
@@ -53,7 +53,8 @@ export default function AcademyHeader({ student }: { student: Student }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      {/* No celular os botões com texto viram só o ícone e o grupo quebra linha — nada passa da largura da tela. */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
         <CoinCount coins={student.coins} />
         <NotificationBell studentId={student.id} />
         <MusicToggle />
@@ -62,14 +63,19 @@ export default function AcademyHeader({ student }: { student: Student }) {
             <HouseAnimalIcon house={house} size={18} />
           </span>
         )}
-        <button onClick={() => setTutorialOpen(true)} className="cg-btn-secondary !px-3 !py-1.5 text-xs" title="Ver o tutorial da plataforma">
-          ❓ Tutorial
+        <button
+          onClick={() => setTutorialOpen(true)}
+          className="cg-btn-secondary whitespace-nowrap !px-3 !py-1.5 text-xs"
+          title="Ver o tutorial da plataforma"
+          aria-label="Tutorial"
+        >
+          ❓<span className="hidden sm:inline"> Tutorial</span>
         </button>
-        <Link href="/professor" className="cg-btn-secondary !px-3 !py-1.5 text-xs">
-          🔒 Área do Professor
+        <Link href="/professor" className="cg-btn-secondary whitespace-nowrap !px-3 !py-1.5 text-xs" title="Área do Professor" aria-label="Área do Professor">
+          🔒<span className="hidden sm:inline"> Área do Professor</span>
         </Link>
-        <button onClick={sair} className="cg-btn-secondary !px-3 !py-1.5 text-xs" title="Sair da conta">
-          🚪 Sair
+        <button onClick={sair} className="cg-btn-secondary whitespace-nowrap !px-3 !py-1.5 text-xs" title="Sair da conta" aria-label="Sair">
+          🚪<span className="hidden sm:inline"> Sair</span>
         </button>
       </div>
 

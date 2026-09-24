@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { InventoryItem, Student } from "@/engine/students";
-import { RARITY_ICON } from "@/engine/missions";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
@@ -57,7 +56,7 @@ export default function SellItemModal({
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="mb-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] p-3">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{RARITY_ICON[item.rarity]}</div>
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{item.icon}</div>
             <div className="min-w-0">
               <p className="truncate font-semibold text-white">{item.name}</p>
               <div className="mt-1 flex flex-wrap items-center gap-2">

@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
-import { grantItem, removeItem, validateCredentials, normalizeUsername } from "@/engine/students";
+import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { MessageKind } from "@/engine/messages";
-import { HOUSES } from "@/engine/houses";
-import { CoinIcon, DifficultyBadge } from "@/components/GameUI";
+import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
+import StudentList from "@/components/StudentList";
+import MissionList from "@/components/MissionList";
 import StudentDetails from "@/components/StudentDetails";
 import BroadcastComposer from "@/components/BroadcastComposer";
 import TutorialModal from "@/components/TutorialModal";
@@ -62,7 +63,7 @@ export default function PainelProfessorPage() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
 
-  function handleGrantItem(item: { name: string; rarity: Rarity; value: number; xp: number }) {
+  function handleGrantItem(item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
   }
@@ -75,6 +76,19 @@ export default function PainelProfessorPage() {
   function handleSendMessage(data: { kind: MessageKind; body: string }) {
     if (!selectedStudent) return;
     sendMessage({ studentId: selectedStudent.id, senderId: teacher.id, ...data });
+  }
+
+  function handleUpdateProfile(profile: StudentProfile): string | null {
+    if (!selectedStudent) return null;
+    const error = validateStudentProfile(profile);
+    if (error) return error;
+    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
+    return null;
+  }
+
+  function handleChangeHouse(houseId: HouseId) {
+    if (!selectedStudent) return;
+    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
   }
 
   function handleUpdateCredentials(username: string, password: string): string | null {
@@ -140,80 +154,28 @@ export default function PainelProfessorPage() {
         ))}
       </div>
 
-      <div className="cg-card mb-6 p-5">
-        <p className="mb-3 text-sm font-semibold text-slate-300">Alunos cadastrados</p>
-        {students.length === 0 ? (
-          <p className="text-sm text-slate-500">Nenhum aluno seu cadastrado ainda neste dispositivo — no cadastro, o aluno escolhe você como professor.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {students.map((s) => {
-              const house = s.houseId ? HOUSES.find((h) => h.id === s.houseId) : null;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedStudentId(s.id)}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-white">{s.name}</p>
-                    <p className="text-xs text-slate-500">
-                      {s.email} • {s.turma} • <span className="font-mono">@{s.username}</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs">
-                    {house && <span className={house.colorClass}>{house.name}</span>}
-                    <span className="text-slate-400">Nv {s.level}</span>
-                    <span className="flex items-center gap-1 text-amber-300">
-                      <CoinIcon size={14} /> {s.coins}
-                    </span>
-                    <span className="text-slate-500">
-                      {missions.filter((m) => s.completedMissionIds.includes(m.id)).length}/{missions.length} missões
-                    </span>
-                    <span className="text-slate-600">Ver aluno →</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      <StudentList
+        title="Alunos cadastrados"
+        students={students}
+        missions={missions}
+        emptyText="Nenhum aluno seu cadastrado ainda neste dispositivo — no cadastro, o aluno escolhe você como professor."
+        onSelect={setSelectedStudentId}
+      />
 
       <BroadcastComposer students={students} senderId={teacher.id} />
 
-      <div className="cg-card p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="text-sm font-semibold text-slate-300">Missões cadastradas</p>
+      <MissionList
+        title="Missões cadastradas"
+        missions={missions}
+        students={students}
+        emptyText="Você ainda não criou nenhuma missão — seus alunos só veem as missões criadas por você."
+        headerRight={
           <button onClick={() => setEditorTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
             + Nova Missão
           </button>
-        </div>
-        {missions.length === 0 && <p className="text-sm text-slate-500">Você ainda não criou nenhuma missão — seus alunos só veem as missões criadas por você.</p>}
-        <div className="flex flex-col gap-2">
-          {missions.map((m) => {
-            const completions = students.filter((s) => s.completedMissionIds.includes(m.id)).length;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setEditorTarget(m)}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{m.icon}</span>
-                  <div>
-                    <p className="text-sm font-medium text-white">{m.title}</p>
-                    <p className="text-xs text-slate-500">{m.description}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <DifficultyBadge difficulty={m.difficulty} />
-                  <span className="text-slate-500">{completions} concluíram</span>
-                  <span className="text-slate-600">Editar →</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+        }
+        onSelect={setEditorTarget}
+      />
 
       {selectedStudent && (
         <StudentDetails
@@ -225,6 +187,8 @@ export default function PainelProfessorPage() {
           onSendMessage={handleSendMessage}
           onDeleteStudent={handleDeleteStudent}
           onUpdateCredentials={handleUpdateCredentials}
+          onUpdateProfile={handleUpdateProfile}
+          onChangeHouse={handleChangeHouse}
           onClose={() => setSelectedStudentId(null)}
         />
       )}

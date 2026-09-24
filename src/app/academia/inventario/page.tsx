@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useStudents, useMissions, useOffers } from "@/engine/store";
-import { RARITY_ICON } from "@/engine/missions";
 import { InventoryItem, xpToNextLevel, consumeItem, removeItem, sellItemToSystem } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components/GameUI";
@@ -131,7 +130,7 @@ export default function InventarioPage() {
               return (
                 <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
                   <div className="flex min-w-0 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{RARITY_ICON[o.item.rarity]}</div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{o.item.icon}</div>
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-white">{o.item.name}</p>
                       <p className="text-[11px] text-slate-400">
@@ -180,7 +179,7 @@ export default function InventarioPage() {
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
           {me.inventory.map((item) => (
             <div key={item.id} className="cg-card flex flex-col items-center gap-2 p-4 text-center">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{RARITY_ICON[item.rarity]}</div>
+              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-[#1a1a24] text-2xl">{item.icon}</div>
               <p className="text-sm font-semibold text-white">{item.name}</p>
               <RarityBadge rarity={item.rarity} />
               <ItemStats value={item.value} xp={item.xp} />
@@ -225,7 +224,7 @@ export default function InventarioPage() {
             {sent.map((o) => (
               <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
                 <p className="flex min-w-0 items-center gap-2 text-sm text-slate-300">
-                  <span className="text-lg">{RARITY_ICON[o.item.rarity]}</span>
+                  <span className="text-lg">{o.item.icon}</span>
                   <span className="truncate">
                     <span className="font-semibold text-white">{o.item.name}</span> para {nameOf(o.buyerId)} por{" "}
                     <span className="inline-flex items-center gap-0.5 font-semibold text-amber-300">

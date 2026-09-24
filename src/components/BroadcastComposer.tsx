@@ -6,11 +6,12 @@ import { HOUSES, HouseId } from "@/engine/houses";
 import { useBroadcasts } from "@/engine/store";
 import { MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, audienceLabel, formatMessageDate } from "@/engine/messages";
 import { MessageAudienceBadge, MessageKindBadge } from "./GameUI";
+import { PaginationFooter, usePagination } from "./Pagination";
 
 // "turma" = todos os alunos; senão, o id da casa.
 type Target = "turma" | HouseId;
 
-const HISTORY_LIMIT = 5;
+const HISTORY_PER_PAGE = 5;
 
 /** Card do painel do professor: envia um comunicado pra turma toda (os alunos dele) ou pra uma casa. */
 export default function BroadcastComposer({ students, senderId }: { students: Student[]; senderId: string }) {
@@ -19,7 +20,7 @@ export default function BroadcastComposer({ students, senderId }: { students: St
   const [kind, setKind] = useState<MessageKind>("aviso");
   const [body, setBody] = useState("");
   const [sentMsg, setSentMsg] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const pager = usePagination(broadcasts, HISTORY_PER_PAGE);
 
   const recipients = target === "turma" ? students : students.filter((s) => s.houseId === target);
 
@@ -38,8 +39,6 @@ export default function BroadcastComposer({ students, senderId }: { students: St
     { id: "turma", label: "📢 Toda a turma", count: students.length, colorClass: "text-violet-300" },
     ...HOUSES.map((h) => ({ id: h.id, label: h.name, count: students.filter((s) => s.houseId === h.id).length, colorClass: h.colorClass })),
   ];
-
-  const visibleBroadcasts = showAll ? broadcasts : broadcasts.slice(0, HISTORY_LIMIT);
 
   return (
     <div className="cg-card mb-6 p-5">
@@ -105,7 +104,7 @@ export default function BroadcastComposer({ students, senderId }: { students: St
         <div className="mt-5 border-t border-slate-800 pt-4">
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">Enviados ({broadcasts.length})</p>
           <div className="flex flex-col gap-2">
-            {visibleBroadcasts.map((b) => (
+            {pager.pageItems.map((b) => (
               <div key={b.broadcastId} className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
                 <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                   <span className="flex flex-wrap items-center gap-1.5">
@@ -123,11 +122,7 @@ export default function BroadcastComposer({ students, senderId }: { students: St
               </div>
             ))}
           </div>
-          {broadcasts.length > HISTORY_LIMIT && (
-            <button onClick={() => setShowAll((v) => !v)} className="mt-2 text-xs text-slate-400 hover:text-slate-200">
-              {showAll ? "Mostrar menos" : `Ver todos (${broadcasts.length})`}
-            </button>
-          )}
+          <PaginationFooter pager={pager} noun="comunicados" />
         </div>
       )}
     </div>

@@ -11,14 +11,15 @@
 // sem backend; não é autenticação de verdade).
 // ============================================================================
 
-import { HouseId } from "./houses";
-import { Mission, Rarity, normalizeRewardItem } from "./missions";
+import { HouseId, getHouse } from "./houses";
+import { Mission, Rarity, DEFAULT_ITEM_ICON, normalizeRewardItem, normalizeSearch } from "./missions";
 import { AvatarConfig, DEFAULT_AVATAR, normalizeAvatar } from "./avatar";
 import { DEFAULT_TEACHER_ID } from "./teachers";
 
 export interface InventoryItem {
   id: string;
   name: string;
+  icon: string; // emoji do item (itens antigos ganham o da raridade na leitura)
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -99,7 +100,8 @@ function readAll(): Student[] {
         // alunos de antes de existir professor ficam com o Danilo
         teacherId: s.teacherId ?? DEFAULT_TEACHER_ID,
         avatar: normalizeAvatar(s.avatar ?? {}),
-        // itens de antes do mercado ganham valor pela raridade e não são consumíveis
+        // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
+        // itens de antes do ícone próprio ficam com o ícone da raridade
         inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
       };
     });
@@ -148,6 +150,28 @@ export function validateCredentials(username: string, password: string, exceptId
   return null;
 }
 
+export interface StudentProfile {
+  name: string;
+  email: string;
+  turma: string;
+}
+
+/** Valida nome, e-mail e turma (edição pelo professor/ADM). Devolve a mensagem de erro, ou null. */
+export function validateStudentProfile(data: StudentProfile): string | null {
+  if (!data.name.trim()) return "Informe o nome do aluno.";
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email.trim())) return "Informe um e-mail válido.";
+  if (!data.turma.trim()) return "Informe a turma do aluno.";
+  return null;
+}
+
+/**
+ * Troca de casa feita pelo professor/ADM. Se o aluno ainda estava escolhendo a
+ * casa no primeiro acesso, ele já segue pro avatar (a escolha do professor vale).
+ */
+export function houseChangePatch(student: Student, houseId: HouseId): Partial<Student> {
+  return { houseId, onboardingStep: student.onboardingStep === "casa" ? "avatar" : student.onboardingStep };
+}
+
 export type LoginResult = { ok: true; student: Student } | { ok: false; error: string };
 
 /** Confere login e senha; se baterem, o aluno vira o ativo desta aba. */
@@ -175,7 +199,7 @@ export function createStudent(data: { name: string; email: string; turma: string
     level: 1,
     xp: 0,
     coins: 0,
-    inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
+    inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", icon: "✨", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
     completedMissionIds: [],
     onboardingStep: "casa",
     createdAt: new Date().toISOString(),
@@ -203,6 +227,20 @@ export function reassignStudents(fromTeacherId: string, toTeacherId: string) {
   writeAll(readAll().map((s) => (s.teacherId === fromTeacherId ? { ...s, teacherId: toTeacherId } : s)));
 }
 
+// ============================================================================
+// BUSCA — o professor procura aluno pelo nome, pelo nível ("Nv 3", "nível 3"
+// ou só "3") ou pela casa ("ignis", "Casa Noctis"). Ignora maiúsculas e acentos.
+// ============================================================================
+
+export function matchesStudentSearch(student: Student, query: string): boolean {
+  const q = normalizeSearch(query);
+  if (!q) return true;
+  const levelQuery = q.match(/^(?:nv|nivel|level|lv)?\.?\s*(\d+)$/);
+  if (levelQuery && student.level === Number(levelQuery[1])) return true;
+  const fields = [student.name, student.username, student.houseId ? getHouse(student.houseId).name : ""];
+  return fields.some((f) => normalizeSearch(f).includes(q));
+}
+
 /** XP total que o aluno já conquistou desde o nível 1 (os níveis completos + o XP do nível atual). */
 export function totalXp(level: number, xp: number): number {
   let total = xp;
@@ -228,10 +266,11 @@ export function addXp(student: Student, amount: number): { level: number; xp: nu
 // ============================================================================
 
 /** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). */
-export function grantItem(student: Student, item: { name: string; rarity: Rarity; value: number; xp: number }): Student {
+export function grantItem(student: Student, item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }): Student {
   const newItem: InventoryItem = {
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
+    icon: item.icon.trim() || DEFAULT_ITEM_ICON,
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
     xp: Math.max(0, Math.round(item.xp)),
@@ -288,6 +327,7 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
   const newItem: InventoryItem = {
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: mission.rewardItem.name,
+    icon: mission.rewardItem.icon,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
     xp: mission.rewardItem.xp,

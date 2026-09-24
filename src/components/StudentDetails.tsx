@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Student, OnboardingStep, xpToNextLevel } from "@/engine/students";
+import { Student, StudentProfile, OnboardingStep, xpToNextLevel } from "@/engine/students";
 import {
   SKIN_TONES,
   EYE_COLORS,
@@ -12,9 +12,13 @@ import {
   EYEWEAR_LABELS,
   HAT_LABELS,
 } from "@/engine/avatar";
-import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE } from "@/engine/missions";
+import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON } from "@/engine/missions";
 import ItemEconomyFields from "./ItemEconomyFields";
-import { getHouse } from "@/engine/houses";
+import EmojiPicker from "./EmojiPicker";
+import { PaginationFooter, usePagination } from "./Pagination";
+
+const MESSAGES_PER_PAGE = 5;
+import { HOUSES, HouseId, getHouse } from "@/engine/houses";
 import { Teacher } from "@/engine/teachers";
 import { Message, MessageKind, MESSAGE_KIND_META, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
 import Avatar from "./Avatar";
@@ -52,6 +56,8 @@ export default function StudentDetails({
   onSendMessage,
   onDeleteStudent,
   onUpdateCredentials,
+  onUpdateProfile,
+  onChangeHouse,
   teachers,
   onChangeTeacher,
   onClose,
@@ -60,18 +66,22 @@ export default function StudentDetails({
   /** Missões do professor do aluno. */
   missions: Mission[];
   messages: Message[];
-  onGrantItem: (item: { name: string; rarity: Rarity; value: number; xp: number }) => void;
+  onGrantItem: (item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) => void;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
   onDeleteStudent: () => void;
   /** Troca login/senha; devolve a mensagem de erro, ou null se salvou. */
   onUpdateCredentials: (username: string, password: string) => string | null;
+  /** Troca nome, e-mail e turma; devolve a mensagem de erro, ou null se salvou. */
+  onUpdateProfile: (profile: StudentProfile) => string | null;
+  onChangeHouse: (houseId: HouseId) => void;
   /** Só o Painel ADM passa: permite trocar o professor do aluno. */
   teachers?: Teacher[];
   onChangeTeacher?: (teacherId: string) => void;
   onClose: () => void;
 }) {
   const [itemName, setItemName] = useState("");
+  const [itemIcon, setItemIcon] = useState(DEFAULT_ITEM_ICON);
   const [itemRarity, setItemRarity] = useState<Rarity>("comum");
   const [itemValue, setItemValue] = useState(RARITY_DEFAULT_VALUE.comum);
   const [itemXp, setItemXp] = useState(0);
@@ -81,6 +91,7 @@ export default function StudentDetails({
   const [messageKind, setMessageKind] = useState<MessageKind>("mensagem");
   const [messageBody, setMessageBody] = useState("");
   const [sentMsg, setSentMsg] = useState<string | null>(null);
+  const messagesPager = usePagination(messages, MESSAGES_PER_PAGE);
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [editingAccess, setEditingAccess] = useState(false);
@@ -88,6 +99,34 @@ export default function StudentDetails({
   const [newPassword, setNewPassword] = useState(student.password);
   const [accessError, setAccessError] = useState<string | null>(null);
   const [accessSaved, setAccessSaved] = useState(false);
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [profile, setProfile] = useState<StudentProfile>({ name: student.name, email: student.email, turma: student.turma });
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const [houseSaved, setHouseSaved] = useState<string | null>(null);
+
+  function handleChangeHouse(houseId: HouseId) {
+    if (houseId === student.houseId) return;
+    onChangeHouse(houseId);
+    setHouseSaved(`${student.name} agora é da ${getHouse(houseId).name}.`);
+    setTimeout(() => setHouseSaved(null), 3000);
+  }
+
+  function startEditingProfile() {
+    setProfile({ name: student.name, email: student.email, turma: student.turma });
+    setProfileError(null);
+    setEditingProfile(true);
+  }
+
+  function saveProfile() {
+    const error = onUpdateProfile(profile);
+    setProfileError(error);
+    if (error) return;
+    setEditingProfile(false);
+    setProfileSaved(true);
+    setTimeout(() => setProfileSaved(false), 3000);
+  }
 
   function startEditingAccess() {
     setNewUsername(student.username);
@@ -112,8 +151,8 @@ export default function StudentDetails({
   function handleGrant() {
     const name = itemName.trim();
     if (!name) return;
-    onGrantItem({ name, rarity: itemRarity, value: itemValue, xp: itemXp });
-    setGrantedMsg(`🎁 "${name}" entregue para ${student.name}.`);
+    onGrantItem({ name, icon: itemIcon, rarity: itemRarity, value: itemValue, xp: itemXp });
+    setGrantedMsg(`${itemIcon || DEFAULT_ITEM_ICON} "${name}" entregue para ${student.name}.`);
     setTimeout(() => setGrantedMsg(null), 3000);
     setItemName("");
   }
@@ -258,7 +297,26 @@ export default function StudentDetails({
                   </select>
                 </InfoRow>
               )}
-              <InfoRow label="Casa">{house ? <span className={house.colorClass}>{house.name}</span> : "Ainda não escolheu"}</InfoRow>
+              <InfoRow label="Casa">
+                <select
+                  value={student.houseId ?? ""}
+                  onChange={(e) => handleChangeHouse(e.target.value as HouseId)}
+                  aria-label="Casa do aluno"
+                  className={`rounded-lg border border-slate-700 bg-[#0d0d14] px-2 py-1 text-sm focus:border-slate-400 focus:outline-none ${house ? house.colorClass : "text-slate-400"}`}
+                >
+                  {!house && (
+                    <option value="" disabled>
+                      Ainda não escolheu
+                    </option>
+                  )}
+                  {HOUSES.map((h) => (
+                    <option key={h.id} value={h.id} className="text-slate-100">
+                      {h.name}
+                    </option>
+                  ))}
+                </select>
+              </InfoRow>
+              {houseSaved && <p className="pb-1 text-right text-xs text-emerald-300">✓ {houseSaved}</p>}
               <InfoRow label="Cadastrado em">{formatDate(student.createdAt)}</InfoRow>
               <InfoRow label="Primeiro acesso">{ONBOARDING_LABELS[student.onboardingStep]}</InfoRow>
               <InfoRow label="Missões concluídas">
@@ -299,6 +357,53 @@ export default function StudentDetails({
               <InfoRow label="Óculos">{EYEWEAR_LABELS[student.avatar.eyewear]}</InfoRow>
               <InfoRow label="Chapéu">{HAT_LABELS[student.avatar.hat]}</InfoRow>
             </div>
+          </div>
+
+          <div className="mb-6 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <SectionTitle>👤 Dados do aluno</SectionTitle>
+              {!editingProfile && (
+                <button onClick={startEditingProfile} className="mb-2 text-[11px] font-medium text-slate-400 hover:text-white">
+                  ✏️ Alterar
+                </button>
+              )}
+            </div>
+            {editingProfile ? (
+              <div className="flex flex-col gap-3">
+                <div>
+                  <label className="mb-1 block text-[11px] text-slate-500">Nome (aparece no avatar, no ranking e para o professor)</label>
+                  <input value={profile.name} onChange={(e) => setProfile((p) => ({ ...p, name: e.target.value }))} placeholder="Nome do aluno" className="cg-input" />
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-500">E-mail</label>
+                    <input type="email" value={profile.email} onChange={(e) => setProfile((p) => ({ ...p, email: e.target.value }))} placeholder="aluno@escola.com" className="cg-input" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-[11px] text-slate-500">Turma</label>
+                    <input value={profile.turma} onChange={(e) => setProfile((p) => ({ ...p, turma: e.target.value }))} placeholder="3ºA - Manhã" className="cg-input" />
+                  </div>
+                </div>
+                {profileError && <p className="text-xs text-rose-300">{profileError}</p>}
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setEditingProfile(false)} className="cg-btn-secondary !px-4 !py-2 text-xs">
+                    Cancelar
+                  </button>
+                  <button onClick={saveProfile} className="cg-btn-primary !px-4 !py-2 text-xs">
+                    Salvar dados
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <InfoRow label="Nome">{student.name}</InfoRow>
+                <InfoRow label="E-mail">
+                  <span className="break-all">{student.email}</span>
+                </InfoRow>
+                <InfoRow label="Turma">{student.turma}</InfoRow>
+                {profileSaved && <p className="pb-1 text-xs text-emerald-300">✓ Dados atualizados.</p>}
+              </>
+            )}
           </div>
 
           <div className="mb-6 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
@@ -375,7 +480,7 @@ export default function StudentDetails({
                 {inventory.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-3 rounded-xl border border-slate-800 bg-[#0d0d14] px-3 py-2.5">
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-lg">{RARITY_ICON[item.rarity]}</div>
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[#1a1a24] text-lg">{item.icon}</div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-white">{item.name}</p>
                         <div className="mt-0.5 flex items-center gap-2">
@@ -408,7 +513,7 @@ export default function StudentDetails({
               <p className="text-sm text-slate-500">Nenhuma mensagem enviada para este aluno ainda.</p>
             ) : (
               <div className="flex flex-col gap-2">
-                {messages.map((m) => (
+                {messagesPager.pageItems.map((m) => (
                   <div key={m.id} className="rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-3">
                     <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2">
                       <span className="flex flex-wrap items-center gap-1.5">
@@ -425,6 +530,7 @@ export default function StudentDetails({
                 ))}
               </div>
             )}
+            <PaginationFooter pager={messagesPager} noun="mensagens" />
           </div>
 
           <div className="rounded-xl border border-slate-800 bg-[#0d0d14] p-4">
@@ -437,6 +543,7 @@ export default function StudentDetails({
                   // escolheu um item de missão da lista? já preenche raridade, valor e XP dele
                   const known = missions.find((m) => m.rewardItem.name === e.target.value)?.rewardItem;
                   if (known) {
+                    setItemIcon(known.icon);
                     setItemRarity(known.rarity);
                     setItemValue(known.value);
                     setItemXp(known.xp);
@@ -466,6 +573,10 @@ export default function StudentDetails({
                     {RARITY_ICON[r]} {RARITY_META[r].label}
                   </button>
                 ))}
+              </div>
+              <div>
+                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone do item</p>
+                <EmojiPicker value={itemIcon} onChange={setItemIcon} defaultGroup="Itens" />
               </div>
               <ItemEconomyFields
                 value={itemValue}

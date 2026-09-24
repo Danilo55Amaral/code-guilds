@@ -2,7 +2,6 @@
 
 import { useEffect } from "react";
 import { Student } from "@/engine/students";
-import { RARITY_ICON } from "@/engine/missions";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import { CoinCount, HousePill, ItemStats, LevelPill, RarityBadge } from "./GameUI";
@@ -68,7 +67,7 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
                   className="cg-anim-rise flex flex-col items-center gap-1.5 rounded-xl border border-slate-800 bg-[#0d0d14] p-3 text-center"
                   style={{ animationDelay: `${0.1 + i * 0.05}s` }}
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{RARITY_ICON[item.rarity]}</div>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1a1a24] text-xl">{item.icon}</div>
                   <p className="text-xs font-semibold text-white">{item.name}</p>
                   <RarityBadge rarity={item.rarity} />
                   <ItemStats value={item.value} xp={item.xp} />

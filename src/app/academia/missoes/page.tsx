@@ -155,7 +155,7 @@ export default function MissoesPage() {
                         <CoinIcon size={14} /> {m.rewardCoins}
                       </span>
                       <span className="flex items-center gap-1">
-                        🎁 {m.rewardItem.name} <RarityBadge rarity={m.rewardItem.rarity} />
+                        {m.rewardItem.icon} {m.rewardItem.name} <RarityBadge rarity={m.rewardItem.rarity} />
                       </span>
                       {!completed && (
                         <span className="text-slate-500">

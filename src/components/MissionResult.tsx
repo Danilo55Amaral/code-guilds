@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mission, RARITY_ICON, RARITY_META, PASS_THRESHOLD_PERCENT } from "@/engine/missions";
+import { Mission, RARITY_META, PASS_THRESHOLD_PERCENT } from "@/engine/missions";
 import { playDeathSound, playVictoryFanfare } from "@/engine/sfx";
 import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
 import { SoundToggleButton, useSceneSound } from "./SceneSound";
@@ -174,7 +174,7 @@ export function VictoryScreen({
         <SoundToggleButton muted={sound.muted} onClick={sound.toggle} />
 
         <div className="relative">
-          <TreasureChest itemIcon={RARITY_ICON[mission.rewardItem.rarity]} />
+          <TreasureChest itemIcon={mission.rewardItem.icon} />
 
           <h2 className="cg-anim-shimmer mt-4 text-3xl font-black uppercase tracking-wide">Missão Concluída!</h2>
           <p className="cg-anim-fade mt-1 text-sm text-slate-400" style={{ animationDelay: "0.4s" }}>

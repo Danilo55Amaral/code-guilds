@@ -3,10 +3,14 @@
 import { useStudents, useMessages } from "@/engine/store";
 import { formatMessageDate } from "@/engine/messages";
 import { MessageAudienceBadge, MessageKindBadge } from "@/components/GameUI";
+import { PaginationFooter, usePagination } from "@/components/Pagination";
+
+const MESSAGES_PER_PAGE = 10;
 
 export default function MensagensPage() {
   const { activeStudent } = useStudents();
   const { messages, unreadCount, ready, markRead, markAllRead } = useMessages(activeStudent?.id ?? null);
+  const pager = usePagination(messages, MESSAGES_PER_PAGE);
 
   if (!activeStudent || !ready) return null;
 
@@ -34,7 +38,7 @@ export default function MensagensPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {messages.map((m) => {
+          {pager.pageItems.map((m) => {
             const unread = !m.readAt;
             return (
               // Clicar numa mensagem não lida marca como lida (e tira do contador do sino).
@@ -62,6 +66,8 @@ export default function MensagensPage() {
           })}
         </div>
       )}
+
+      <PaginationFooter pager={pager} noun="mensagens" scrollToTop />
     </div>
   );
 }

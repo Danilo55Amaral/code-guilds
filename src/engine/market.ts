@@ -10,6 +10,7 @@
 // ============================================================================
 
 import { InventoryItem, getStudent, updateStudent } from "./students";
+import { normalizeRewardItem } from "./missions";
 
 export interface Offer {
   id: string;
@@ -28,7 +29,8 @@ function readAll(): Offer[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(OFFERS_KEY);
-    return raw ? (JSON.parse(raw) as Offer[]) : [];
+    // ofertas feitas antes do ícone próprio: o item ganha o ícone da raridade
+    return raw ? (JSON.parse(raw) as Offer[]).map((o) => ({ ...o, item: { ...o.item, ...normalizeRewardItem(o.item) } })) : [];
   } catch {
     return [];
   }

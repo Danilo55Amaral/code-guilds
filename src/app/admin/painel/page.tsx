@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
-import { grantItem, removeItem, validateCredentials, normalizeUsername } from "@/engine/students";
+import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
 import { MessageKind } from "@/engine/messages";
-import { HOUSES } from "@/engine/houses";
-import { CoinIcon, DifficultyBadge } from "@/components/GameUI";
+import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
+import StudentList from "@/components/StudentList";
+import MissionList from "@/components/MissionList";
+import TeacherList from "@/components/TeacherList";
 import StudentDetails from "@/components/StudentDetails";
 import TeacherEditor from "@/components/TeacherEditor";
 
@@ -28,7 +30,6 @@ export default function PainelAdminPage() {
   const [tab, setTab] = useState<Tab>("professores");
   // Filtro de professor das abas Alunos e Missões.
   const [teacherFilter, setTeacherFilter] = useState<string>(ALL_TEACHERS);
-  const [showPasswords, setShowPasswords] = useState(false);
   const [teacherTarget, setTeacherTarget] = useState<Teacher | "new" | null>(null);
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
   // Guarda só o id, como no painel do professor: a ficha acompanha as mudanças.
@@ -90,7 +91,7 @@ export default function PainelAdminPage() {
 
   // ---- alunos ----
 
-  function handleGrantItem(item: { name: string; rarity: Rarity; value: number; xp: number }) {
+  function handleGrantItem(item: { name: string; icon: string; rarity: Rarity; value: number; xp: number }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
   }
@@ -103,6 +104,19 @@ export default function PainelAdminPage() {
   function handleSendMessage(data: { kind: MessageKind; body: string }) {
     if (!selectedStudent) return;
     sendMessage({ studentId: selectedStudent.id, senderId: admin.id, ...data });
+  }
+
+  function handleUpdateProfile(profile: StudentProfile): string | null {
+    if (!selectedStudent) return null;
+    const error = validateStudentProfile(profile);
+    if (error) return error;
+    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
+    return null;
+  }
+
+  function handleChangeHouse(houseId: HouseId) {
+    if (!selectedStudent) return;
+    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
   }
 
   function handleUpdateCredentials(username: string, password: string): string | null {
@@ -180,7 +194,7 @@ export default function PainelAdminPage() {
         ))}
       </div>
 
-      <div className="mb-4 inline-flex gap-1 rounded-xl border border-slate-800 bg-[#101018] p-1">
+      <div className="mb-4 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-800 bg-[#101018] p-1">
         {(Object.keys(TAB_LABELS) as Tab[]).map((t) => (
           <button
             key={t}
@@ -196,138 +210,46 @@ export default function PainelAdminPage() {
       </div>
 
       {tab === "professores" && (
-        <div className="cg-card p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-300">Professores cadastrados</p>
-            <div className="flex gap-2">
-              <button onClick={() => setShowPasswords((v) => !v)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
-                {showPasswords ? "🙈 Esconder senhas" : "👁 Mostrar senhas"}
-              </button>
-              <button onClick={() => setTeacherTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
-                + Novo Professor
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            {teachers.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTeacherTarget(t)}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
-              >
-                <div>
-                  <p className="flex items-center gap-2 text-sm font-medium text-white">
-                    {t.name}
-                    {t.isAdmin && (
-                      <span className="rounded-full border border-violet-500/40 px-2 py-0.5 text-[10px] font-semibold text-violet-300">🛡 ADM</span>
-                    )}
-                  </p>
-                  <p className="text-xs text-slate-500">
-                    {t.email} • senha <span className="font-mono">{showPasswords ? t.password : "•".repeat(t.password.length)}</span>
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 text-xs">
-                  <span className="text-slate-400">
-                    {studentsOf(t.id).length} {studentsOf(t.id).length === 1 ? "aluno" : "alunos"}
-                  </span>
-                  <span className="text-slate-400">
-                    {missionsOf(t.id).length} {missionsOf(t.id).length === 1 ? "missão" : "missões"}
-                  </span>
-                  <span className="text-slate-600">Editar →</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+        <TeacherList
+          teachers={teachers}
+          studentCount={(id) => studentsOf(id).length}
+          missionCount={(id) => missionsOf(id).length}
+          onNew={() => setTeacherTarget("new")}
+          onSelect={setTeacherTarget}
+        />
       )}
 
       {tab === "alunos" && (
-        <div className="cg-card p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-300">Alunos da plataforma</p>
-            {teacherFilterSelect}
-          </div>
-          {visibleStudents.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum aluno cadastrado {teacherFilter === ALL_TEACHERS ? "ainda neste dispositivo" : "com esse professor"}.</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {visibleStudents.map((s) => {
-                const house = s.houseId ? HOUSES.find((h) => h.id === s.houseId) : null;
-                const teacherMissions = missionsOf(s.teacherId);
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => setSelectedStudentId(s.id)}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
-                  >
-                    <div>
-                      <p className="text-sm font-medium text-white">{s.name}</p>
-                      <p className="text-xs text-slate-500">
-                        {s.email} • {s.turma} • <span className="font-mono">@{s.username}</span>
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs">
-                      <span className="text-violet-300">🎓 {teacherName(s.teacherId)}</span>
-                      {house && <span className={house.colorClass}>{house.name}</span>}
-                      <span className="text-slate-400">Nv {s.level}</span>
-                      <span className="flex items-center gap-1 text-amber-300">
-                        <CoinIcon size={14} /> {s.coins}
-                      </span>
-                      <span className="text-slate-500">
-                        {teacherMissions.filter((m) => s.completedMissionIds.includes(m.id)).length}/{teacherMissions.length} missões
-                      </span>
-                      <span className="text-slate-600">Ver aluno →</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <StudentList
+          key={teacherFilter}
+          title="Alunos da plataforma"
+          students={visibleStudents}
+          missions={missions}
+          emptyText={`Nenhum aluno cadastrado ${teacherFilter === ALL_TEACHERS ? "ainda neste dispositivo" : "com esse professor"}.`}
+          headerRight={teacherFilterSelect}
+          teacherName={teacherName}
+          onSelect={setSelectedStudentId}
+        />
       )}
 
       {tab === "missoes" && (
-        <div className="cg-card p-5">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-            <p className="text-sm font-semibold text-slate-300">Missões da plataforma</p>
+        <MissionList
+          key={teacherFilter}
+          title="Missões da plataforma"
+          missions={visibleMissions}
+          students={students}
+          emptyText={`Nenhuma missão ${teacherFilter === ALL_TEACHERS ? "cadastrada ainda" : "desse professor"}.`}
+          headerRight={
             <div className="flex flex-wrap gap-2">
               {teacherFilterSelect}
               <button onClick={() => setEditorTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
                 + Nova Missão
               </button>
             </div>
-          </div>
-          {visibleMissions.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhuma missão {teacherFilter === ALL_TEACHERS ? "cadastrada ainda" : "desse professor"}.</p>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {visibleMissions.map((m) => {
-                const completions = students.filter((s) => s.completedMissionIds.includes(m.id)).length;
-                return (
-                  <button
-                    key={m.id}
-                    onClick={() => setEditorTarget(m)}
-                    className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-[#0d0d14] px-4 py-2.5 text-left transition-colors hover:border-slate-600"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg">{m.icon}</span>
-                      <div>
-                        <p className="text-sm font-medium text-white">{m.title}</p>
-                        <p className="text-xs text-slate-500">{m.description}</p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3 text-xs">
-                      <span className="text-violet-300">🎓 {teacherName(m.teacherId)}</span>
-                      <DifficultyBadge difficulty={m.difficulty} />
-                      <span className="text-slate-500">{completions} concluíram</span>
-                      <span className="text-slate-600">Editar →</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          }
+          teacherName={teacherName}
+          onSelect={setEditorTarget}
+        />
       )}
 
       {teacherTarget && (
@@ -352,6 +274,8 @@ export default function PainelAdminPage() {
           onSendMessage={handleSendMessage}
           onDeleteStudent={handleDeleteStudent}
           onUpdateCredentials={handleUpdateCredentials}
+          onUpdateProfile={handleUpdateProfile}
+          onChangeHouse={handleChangeHouse}
           teachers={teachers}
           onChangeTeacher={handleChangeTeacher}
           onClose={() => setSelectedStudentId(null)}

@@ -52,7 +52,9 @@ src/
     SceneSound.tsx      -> useSceneSound() + botão 🔊/🔇: pausa a música de fundo, toca o som da cena e retoma ao fechar
     AcademyHeader.tsx, AcademySidebar.tsx -> layout da Academia
     ComingSoon.tsx      -> placeholder "em breve" das telas ainda não construídas
-    Pagination.tsx      -> controles de paginação (Anterior/números/Próxima), reutilizável
+    Pagination.tsx      -> controles de paginação (Anterior/números/Próxima) + usePagination() e PaginationFooter ("Mostrando 1–10 de N"), reutilizáveis
+    SearchInput.tsx     -> campo de busca com lupa
+    StudentList.tsx, MissionList.tsx, TeacherList.tsx -> listas com busca e paginação dos painéis do professor e do ADM
     HousemateSheet.tsx  -> perfil de um colega da mesma casa (avatar, nome, nível, moedas e itens — sem dados pessoais)
     SellItemModal.tsx   -> janela de venda de um item (pro sistema ou oferta pra um colega)
     ItemEconomyFields.tsx -> campos de valor em moedas e XP ao usar (professor: editor de missão e "Dar item")
@@ -63,6 +65,7 @@ src/
     TeacherLoginCard.tsx -> tela de login compartilhada entre /professor e /admin
     TeacherEditor.tsx   -> cadastro/edição/exclusão de professor no Painel ADM
     TutorialModal.tsx   -> tour em passos do primeiro acesso (aluno e professor), com "Pular tutorial"
+    EmojiPicker.tsx     -> escolha do ícone de missão e de item: 112 emojis em 7 categorias (Itens, Magia, Batalha, Código, Estudo, Criaturas, Outros) + campo pra colar outro
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
   app/
     entrar/, casa-selecao/, avatar/  -> onboarding
@@ -75,6 +78,14 @@ public/
 ```
 
 ## O que já funciona de verdade
+
+- Edição dos dados do aluno — na ficha do aluno (Painel do Mestre e Painel ADM), a seção "👤 Dados do aluno" tem ✏️ Alterar pra trocar nome (o que aparece junto do avatar, no ranking e nos painéis), e-mail e turma, com validação de nome e turma obrigatórios e e-mail válido. Cada professor só edita os próprios alunos; o ADM edita qualquer um
+- Troca de casa pelo professor/ADM — na seção Cadastro da ficha do aluno, a casa é um seletor: trocar move o aluno na hora (ranking, pontos das casas, contagem por casa e comunicados por casa). Se o aluno ainda estava escolhendo a casa no primeiro acesso, a escolha do professor vale e ele segue direto pro avatar
+
+- Busca e paginação nos painéis — no Painel do Mestre e no Painel ADM, alunos podem ser buscados por nome, nível ("Nv 3", "nível 3" ou só "3") ou casa ("Ignis", "Casa Noctis"); missões por nome, raridade ou item (mesma busca da tela de Missões do aluno); no ADM, professores por nome ou e-mail. Tudo sem diferenciar maiúsculas/acentos e paginado de 10 em 10; ao buscar, volta pra página 1
+- Paginação de mensagens — página Mensagens do aluno (10 por página), mensagens enviadas na ficha do aluno e histórico de comunicados do professor (5 por página)
+
+- Ícone próprio pra cada item — o professor escolhe o emoji do item no seletor (no item de recompensa do editor de missão e no "Dar item" da ficha do aluno). O ícone aparece no inventário, nas ofertas, na venda, no perfil dos colegas, na ficha do aluno, na lista de missões e no baú da tela de vitória. Itens criados antes disso continuam com o ícone da raridade (🔹🔷💠👑)
 
 - Tutorial de primeiro acesso — o aluno vê um tour da Academia (missões, XP e níveis, inventário, Minha Casa, mensagens) ao entrar pela primeira vez, depois de escolher casa e avatar; o professor vê um tour do Painel do Mestre (alunos, ficha, comunicados, missões — e, pro ADM, o Painel ADM) na primeira vez que abre o painel. Dá pra pular a qualquer momento (botão, ✕ ou Esc), navegar com ← →, e rever pelo botão ❓ Tutorial no topo. O "já viu" fica salvo no cadastro (`tutorialDone`), então vale em qualquer aba desse navegador. Os textos ficam em `engine/tutorial.ts`
 

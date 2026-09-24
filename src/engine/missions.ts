@@ -25,14 +25,23 @@ export const RARITY_DEFAULT_VALUE: Record<Rarity, number> = { comum: 10, raro: 3
  */
 export interface RewardItem {
   name: string;
+  icon: string; // emoji escolhido pelo professor
   rarity: Rarity;
   value: number;
   xp: number;
 }
 
-/** Completa itens salvos antes de existir valor/XP. */
-export function normalizeRewardItem(item: { name: string; rarity: Rarity; value?: number; xp?: number }): RewardItem {
-  return { ...item, value: item.value ?? RARITY_DEFAULT_VALUE[item.rarity] ?? 10, xp: item.xp ?? 0 };
+/** Ícone sugerido pra um item novo (o professor troca no seletor de emojis). */
+export const DEFAULT_ITEM_ICON = "🎁";
+
+/** Completa itens salvos antes de existir valor/XP/ícone — os sem ícone ficam com o da raridade, como antes. */
+export function normalizeRewardItem(item: { name: string; rarity: Rarity; icon?: string; value?: number; xp?: number }): RewardItem {
+  return {
+    ...item,
+    icon: item.icon || RARITY_ICON[item.rarity] || DEFAULT_ITEM_ICON,
+    value: item.value ?? RARITY_DEFAULT_VALUE[item.rarity] ?? 10,
+    xp: item.xp ?? 0,
+  };
 }
 
 export const DIFFICULTY_META: Record<Difficulty, { label: string; colorClass: string; borderClass: string }> = {
@@ -84,7 +93,7 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Domine let, const e os tipos primitivos",
     rewardXp: 120,
     rewardCoins: 50,
-    rewardItem: { name: "Fragmento de Código", rarity: "comum", value: 15, xp: 40 },
+    rewardItem: { name: "Fragmento de Código", icon: "💾", rarity: "comum", value: 15, xp: 40 },
     questions: [
       {
         id: "q1",
@@ -123,7 +132,7 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "For, while e a arte de não travar o navegador",
     rewardXp: 200,
     rewardCoins: 90,
-    rewardItem: { name: "Anel do Iterador", rarity: "raro", value: 40, xp: 0 },
+    rewardItem: { name: "Anel do Iterador", icon: "💍", rarity: "raro", value: 40, xp: 0 },
     questions: [
       {
         id: "q1",
@@ -162,7 +171,7 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Async/Await e o reino das Promises",
     rewardXp: 350,
     rewardCoins: 150,
-    rewardItem: { name: "Orbe Async", rarity: "epico", value: 90, xp: 150 },
+    rewardItem: { name: "Orbe Async", icon: "🔮", rarity: "epico", value: 90, xp: 150 },
     questions: [
       {
         id: "q1",
@@ -200,7 +209,7 @@ export const MISSIONS: Omit<Mission, "teacherId">[] = [
     description: "Manipule a realidade da página",
     rewardXp: 500,
     rewardCoins: 250,
-    rewardItem: { name: "Coroa do Frontend", rarity: "lendario", value: 250, xp: 0 },
+    rewardItem: { name: "Coroa do Frontend", icon: "👑", rarity: "lendario", value: 250, xp: 0 },
     questions: [
       {
         id: "q1",
@@ -240,7 +249,8 @@ export function getMission(id: string): Omit<Mission, "teacherId"> | undefined {
 // Ignora maiúsculas e acentos: "epico" encontra "Épico".
 // ============================================================================
 
-function normalizeSearch(text: string): string {
+/** Minúsculo, sem acento e sem espaços nas pontas — usado também na busca de alunos e professores. */
+export function normalizeSearch(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
