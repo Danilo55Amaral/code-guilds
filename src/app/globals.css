@@ -1,0 +1,205 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full;
+  }
+
+  body {
+    @apply h-full bg-[#08080c] text-slate-100 antialiased;
+    background-image: radial-gradient(60% 50% at 50% 0%, rgba(99, 102, 241, 0.08), transparent 60%);
+  }
+}
+
+@layer components {
+  .cg-card {
+    @apply rounded-2xl border border-slate-800 bg-[#101018];
+  }
+
+  .cg-btn-primary {
+    @apply rounded-full bg-white px-5 py-3 text-sm font-semibold text-[#0a0a0f] transition-transform hover:scale-[1.02] active:scale-[0.99];
+  }
+
+  .cg-btn-secondary {
+    @apply rounded-full border border-slate-700 bg-[#12121a] px-5 py-3 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-500;
+  }
+
+  .cg-input {
+    @apply w-full rounded-xl border border-slate-700 bg-[#0d0d14] px-4 py-3 text-sm text-slate-100 placeholder:text-slate-600 focus:border-slate-400 focus:outline-none;
+  }
+}
+
+/* ============================================================================
+   ANIMAÇÕES DO RESULTADO DA MISSÃO (components/MissionResult.tsx)
+   Vitória: confete, raios de luz, baú abrindo, item subindo, recompensas.
+   Derrota: corte de foice, tela tremendo, Ceifador flutuando, "VOCÊ MORREU".
+   Subir de nível (components/LevelUpScreen.tsx): ondas de choque, brasão girando,
+   número do nível antigo saindo e o novo entrando, faíscas subindo.
+   Os atrasos (animation-delay) ficam inline em cada elemento, pra orquestrar a cena.
+   ============================================================================ */
+
+@keyframes cg-pop-in {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes cg-rise {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes cg-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes cg-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes cg-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+@keyframes cg-confetti-fall {
+  0% { transform: translate3d(0, -10vh, 0) rotate(0deg); opacity: 1; }
+  100% { transform: translate3d(var(--cg-drift), 110vh, 0) rotate(var(--cg-spin)); opacity: 0.8; }
+}
+@keyframes cg-chest-shake {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-5deg); }
+  40% { transform: rotate(5deg); }
+  60% { transform: rotate(-4deg); }
+  80% { transform: rotate(3deg); }
+}
+@keyframes cg-chest-lid {
+  0% { transform: translateY(0) rotate(0deg); }
+  100% { transform: translateY(-24px) rotate(-9deg); }
+}
+@keyframes cg-item-rise {
+  0% { transform: translateY(30px) scale(0.3); opacity: 0; }
+  70% { transform: translateY(-46px) scale(1.15); opacity: 1; }
+  100% { transform: translateY(-40px) scale(1); opacity: 1; }
+}
+@keyframes cg-shimmer {
+  to { background-position: 200% center; }
+}
+@keyframes cg-scythe-swing {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(16deg); }
+}
+@keyframes cg-eye-glow {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+@keyframes cg-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15%, 55% { transform: translate(-8px, 3px); }
+  35%, 75% { transform: translate(8px, -3px); }
+  90% { transform: translate(-3px, 1px); }
+}
+@keyframes cg-slash {
+  0% { transform: translateX(-110%) rotate(-24deg); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateX(110%) rotate(-24deg); opacity: 0; }
+}
+@keyframes cg-red-flash {
+  0% { opacity: 0; }
+  12% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+@keyframes cg-reaper-rise {
+  from { transform: translateY(70px); opacity: 0; filter: blur(8px); }
+  to { transform: translateY(0); opacity: 1; filter: blur(0); }
+}
+@keyframes cg-death-letters {
+  from { letter-spacing: 0.7em; opacity: 0; filter: blur(4px); }
+  to { letter-spacing: 0.22em; opacity: 1; filter: blur(0); }
+}
+@keyframes cg-shockwave {
+  0% { transform: scale(0.3); opacity: 0.9; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes cg-level-out {
+  0% { transform: translateY(0) scale(1); opacity: 1; filter: blur(0); }
+  100% { transform: translateY(-36px) scale(0.5); opacity: 0; filter: blur(6px); }
+}
+@keyframes cg-level-in {
+  0% { transform: scale(2.4); opacity: 0; filter: blur(10px); }
+  60% { transform: scale(0.92); opacity: 1; filter: blur(0); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+@keyframes cg-sparkle-rise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-105vh) scale(1.1); opacity: 0; }
+}
+@keyframes cg-fog-drift {
+  0%, 100% { transform: translateX(-12%); }
+  50% { transform: translateX(12%); }
+}
+
+@layer components {
+  .cg-anim-pop { animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .cg-anim-rise { animation: cg-rise 0.5s ease-out both; }
+  .cg-anim-fade { animation: cg-fade 0.6s ease-out both; }
+  .cg-anim-spin-slow { animation: cg-spin 14s linear infinite; }
+  .cg-anim-float { animation: cg-float 3s ease-in-out infinite; }
+  .cg-anim-confetti { animation: cg-confetti-fall var(--cg-duration) cubic-bezier(0.25, 0.6, 0.4, 1) var(--cg-delay) both; }
+  .cg-anim-chest-shake { animation: cg-chest-shake 0.5s ease-in-out 0.2s 2 both; }
+  .cg-anim-chest-lid { animation: cg-chest-lid 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) 1.2s both; }
+  .cg-anim-item-rise { animation: cg-item-rise 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) 1.35s both; }
+  .cg-anim-shimmer {
+    background: linear-gradient(90deg, #fde68a, #fbbf24, #fff7d6, #fbbf24, #fde68a);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s both, cg-shimmer 3s linear infinite;
+  }
+  .cg-anim-scythe { animation: cg-scythe-swing 2.4s ease-in-out infinite; }
+  .cg-anim-eye { animation: cg-eye-glow 1.6s ease-in-out infinite; }
+  .cg-anim-shake { animation: cg-shake 0.55s ease-in-out 0.25s both; }
+  .cg-anim-slash { animation: cg-slash 0.55s ease-out 0.1s both; }
+  .cg-anim-red-flash { animation: cg-red-flash 1.2s ease-out both; }
+  .cg-anim-reaper-rise { animation: cg-reaper-rise 1.2s ease-out 0.3s both; }
+  .cg-anim-death-letters { animation: cg-death-letters 1.6s ease-out 0.7s both; }
+  .cg-anim-fog { animation: cg-fog-drift 8s ease-in-out infinite; }
+  .cg-anim-shockwave { animation: cg-shockwave 1.4s ease-out both; }
+  .cg-anim-spin-reverse { animation: cg-spin 20s linear infinite reverse; }
+  .cg-anim-level-out { animation: cg-level-out 0.45s ease-in 0.9s both; }
+  .cg-anim-level-in { animation: cg-level-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 1.15s both; }
+  .cg-anim-sparkle { animation: cg-sparkle-rise var(--cg-duration) ease-out var(--cg-delay) infinite both; }
+  .cg-anim-shimmer-violet {
+    background: linear-gradient(90deg, #c4b5fd, #8b5cf6, #f5f3ff, #8b5cf6, #c4b5fd);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s both, cg-shimmer 3s linear infinite;
+  }
+}
+
+/* Quem pediu menos movimento no sistema vê direto o estado final das cenas. */
+@media (prefers-reduced-motion: reduce) {
+  [class*="cg-anim-"] {
+    animation: none !important;
+  }
+  .cg-anim-confetti,
+  .cg-anim-slash,
+  .cg-anim-sparkle,
+  .cg-anim-shockwave,
+  .cg-anim-level-out {
+    display: none;
+  }
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background-color: #08080c;
+}
+::-webkit-scrollbar-thumb {
+  background-color: #33333f;
+  border-radius: 10px;
+}
