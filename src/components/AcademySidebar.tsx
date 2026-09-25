@@ -14,6 +14,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/academia/missoes", label: "Missões", icon: "⚔️" },
   { href: "/academia/inventario", label: "Inventário", icon: "🛡️" },
+  { href: "/academia/loja", label: "Loja", icon: "🛍️" },
   {
     href: "/academia/casa",
     label: "Minha Casa",

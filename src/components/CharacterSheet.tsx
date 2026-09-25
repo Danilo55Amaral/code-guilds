@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Student, xpToNextLevel, totalXp } from "@/engine/students";
+import { Student, xpToNextLevel, totalXp, wornAvatar } from "@/engine/students";
 import { Rarity, RARITY_META, RARITY_ICON } from "@/engine/missions";
 import { getHouse } from "@/engine/houses";
 import {
@@ -10,8 +10,8 @@ import {
   EXPRESSION_LABELS,
   FACE_DETAIL_LABELS,
   OUTFIT_LABELS,
-  EYEWEAR_LABELS,
-  HAT_LABELS,
+  eyewearLabel,
+  hatLabel,
 } from "@/engine/avatar";
 import Avatar from "./Avatar";
 import { CoinIcon, HousePill, LevelPill, XPBar } from "./GameUI";
@@ -62,7 +62,7 @@ export default function CharacterSheet({
 }) {
   const house = student.houseId ? getHouse(student.houseId) : null;
   const glow = house?.hex ?? "#6366f1";
-  const av = student.avatar;
+  const av = wornAvatar(student); // com os visuais da Loja equipados
   const itemsByRarity = (Object.keys(RARITY_META) as Rarity[]).map((r) => ({
     rarity: r,
     count: student.inventory.filter((i) => i.rarity === r).length,
@@ -199,7 +199,7 @@ export default function CharacterSheet({
                 </span>
               </InfoRow>
               <InfoRow label="Acessórios">
-                {[av.eyewear !== "nenhum" && EYEWEAR_LABELS[av.eyewear], av.hat !== "nenhum" && HAT_LABELS[av.hat]].filter(Boolean).join(" • ") || "Nenhum"}
+                {[av.eyewear !== "nenhum" && eyewearLabel(av.eyewear), av.hat !== "nenhum" && hatLabel(av.hat)].filter(Boolean).join(" • ") || "Nenhum"}
               </InfoRow>
             </div>
           </div>

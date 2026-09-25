@@ -36,6 +36,7 @@ src/
     students.ts     -> cadastro de aluno, login/senha e sessão, professor do aluno, XP/nível/moedas, inventário
     tutorial.ts     -> passos do tutorial de primeiro acesso (aluno e professor)
     theme.ts        -> tema escuro/claro salvo no navegador (classe `light` no <html>)
+    shop.ts         -> Loja da Academia: itens à venda (CRUD do ADM, semeado com 10 itens) e a compra do aluno
     teachers.ts     -> cadastro de professores (semeado com o Danilo, que é o ADM), login e sessão do professor
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
@@ -66,8 +67,10 @@ src/
     BroadcastComposer.tsx -> comunicados do professor pra toda a turma ou pra uma casa, com o histórico de leitura
     TeacherLoginCard.tsx -> tela de login compartilhada entre /professor e /admin
     TeacherEditor.tsx   -> cadastro/edição/exclusão de professor no Painel ADM
-    TutorialModal.tsx   -> tour em passos do primeiro acesso (aluno e professor), com "Pular tutorial"
+    TutorialModal.tsx   -> tour do primeiro acesso apresentado pelo Mago Danilo (céu estrelado, balão com texto digitado, voz)
+    WizardDanilo.tsx    -> o Mago Danilo em SVG, com as animações (piscar, acenar, orbe, clarão do cajado, boca falando)
     ThemeToggle.tsx     -> botão ☀️/🌙 de tema claro/escuro (+ versão flutuante pras telas sem cabeçalho)
+    ShopManager.tsx, ShopItemEditor.tsx -> aba Loja do Painel ADM e o cadastro de item (com catálogo de visuais)
     EmojiPicker.tsx     -> escolha do ícone de missão e de item: 112 emojis em 7 categorias (Itens, Magia, Batalha, Código, Estudo, Criaturas, Outros) + campo pra colar outro
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
   app/
@@ -81,6 +84,10 @@ public/
 ```
 
 ## O que já funciona de verdade
+
+- Loja da Academia (`/academia/loja`, "🛍️ Loja" no menu) — banner "Mercado Arcano" com o saldo e o avatar do aluno, itens em destaque com borda brilhante na cor da raridade, vitrine com abas (Tudo / Visuais do avatar / Itens) e ordenação (destaques, preço, mais vendidos), selo 🔥 Popular (3+ vendas). Nos visuais, cada card mostra o próprio aluno vestindo o item e o 👁 Provar veste no avatar do banner antes de comprar. Comprar pede confirmação (preço e saldo depois), desconta as moedas, põe o item no inventário, manda uma mensagem 🛒 Compra e abre a tela "Compra feita!" com 👕 Equipar agora. Visual já comprado não pode ser comprado de novo. Vem com 10 itens de exemplo na primeira vez
+- Visuais exclusivos do avatar — só existem na Loja: chapéus (auréola, chifres, tiara estelar, cartola), óculos (neon, de coração, pixelado), cores de roupa (ouro real, prata lunar, carmesim sombrio, ciano neon), auras (fogo, arcana, gelo, estelar) e mascotes no ombro (dragãozinho, coruja, gato, fantasminha, robô). No Inventário, item de visual tem 👕 Equipar / ↩ Retirar do avatar (um por espaço; equipar outro do mesmo espaço troca); o avatar do editor fica guardado e volta ao retirar. Vender, oferecer ou excluir um item equipado tira ele do avatar. O avatar "vestido" aparece em todo lugar (cabeçalho, ranking, perfil de colega, ficha, painéis) — ver `wornAvatar()` em `students.ts`
+- Aba 🛍️ Loja no Painel ADM — lista os itens à venda com quantas vendas e quantas moedas os alunos já gastaram; + Novo item abre o editor: tipo (visual do avatar ou item comum), catálogo de visuais com prévia no avatar (os que já estão à venda ficam bloqueados), nome, descrição, raridade, preço, valor de revenda, XP ao usar (itens comuns), ícone e ⭐ destaque. Tirar da Loja não mexe em quem já comprou
 
 - Tema claro e escuro — o escuro continua sendo o padrão, idêntico ao de antes. O botão ☀️/🌙 (no cabeçalho da Academia, no Painel do Mestre, no Painel ADM e flutuando no canto das telas de login/cadastro/casa/avatar) alterna os temas: no escuro mostra o sol (vai pro claro), no claro mostra a lua (volta pro escuro). A escolha fica salva no navegador e é aplicada antes da página aparecer (sem "piscar"). Como funciona: em `tailwind.config.ts` cada cor da paleta lê uma variável CSS cujo padrão é a cor do tema escuro; a classe `light` no `<html>` só troca essas variáveis. As cenas de vitória, derrota e subir de nível continuam escuras nos dois temas (`.cg-dark-scope`)
 
@@ -99,7 +106,7 @@ public/
 
 - Ícone próprio pra cada item — o professor escolhe o emoji do item no seletor (no item de recompensa do editor de missão e no "Dar item" da ficha do aluno). O ícone aparece no inventário, nas ofertas, na venda, no perfil dos colegas, na ficha do aluno, na lista de missões e no baú da tela de vitória. Itens criados antes disso continuam com o ícone da raridade (🔹🔷💠👑)
 
-- Tutorial de primeiro acesso — o aluno vê um tour da Academia (missões, XP e níveis, inventário, Minha Casa, mensagens) ao entrar pela primeira vez, depois de escolher casa e avatar; o professor vê um tour do Painel do Mestre (alunos, ficha, comunicados, missões — e, pro ADM, o Painel ADM) na primeira vez que abre o painel. Dá pra pular a qualquer momento (botão, ✕ ou Esc), navegar com ← →, e rever pelo botão ❓ Tutorial no topo. O "já viu" fica salvo no cadastro (`tutorialDone`), então vale em qualquer aba desse navegador. Os textos ficam em `engine/tutorial.ts`
+- Tutorial de primeiro acesso com o **Mago Danilo** — o aluno vê o tour da Academia ao entrar pela primeira vez (depois de escolher casa e avatar) e o professor vê o tour do Painel do Mestre (o ADM ganha um passo sobre o Painel ADM). Quem apresenta é o Mago Danilo, desenhado em SVG como o Ceifador (`components/WizardDanilo.tsx`): chapéu pontudo com lua e estrela, óculos redondos de programador, barba longa, túnica estrelada e cajado com orbe mágico. Num céu estrelado ele entra flutuando sobre um círculo mágico girando, pisca, acena, o orbe pulsa e o cajado solta um clarão a cada passo; a fala aparece num balão de quadrinho sendo "digitada" (a boca mexe enquanto isso; clicar no balão mostra tudo) e, com o som ligado (🔊/🔇, mesma preferência das cenas), toca um "plim" mágico e a voz dele lê a fala. Dá pra pular (botão, Esc), navegar com ← → e rever pelo ❓ Tutorial. O "já viu" fica salvo no cadastro (`tutorialDone`). Os textos, na voz do mago, ficam em `engine/tutorial.ts`
 
 - Vários professores — cada aluno escolhe o professor no cadastro e só vê as missões desse professor. No Painel do Mestre, cada professor só vê, cria e altera as próprias missões e só vê e altera os próprios alunos (ficha, itens, acesso, mensagens, comunicados). Alunos e missões de antes dessa versão ficam com o Professor Danilo
 - Painel ADM (`/admin`, com as credenciais do Professor Danilo) — cadastra, edita e exclui professores (o ADM não pode ser excluído; ao excluir um professor, os alunos e as missões dele passam pra outro professor escolhido na hora), vê todos os alunos e todas as missões com filtro por professor, troca o professor de um aluno, cria/edita/exclui qualquer missão (escolhendo o professor dono) e tem na ficha de qualquer aluno as mesmas ações do professor (dar/excluir itens, alterar acesso, mensagens, excluir aluno)

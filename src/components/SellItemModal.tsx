@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { InventoryItem, Student } from "@/engine/students";
+import { InventoryItem, Student, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
@@ -110,7 +110,7 @@ export default function SellItemModal({
                           buyerId === b.id ? "border-white bg-white/10" : "border-slate-800 bg-cg-sunken hover:border-slate-600"
                         }`}
                       >
-                        <Avatar config={b.avatar} size={30} ringColor={buyerId === b.id ? house?.hex : undefined} />
+                        <Avatar config={wornAvatar(b)} size={30} ringColor={buyerId === b.id ? house?.hex : undefined} />
                         <span className="min-w-0 flex-1 truncate text-sm text-white">{b.name}</span>
                         {house && <span className={`shrink-0 text-[11px] ${house.colorClass}`}>{house.name}</span>}
                         <span className="flex shrink-0 items-center gap-0.5 text-[11px] text-amber-300">

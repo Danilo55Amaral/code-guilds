@@ -13,7 +13,7 @@
 
 import { HouseId, getHouse } from "./houses";
 import { Mission, Rarity, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH, normalizeRewardItem, normalizeSearch } from "./missions";
-import { AvatarConfig, DEFAULT_AVATAR, normalizeAvatar } from "./avatar";
+import { AvatarConfig, Cosmetic, CosmeticSlot, DEFAULT_AVATAR, applyCosmetic, normalizeAvatar, sameCosmetic } from "./avatar";
 import { DEFAULT_TEACHER_ID } from "./teachers";
 
 export interface InventoryItem {
@@ -21,6 +21,7 @@ export interface InventoryItem {
   name: string;
   icon: string; // emoji do item (itens antigos ganham o da raridade na leitura)
   description: string; // "" = item antigo, sem descrição
+  cosmetic?: Cosmetic; // item de visual do avatar (vem da Loja) — pode ser equipado
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -46,6 +47,7 @@ export interface Student {
   completedMissionIds: string[];
   onboardingStep: OnboardingStep;
   tutorialDone?: boolean; // já viu (ou pulou) o tutorial da Academia
+  equipped: Partial<Record<CosmeticSlot, string>>; // espaço do avatar -> id do item de visual equipado
   createdAt: string;
 }
 
@@ -101,6 +103,7 @@ function readAll(): Student[] {
         // alunos de antes de existir professor ficam com o Danilo
         teacherId: s.teacherId ?? DEFAULT_TEACHER_ID,
         avatar: normalizeAvatar(s.avatar ?? {}),
+        equipped: s.equipped ?? {},
         // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
         // itens de antes do ícone próprio ficam com o ícone da raridade
         inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
@@ -203,6 +206,7 @@ export function createStudent(data: { name: string; email: string; turma: string
     inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", icon: "✨", description: "Presente de boas-vindas da Academia. Usar dá um pouco de XP pra começar a jornada.", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
     completedMissionIds: [],
     onboardingStep: "casa",
+    equipped: {},
     createdAt: new Date().toISOString(),
   };
   writeAll([...readAll(), student]);
@@ -286,7 +290,45 @@ export function grantItem(
 
 /** Remove um item pelo id — só aquele exemplar, mesmo que o aluno tenha outros com o mesmo nome. */
 export function removeItem(student: Student, itemId: string): Student {
-  return { ...student, inventory: student.inventory.filter((i) => i.id !== itemId) };
+  // Item de visual que sai do inventário (vendido, oferecido, excluído) sai do avatar também.
+  const equipped = Object.fromEntries(Object.entries(student.equipped).filter(([, id]) => id !== itemId));
+  return { ...student, inventory: student.inventory.filter((i) => i.id !== itemId), equipped };
+}
+
+// ============================================================================
+// VISUAIS DO AVATAR — itens da Loja com `cosmetic` podem ser equipados (um
+// por espaço: chapéu, óculos, cor da roupa, aura, mascote). O avatar que o
+// aluno montou no editor não muda: o "avatar vestido" é calculado na hora.
+// ============================================================================
+
+/** Equipa um item de visual — se já havia outro no mesmo espaço, ele é trocado. */
+export function equipItem(student: Student, itemId: string): Student {
+  const item = student.inventory.find((i) => i.id === itemId);
+  if (!item?.cosmetic) return student;
+  return { ...student, equipped: { ...student.equipped, [item.cosmetic.slot]: itemId } };
+}
+
+export function unequipItem(student: Student, itemId: string): Student {
+  return { ...student, equipped: Object.fromEntries(Object.entries(student.equipped).filter(([, id]) => id !== itemId)) };
+}
+
+export function isEquipped(student: Student, itemId: string): boolean {
+  return Object.values(student.equipped).includes(itemId);
+}
+
+/** O aluno já tem esse visual no inventário? (a Loja não deixa comprar duas vezes) */
+export function ownsCosmetic(student: Student, cosmetic: Cosmetic): boolean {
+  return student.inventory.some((i) => sameCosmetic(i.cosmetic, cosmetic));
+}
+
+/** O avatar como aparece pra todo mundo: o do editor + os visuais equipados. */
+export function wornAvatar(student: Student): AvatarConfig {
+  let avatar = student.avatar;
+  for (const itemId of Object.values(student.equipped)) {
+    const cosmetic = student.inventory.find((i) => i.id === itemId)?.cosmetic;
+    if (cosmetic) avatar = applyCosmetic(avatar, cosmetic);
+  }
+  return avatar;
 }
 
 /** Vende o item pro sistema: ele some do inventário e o aluno recebe o valor em moedas. */

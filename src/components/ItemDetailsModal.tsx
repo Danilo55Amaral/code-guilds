@@ -1,11 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Rarity, RewardItem } from "@/engine/missions";
+import { RARITY_GLOW, RewardItem } from "@/engine/missions";
 import { ItemStats, RarityBadge } from "./GameUI";
 
-// Cor do brilho atrás do ícone, uma por raridade (mesmos tons dos badges).
-const RARITY_GLOW: Record<Rarity, string> = { comum: "#94a3b8", raro: "#38bdf8", epico: "#c084fc", lendario: "#fbbf24" };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });

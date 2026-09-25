@@ -15,6 +15,9 @@ export const RARITY_META: Record<Rarity, { label: string; colorClass: string; bo
 
 export const RARITY_ICON: Record<Rarity, string> = { comum: "🔹", raro: "🔷", epico: "💠", lendario: "👑" };
 
+/** Cor do brilho de cada raridade (card de item, cards da Loja) — mesmos tons dos badges. */
+export const RARITY_GLOW: Record<Rarity, string> = { comum: "#94a3b8", raro: "#38bdf8", epico: "#c084fc", lendario: "#fbbf24" };
+
 /** Valor em moedas usado quando um item não tem valor definido (itens antigos, criados antes do mercado). */
 export const RARITY_DEFAULT_VALUE: Record<Rarity, number> = { comum: 10, raro: 30, epico: 80, lendario: 200 };
 

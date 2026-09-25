@@ -10,7 +10,7 @@
 // Quando a compra fecha, comprador e vendedor recebem uma mensagem automática.
 // ============================================================================
 
-import { InventoryItem, getStudent, updateStudent } from "./students";
+import { InventoryItem, getStudent, updateStudent, removeItem } from "./students";
 import { normalizeRewardItem } from "./missions";
 import { SYSTEM_SENDER_ID, sendMessage, purchaseMessage, saleMessage } from "./messages";
 
@@ -68,7 +68,8 @@ export function createOffer(data: { sellerId: string; buyerId: string; itemId: s
   if (!Number.isFinite(price) || price < 0) return { ok: false, error: "Preço inválido." };
 
   // o item fica "guardado" na oferta até o comprador decidir
-  updateStudent(seller.id, { inventory: seller.inventory.filter((i) => i.id !== item.id) });
+  const { inventory, equipped } = removeItem(seller, item.id); // se estava equipado, sai do avatar
+  updateStudent(seller.id, { inventory, equipped });
   writeAll([
     ...readAll(),
     {

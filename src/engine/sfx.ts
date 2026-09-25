@@ -1,8 +1,9 @@
 // ============================================================================
 // SFX — efeitos sonoros gerados no próprio navegador (sem arquivos de áudio).
 // Web Audio faz os efeitos (corte da foice, estrondo, zumbido sombrio), a
-// fanfarra de vitória e o jingle de subir de nível; a síntese de voz do
-// navegador faz a risada da Morte + "Você morreu!".
+// fanfarra de vitória, o jingle de subir de nível e o "plim" do tutorial; a
+// síntese de voz do navegador faz a risada da Morte + "Você morreu!" e a voz
+// do Mago Danilo no tutorial.
 // A preferência de som (ligado/mudo) fica no localStorage, por navegador.
 // ============================================================================
 
@@ -388,4 +389,42 @@ export function playLevelUpJingle(): () => void {
   playChime(ctx, out, 96, end, 2, 0.08);
 
   return closeScene(ctx);
+}
+
+// ============================================================================
+// MAGO DANILO — o guia do tutorial. "Plim" mágico a cada passo e a voz dele
+// lendo a fala do balão (síntese de voz do navegador, como a da Morte).
+// ============================================================================
+
+/** "Plim" de varinha mágica ao trocar de passo do tutorial (~1s). */
+export function playMagicChime(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.35);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.02;
+  [84, 88, 91, 96].forEach((m, i) => playChime(ctx, out, m, t + i * 0.07, 0.9, 0.06));
+  return closeScene(ctx);
+}
+
+/**
+ * O Mago Danilo lê a fala em voz alta. Emojis saem do texto (a voz leria o
+ * nome deles). Devolve a função que interrompe a fala.
+ */
+export function speakWizard(text: string): () => void {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return () => {};
+  const synth = window.speechSynthesis;
+  const ptVoices = synth.getVoices().filter((v) => v.lang.toLowerCase().startsWith("pt"));
+  const voice = ptVoices.find((v) => /daniel|ricardo|antonio|felipe|male|masculin/i.test(v.name)) ?? ptVoices[0];
+  const clean = text.replace(/\p{Extended_Pictographic}|️/gu, "").replace(/\s+/g, " ").trim();
+
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(clean);
+  u.lang = "pt-BR";
+  if (voice) u.voice = voice;
+  u.pitch = 0.8; // um pouco grave: voz de mago sábio
+  u.rate = 1.05;
+  u.volume = 1;
+  synth.speak(u);
+  return () => synth.cancel();
 }

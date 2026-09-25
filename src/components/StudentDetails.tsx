@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel } from "@/engine/students";
+import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar } from "@/engine/students";
 import {
   SKIN_TONES,
   EYE_COLORS,
@@ -9,8 +9,8 @@ import {
   EXPRESSION_LABELS,
   FACE_DETAIL_LABELS,
   OUTFIT_LABELS,
-  EYEWEAR_LABELS,
-  HAT_LABELS,
+  eyewearLabel,
+  hatLabel,
 } from "@/engine/avatar";
 import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import ItemEconomyFields from "./ItemEconomyFields";
@@ -262,7 +262,7 @@ export default function StudentDetails({
           )}
           {/* Cabeçalho: avatar + identificação */}
           <div className="mb-6 flex flex-wrap items-center gap-5">
-            <Avatar config={student.avatar} ringColor={house?.hex} size={96} />
+            <Avatar config={wornAvatar(student)} ringColor={house?.hex} size={96} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xl font-bold text-white">{student.name}</p>
@@ -359,8 +359,8 @@ export default function StudentDetails({
                   {OUTFIT_LABELS[student.avatar.outfit]}
                 </span>
               </InfoRow>
-              <InfoRow label="Óculos">{EYEWEAR_LABELS[student.avatar.eyewear]}</InfoRow>
-              <InfoRow label="Chapéu">{HAT_LABELS[student.avatar.hat]}</InfoRow>
+              <InfoRow label="Óculos">{eyewearLabel(student.avatar.eyewear)}</InfoRow>
+              <InfoRow label="Chapéu">{hatLabel(student.avatar.hat)}</InfoRow>
             </div>
           </div>
 

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useStudents, useMissions, useOffers } from "@/engine/store";
-import { InventoryItem, xpToNextLevel, consumeItem, removeItem, sellItemToSystem } from "@/engine/students";
+import { InventoryItem, xpToNextLevel, consumeItem, removeItem, sellItemToSystem, equipItem, unequipItem, isEquipped, wornAvatar } from "@/engine/students";
+import { COSMETIC_SLOT_LABELS } from "@/engine/avatar";
 import { getHouse } from "@/engine/houses";
 import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components/GameUI";
 import Avatar from "@/components/Avatar";
@@ -41,6 +42,18 @@ export default function InventarioPage() {
     patchActive(result.student);
     flash(`✨ Você usou ${item.name} e ganhou +${result.xpGained} XP!`);
     if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
+  }
+
+  function equip(item: InventoryItem) {
+    const replaced = item.cosmetic && me.equipped[item.cosmetic.slot];
+    const replacedName = replaced ? me.inventory.find((i) => i.id === replaced)?.name : null;
+    patchActive(equipItem(me, item.id));
+    flash(`👕 ${item.name} equipado no seu avatar!${replacedName ? ` (${replacedName} foi retirado)` : ""}`);
+  }
+
+  function unequip(item: InventoryItem) {
+    patchActive(unequipItem(me, item.id));
+    flash(`↩ ${item.name} foi retirado do avatar — continua no seu inventário.`);
   }
 
   function deleteItem(item: InventoryItem) {
@@ -90,7 +103,7 @@ export default function InventarioPage() {
           style={{ background: `radial-gradient(40% 120% at 8% 50%, ${house?.hex ?? "#6366f1"}26, transparent)` }}
         />
         <div className="relative cg-anim-float">
-          <Avatar config={me.avatar} ringColor={house?.hex} size={64} />
+          <Avatar config={wornAvatar(me)} ringColor={house?.hex} size={64} />
         </div>
         <div className="relative min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -188,8 +201,18 @@ export default function InventarioPage() {
         <p className="text-sm text-slate-500">Nenhum item ainda — complete missões para ganhar itens.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {me.inventory.map((item) => (
-            <div key={item.id} className="cg-card flex flex-col items-center gap-2 p-4 text-center">
+          {me.inventory.map((item) => {
+            const equipped = isEquipped(me, item.id);
+            return (
+            <div key={item.id} className={`cg-card relative flex flex-col items-center gap-2 p-4 text-center ${equipped ? "!border-violet-500/60" : ""}`}>
+              {equipped && (
+                <span className="absolute right-2 top-2 rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">✓ Equipado</span>
+              )}
+              {item.cosmetic && !equipped && (
+                <span className="absolute right-2 top-2 rounded-full border border-violet-500/40 px-2 py-0.5 text-[10px] font-semibold text-violet-300">
+                  {COSMETIC_SLOT_LABELS[item.cosmetic.slot]}
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => setViewingItem(item)}
@@ -204,6 +227,19 @@ export default function InventarioPage() {
               </button>
 
               <div className="mt-auto flex w-full flex-col gap-1.5 pt-2">
+                {item.cosmetic &&
+                  (equipped ? (
+                    <button
+                      onClick={() => unequip(item)}
+                      className="rounded-lg border border-violet-500/50 bg-violet-500/10 px-2 py-1.5 text-xs font-semibold text-violet-200 transition-colors hover:bg-violet-500/20"
+                    >
+                      ↩ Retirar do avatar
+                    </button>
+                  ) : (
+                    <button onClick={() => equip(item)} className="rounded-lg bg-violet-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-violet-400">
+                      👕 Equipar
+                    </button>
+                  ))}
                 {item.xp > 0 && (
                   <button onClick={() => consume(item)} className="rounded-lg bg-violet-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-violet-400">
                     ✨ Usar (+{item.xp} XP)
@@ -231,7 +267,8 @@ export default function InventarioPage() {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

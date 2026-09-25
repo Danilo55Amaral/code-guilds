@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { InventoryItem, Student } from "@/engine/students";
+import { InventoryItem, Student, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import ItemDetailsModal from "./ItemDetailsModal";
@@ -45,7 +45,7 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
               style={{ background: `radial-gradient(60% 45% at 50% 35%, ${house?.hex ?? "#6366f1"}33, transparent)` }}
             />
             <div className="relative cg-anim-float">
-              <Avatar config={student.avatar} ringColor={house?.hex} size={150} />
+              <Avatar config={wornAvatar(student)} ringColor={house?.hex} size={150} />
             </div>
             <div className="relative text-center">
               <p className="text-lg font-bold text-white">

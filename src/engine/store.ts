@@ -41,6 +41,7 @@ import {
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
 import { Theme, getTheme, setTheme, applyTheme } from "./theme";
+import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem } from "./shop";
 
 /**
  * Inscreve um "sync" nos avisos de mudança: tanto os avisos internos
@@ -272,6 +273,43 @@ export function useTeachers() {
   const currentTeacher = teachers.find((t) => t.id === sessionId) ?? null;
 
   return { teachers, currentTeacher, ready, login, logout, addTeacher, editTeacher, deleteTeacher, finishTutorial };
+}
+
+/** Loja da Academia: itens à venda, CRUD do ADM e a compra do aluno. */
+export function useShop() {
+  const [items, setItems] = useState<ShopItem[]>([]);
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setItems(listShopItems());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const addItem = useCallback((data: ShopItemData) => {
+    const item = createShopItem(data);
+    emitChange();
+    return item;
+  }, []);
+
+  const editItem = useCallback((id: string, data: ShopItemData) => {
+    updateShopItem(id, data);
+    emitChange();
+  }, []);
+
+  const removeItem = useCallback((id: string) => {
+    deleteShopItem(id);
+    emitChange();
+  }, []);
+
+  const buy = useCallback((studentId: string, shopItemId: string) => {
+    const result = buyShopItem(studentId, shopItemId);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  return { items, ready, addItem, editItem, removeItem, buy };
 }
 
 /** Tema escuro/claro. Também acompanha a troca feita em outra aba (evento "storage"). */

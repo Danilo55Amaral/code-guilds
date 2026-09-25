@@ -1,10 +1,11 @@
 import { useId } from "react";
-import { AvatarConfig, HairStyle, Hat, SKIN_TONES } from "@/engine/avatar";
+import { AvatarConfig, Aura, HairStyle, Hat, PET_EMOJI, Pet, SKIN_TONES } from "@/engine/avatar";
 
 // ============================================================================
 // AVATAR — o personagem do aluno em SVG puro, montado em camadas:
-// fundo → cabelo de trás → roupa/pescoço → rosto → olhos/boca/detalhes →
-// cabelo da frente → óculos → chapéu. Tudo num viewBox de 128x128.
+// fundo → aura → cabelo de trás → roupa/pescoço → rosto → olhos/boca/detalhes →
+// cabelo da frente → óculos → chapéu → mascote. Tudo num viewBox de 128x128.
+// Aura, mascote e alguns óculos/chapéus são exclusivos da Loja.
 // ============================================================================
 
 /** Escurece (amount < 0) ou clareia (amount > 0) uma cor hex. */
@@ -20,7 +21,7 @@ function shade(hex: string, amount: number): string {
 }
 
 /** Chapéus que cobrem o topo da cabeça — cabelos altos ficam "por baixo" deles. */
-const COVERING_HATS: Hat[] = ["mago", "bone", "elmo", "pirata"];
+const COVERING_HATS: Hat[] = ["mago", "bone", "elmo", "pirata", "cartola"];
 const TALL_HAIR: HairStyle[] = ["espetado", "moicano", "coque", "afro", "cacheado"];
 
 // ---------------------------------------------------------------------------
@@ -361,9 +362,130 @@ function EyewearLayer({ eyewear }: { eyewear: AvatarConfig["eyewear"] }) {
           <ellipse cx="52" cy="60" rx="8" ry="7" fill="#111827" />
         </g>
       );
+    // --- exclusivos da Loja ---
+    case "neon":
+      return (
+        <g>
+          <rect x="42" y="53" width="19" height="13" rx="6" fill="none" stroke="#e879f9" strokeWidth="5" opacity="0.3" />
+          <rect x="67" y="53" width="19" height="13" rx="6" fill="none" stroke="#22d3ee" strokeWidth="5" opacity="0.3" />
+          <rect x="42" y="53" width="19" height="13" rx="6" fill="#f0abfc" fillOpacity="0.22" stroke="#e879f9" strokeWidth="2.2" />
+          <rect x="67" y="53" width="19" height="13" rx="6" fill="#a5f3fc" fillOpacity="0.22" stroke="#22d3ee" strokeWidth="2.2" />
+          <path d="M61 59 L67 59" stroke="#c4b5fd" strokeWidth="2" />
+          <path d="M42 58 L36 56 M86 58 L92 56" stroke="#c4b5fd" strokeWidth="1.8" />
+        </g>
+      );
+    case "coracao":
+      return (
+        <g stroke="#9f1239" strokeWidth="1.4">
+          {[52, 76].map((cx) => (
+            <path
+              key={cx}
+              d={`M${cx} 68 C${cx - 8} 62 ${cx - 10} 57.5 ${cx - 8} 54.5 C${cx - 6} 51.5 ${cx - 2} 52 ${cx} 55 C${cx + 2} 52 ${cx + 6} 51.5 ${cx + 8} 54.5 C${cx + 10} 57.5 ${cx + 8} 62 ${cx} 68 Z`}
+              fill="#e11d48"
+              fillOpacity="0.88"
+            />
+          ))}
+          <path d="M60 57 Q64 55 68 57 M44 56 L37 54 M84 56 L91 54" fill="none" strokeWidth="1.8" />
+          <path d="M47 56 L49 55 M71 56 L73 55" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" opacity="0.7" />
+        </g>
+      );
+    case "pixel":
+      return (
+        <g fill="#0b0b0f">
+          <rect x="38" y="53" width="52" height="3.5" />
+          <rect x="42" y="56.5" width="19" height="5" />
+          <rect x="45" y="61.5" width="13" height="3.5" />
+          <rect x="67" y="56.5" width="19" height="5" />
+          <rect x="70" y="61.5" width="13" height="3.5" />
+          <rect x="44" y="57.5" width="3" height="2" fill="#fff" />
+          <rect x="47" y="59.5" width="2" height="2" fill="#fff" />
+          <rect x="69" y="57.5" width="3" height="2" fill="#fff" />
+          <rect x="72" y="59.5" width="2" height="2" fill="#fff" />
+        </g>
+      );
     default:
       return null;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Aura e mascote (só da Loja)
+// ---------------------------------------------------------------------------
+
+const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
+  fogo: ["#fb923c", "#dc2626"],
+  arcana: ["#c084fc", "#6366f1"],
+  gelo: ["#a5f3fc", "#3b82f6"],
+  estrelas: ["#fde68a", "#818cf8"],
+};
+
+/** Brilho atrás do personagem, desenhado logo depois do fundo. */
+function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
+  if (aura === "nenhum") return null;
+  const [inner, outer] = AURA_COLORS[aura];
+  return (
+    <g>
+      <defs>
+        {/* forte no meio do caminho até a borda — é essa faixa que aparece em volta do personagem */}
+        <radialGradient id={gradientId} cx="50%" cy="46%" r="50%">
+          <stop offset="0.3" stopColor={inner} stopOpacity="0.95" />
+          <stop offset="0.72" stopColor={outer} stopOpacity="0.7" />
+          <stop offset="1" stopColor={outer} stopOpacity="0.2" />
+        </radialGradient>
+      </defs>
+      <circle cx="64" cy="60" r="72" fill={`url(#${gradientId})`} />
+      {aura === "fogo" && (
+        <g fill="#f97316" opacity="0.85">
+          <path d="M26 92 C18 70 30 60 26 42 C36 54 38 46 40 36 C48 52 40 66 44 80 Z" />
+          <path d="M102 92 C110 70 98 60 102 42 C92 54 90 46 88 36 C80 52 88 66 84 80 Z" />
+          <path d="M50 22 C48 12 56 8 56 0 C62 8 60 14 64 18 C66 10 72 8 72 2 C78 12 76 20 78 24 Z" fill="#fbbf24" opacity="0.7" />
+        </g>
+      )}
+      {aura === "gelo" && (
+        <g fill="#e0f2fe" opacity="0.85">
+          <path d="M22 60 L30 50 L34 62 Z" />
+          <path d="M104 58 L96 48 L94 62 Z" />
+          <path d="M30 30 L38 24 L38 36 Z" />
+          <path d="M98 30 L90 24 L90 36 Z" />
+          <path d="M64 2 L69 12 L59 12 Z" />
+        </g>
+      )}
+      {(aura === "estrelas" || aura === "arcana") &&
+        [
+          [22, 40, 2.2],
+          [104, 34, 2],
+          [30, 18, 1.6],
+          [98, 70, 1.8],
+          [18, 76, 1.4],
+          [110, 90, 1.4],
+          [42, 8, 1.3],
+          [88, 10, 1.6],
+        ].map(([x, y, r]) =>
+          aura === "estrelas" ? (
+            <path
+              key={`${x}-${y}`}
+              d={`M${x} ${y - r * 2} L${x + r * 0.6} ${y - r * 0.6} L${x + r * 2} ${y} L${x + r * 0.6} ${y + r * 0.6} L${x} ${y + r * 2} L${x - r * 0.6} ${y + r * 0.6} L${x - r * 2} ${y} L${x - r * 0.6} ${y - r * 0.6} Z`}
+              fill="#fef9c3"
+            />
+          ) : (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#f5d0fe" opacity="0.9" />
+          ),
+        )}
+    </g>
+  );
+}
+
+/** Mascote no ombro do personagem (emoji), desenhado por último. */
+function PetLayer({ pet }: { pet: Pet }) {
+  if (pet === "nenhum") return null;
+  return (
+    <g>
+      <circle cx="97" cy="99" r="14" fill="#000" opacity="0.25" />
+      <text x="97" y="107" fontSize="23" textAnchor="middle">
+        {PET_EMOJI[pet]}
+      </text>
+    </g>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -454,6 +576,42 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
           <circle cx="57" cy="82" r="2.3" fill="#1f2937" />
         </g>
       );
+    // --- exclusivos da Loja ---
+    case "aureola":
+      return (
+        <g>
+          <ellipse cx="64" cy="11" rx="25" ry="8" fill="#fde047" opacity="0.18" />
+          <ellipse cx="64" cy="11" rx="20" ry="5" fill="none" stroke="#facc15" strokeWidth="3.6" />
+          <ellipse cx="64" cy="10.4" rx="20" ry="5" fill="none" stroke="#fef9c3" strokeWidth="1.1" />
+        </g>
+      );
+    case "chifres":
+      return (
+        <g stroke="#7f1d1d" strokeWidth="1">
+          <path d="M45 32 C37 24 34 13 39 3 C41 14 48 21 54 25 Z" fill="#dc2626" />
+          <path d="M83 32 C91 24 94 13 89 3 C87 14 80 21 74 25 Z" fill="#dc2626" />
+          <path d="M41 9 C42 15 45 19 49 22" stroke="#fca5a5" strokeWidth="1.2" fill="none" opacity="0.7" />
+          <path d="M87 9 C86 15 83 19 79 22" stroke="#fca5a5" strokeWidth="1.2" fill="none" opacity="0.7" />
+        </g>
+      );
+    case "tiara":
+      return (
+        <g>
+          <path d="M43 31 C52 24 76 24 85 31 L83 33.5 C75 28 53 28 45 33.5 Z" fill={`url(#${steelId})`} stroke="#64748b" strokeWidth="0.8" />
+          <path d="M64 11 l2.4 5.6 6 .4 -4.6 3.8 1.6 5.8 -5.4 -3.3 -5.4 3.3 1.6 -5.8 -4.6 -3.8 6 -.4 z" fill="#a78bfa" stroke="#ede9fe" strokeWidth="0.8" />
+          <circle cx="52" cy="27.5" r="1.8" fill="#f0abfc" />
+          <circle cx="76" cy="27.5" r="1.8" fill="#f0abfc" />
+        </g>
+      );
+    case "cartola":
+      return (
+        <g>
+          <ellipse cx="64" cy="33" rx="32" ry="6" fill="#111827" />
+          <path d="M46 33 L48 3 C58 0 70 0 80 3 L82 33 Z" fill="#1f2937" />
+          <path d="M47.3 23 L80.7 23 L81.3 30.5 L46.7 30.5 Z" fill={accent} />
+          <path d="M51 6 L52.5 21" stroke="#fff" strokeWidth="3" opacity="0.12" strokeLinecap="round" />
+        </g>
+      );
     default:
       return null;
   }
@@ -477,7 +635,7 @@ export default function Avatar({
 }) {
   // ids únicos por avatar (vários na mesma tela); useId gera ":r1:", que não funciona dentro de url(#...)
   const uid = useId().replace(/:/g, "");
-  const ids = { bg: `bg${uid}`, skin: `sk${uid}`, steel: `st${uid}`, gold: `gd${uid}` };
+  const ids = { bg: `bg${uid}`, skin: `sk${uid}`, steel: `st${uid}`, gold: `gd${uid}`, aura: `au${uid}` };
 
   const skin = SKIN_TONES[config.skinTone] ?? SKIN_TONES[3];
   const hair = config.hairColor;
@@ -514,6 +672,7 @@ export default function Avatar({
         </defs>
 
         <rect x="0" y="0" width="128" height="128" fill={`url(#${ids.bg})`} />
+        <AuraLayer aura={config.aura ?? "nenhum"} gradientId={ids.aura} />
 
         <HairBack style={config.hairStyle} color={hair} hat={config.hat} />
 
@@ -545,6 +704,7 @@ export default function Avatar({
         <HairFront style={config.hairStyle} color={hair} hat={config.hat} />
         <EyewearLayer eyewear={config.eyewear} />
         <HatLayer hat={config.hat} accent={config.outfitColor} steelId={ids.steel} goldId={ids.gold} />
+        <PetLayer pet={config.pet ?? "nenhum"} />
       </svg>
     </div>
   );

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { useStudents } from "@/engine/store";
 import { HOUSES } from "@/engine/houses";
-import { totalXp } from "@/engine/students";
+import { totalXp, wornAvatar } from "@/engine/students";
 import { HAIR_STYLE_LABELS, OUTFIT_LABELS } from "@/engine/avatar";
 import Avatar from "@/components/Avatar";
 import { CoinIcon } from "@/components/GameUI";
@@ -46,7 +46,7 @@ export default function CasaPage() {
         </div>
 
         <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-800 bg-cg-sunken p-3">
-          <Avatar config={activeStudent.avatar} ringColor={house.hex} size={48} />
+          <Avatar config={wornAvatar(activeStudent)} ringColor={house.hex} size={48} />
           <div>
             <p className="text-sm font-semibold text-white">
               {activeStudent.name} • <span className={house.colorClass}>{house.name}</span>
@@ -87,7 +87,7 @@ export default function CasaPage() {
               >
                 <span className="flex min-w-0 items-center gap-2 text-sm">
                   <span className="w-4 shrink-0 text-xs opacity-60">{i + 1}.</span>
-                  <Avatar config={s.avatar} size={30} />
+                  <Avatar config={wornAvatar(s)} size={30} />
                   <span className="truncate">{s.name}</span>
                   <span className="shrink-0 text-xs opacity-60">Nv {s.level}</span>
                 </span>

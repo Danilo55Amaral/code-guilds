@@ -53,6 +53,16 @@ export function purchaseMessage(data: { item: ItemSummary; sellerName: string; p
   );
 }
 
+/** Comprador: compra na Loja da Academia. */
+export function shopPurchaseMessage(data: { item: ItemSummary; price: number; isCosmetic: boolean }): string {
+  return (
+    `🛍️ Compra na Loja realizada com sucesso! Você comprou ${describeItem(data.item)} por ${data.price} moedas.\n\n` +
+    (data.isCosmetic
+      ? "É um visual pro seu avatar: vá ao Inventário e clique em 👕 Equipar pra usar."
+      : "O item já está no seu Inventário.")
+  );
+}
+
 /** Vendedor: o colega aceitou a oferta. */
 export function saleMessage(data: { item: ItemSummary; buyerName: string; price: number }): string {
   return (

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useStudents } from "@/engine/store";
-import { Student, xpToNextLevel } from "@/engine/students";
+import { Student, xpToNextLevel, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import { STUDENT_TUTORIAL } from "@/engine/tutorial";
 import Avatar from "./Avatar";
@@ -34,7 +34,7 @@ export default function AcademyHeader({ student }: { student: Student }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 bg-cg-header px-4 py-3 sm:px-6">
       <div className="flex items-center gap-3">
-        <Avatar config={student.avatar} ringColor={house?.hex} size={44} />
+        <Avatar config={wornAvatar(student)} ringColor={house?.hex} size={44} />
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <p className="text-sm font-semibold text-white">{student.name}</p>

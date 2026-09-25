@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useShop } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
@@ -16,10 +16,11 @@ import TeacherList from "@/components/TeacherList";
 import StudentDetails from "@/components/StudentDetails";
 import TeacherEditor from "@/components/TeacherEditor";
 import ThemeToggle from "@/components/ThemeToggle";
+import ShopManager from "@/components/ShopManager";
 
-type Tab = "professores" | "alunos" | "missoes";
+type Tab = "professores" | "alunos" | "missoes" | "loja";
 
-const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões" };
+const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões", loja: "🛍️ Loja" };
 
 const ALL_TEACHERS = "todos";
 
@@ -28,6 +29,7 @@ export default function PainelAdminPage() {
   const { teachers, currentTeacher, ready: teachersReady, logout, addTeacher, editTeacher, deleteTeacher } = useTeachers();
   const { students, ready, patchStudent, deleteStudent } = useStudents();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
+  const { items: shopItems } = useShop();
   const [tab, setTab] = useState<Tab>("professores");
   // Filtro de professor das abas Alunos e Missões.
   const [teacherFilter, setTeacherFilter] = useState<string>(ALL_TEACHERS);
@@ -52,7 +54,7 @@ export default function PainelAdminPage() {
   const visibleStudents = teacherFilter === ALL_TEACHERS ? students : studentsOf(teacherFilter);
   const visibleMissions = teacherFilter === ALL_TEACHERS ? missions : missionsOf(teacherFilter);
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
-  const counts: Record<Tab, number> = { professores: teachers.length, alunos: students.length, missoes: missions.length };
+  const counts: Record<Tab, number> = { professores: teachers.length, alunos: students.length, missoes: missions.length, loja: shopItems.length };
 
   // ---- professores ----
 
@@ -239,6 +241,8 @@ export default function PainelAdminPage() {
           onSelect={setSelectedStudentId}
         />
       )}
+
+      {tab === "loja" && <ShopManager />}
 
       {tab === "missoes" && (
         <MissionList
