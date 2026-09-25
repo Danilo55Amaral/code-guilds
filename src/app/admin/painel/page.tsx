@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStudents, useMissions, useMessages, useTeachers, useShop } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
+import { Cosmetic } from "@/engine/avatar";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
 import { MessageKind, itemGiftMessage } from "@/engine/messages";
@@ -94,7 +95,13 @@ export default function PainelAdminPage() {
 
   // ---- alunos ----
 
-  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) {
+  /** Doa um item da Loja (igualzinho ao da Loja, inclusive se for visual pra equipar) — só o ADM faz isso. */
+  function handleGrantShopItem(shopItemId: string) {
+    const item = shopItems.find((i) => i.id === shopItemId);
+    if (item) handleGrantItem(item);
+  }
+
+  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic }) {
     if (!selectedStudent) return;
     patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
     sendMessage({
@@ -290,6 +297,8 @@ export default function PainelAdminPage() {
           onChangeHouse={handleChangeHouse}
           teachers={teachers}
           onChangeTeacher={handleChangeTeacher}
+          shopItems={shopItems}
+          onGrantShopItem={handleGrantShopItem}
           onClose={() => setSelectedStudentId(null)}
         />
       )}
@@ -299,6 +308,7 @@ export default function PainelAdminPage() {
           existingMission={editorTarget === "new" ? undefined : editorTarget}
           teachers={teachers}
           defaultTeacherId={teacherFilter === ALL_TEACHERS ? admin.id : teacherFilter}
+          shopItems={shopItems}
           onSave={handleSaveMission}
           onDelete={editorTarget !== "new" ? handleDeleteMission : undefined}
           onClose={() => setEditorTarget(null)}

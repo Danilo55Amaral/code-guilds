@@ -3,6 +3,8 @@
 // No painel do professor, isso viraria dados editáveis (hoje é só leitura).
 // ============================================================================
 
+import type { Cosmetic } from "./avatar";
+
 export type Rarity = "comum" | "raro" | "epico" | "lendario";
 export type Difficulty = "iniciante" | "medio" | "avancado" | "epico";
 
@@ -33,6 +35,7 @@ export interface RewardItem {
   rarity: Rarity;
   value: number;
   xp: number;
+  cosmetic?: Cosmetic; // item da Loja que é visual do avatar (o ADM pode usar como recompensa)
 }
 
 /** Ícone sugerido pra um item novo (o professor troca no seletor de emojis). */

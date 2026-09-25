@@ -3,8 +3,11 @@
 import { useState } from "react";
 import { Mission, MissionContent, Difficulty, Rarity, DIFFICULTY_META, RARITY_META, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import { Teacher } from "@/engine/teachers";
+import { ShopItem } from "@/engine/shop";
+import { Cosmetic } from "@/engine/avatar";
 import ItemEconomyFields from "./ItemEconomyFields";
 import EmojiPicker from "./EmojiPicker";
+import ShopItemPicker from "./ShopItemPicker";
 
 type OptionKey = "a" | "b" | "c" | "d";
 
@@ -30,6 +33,7 @@ interface MissionDraft {
   rewardItemRarity: Rarity;
   rewardItemValue: number;
   rewardItemXp: number;
+  rewardItemCosmetic?: Cosmetic; // vem de um item de visual da Loja (só pelo Painel ADM)
   questions: QuestionDraft[];
 }
 
@@ -73,6 +77,7 @@ function missionToDraft(m: Mission): MissionDraft {
     rewardItemRarity: m.rewardItem.rarity,
     rewardItemValue: m.rewardItem.value,
     rewardItemXp: m.rewardItem.xp,
+    rewardItemCosmetic: m.rewardItem.cosmetic,
     questions: m.questions.map((q) => ({
       prompt: q.prompt,
       code: q.code ?? "",
@@ -101,7 +106,12 @@ function draftToMission(d: MissionDraft): MissionContent {
       name: d.rewardItemName.trim() || "Item Misterioso",
       icon: d.rewardItemIcon.trim() || DEFAULT_ITEM_ICON,
       description: d.rewardItemDescription.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
-      rarity: d.rewardItemRarity, value: d.rewardItemValue, xp: d.rewardItemXp },
+      rarity: d.rewardItemRarity,
+      value: d.rewardItemValue,
+      // visual do avatar não é consumível
+      xp: d.rewardItemCosmetic ? 0 : d.rewardItemXp,
+      ...(d.rewardItemCosmetic && { cosmetic: d.rewardItemCosmetic }),
+    },
     questions: d.questions.map((q, i) => ({
       id: `q${i + 1}`,
       prompt: q.prompt.trim(),
@@ -125,6 +135,7 @@ export default function MissionEditor({
   existingMission,
   teachers,
   defaultTeacherId,
+  shopItems,
   onSave,
   onDelete,
   onClose,
@@ -133,6 +144,8 @@ export default function MissionEditor({
   /** Só o Painel ADM passa: mostra a escolha do professor dono da missão. */
   teachers?: Teacher[];
   defaultTeacherId?: string;
+  /** Só o Painel ADM passa: permite usar um item da Loja como recompensa. */
+  shopItems?: ShopItem[];
   /** teacherId só vem quando `teachers` foi passado. */
   onSave: (data: MissionContent, teacherId?: string) => void;
   onDelete?: () => void;
@@ -141,6 +154,30 @@ export default function MissionEditor({
   const [draft, setDraft] = useState<MissionDraft>(existingMission ? missionToDraft(existingMission) : emptyDraft());
   const [teacherId, setTeacherId] = useState(existingMission?.teacherId ?? defaultTeacherId ?? teachers?.[0]?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // item da Loja escolhido como recompensa (só pra mostrar no seletor; o que vale é o que foi copiado pro draft)
+  const [shopItemId, setShopItemId] = useState(
+    () => shopItems?.find((i) => i.name === existingMission?.rewardItem.name && i.icon === existingMission?.rewardItem.icon)?.id ?? "",
+  );
+
+  function pickShopItem(id: string) {
+    setShopItemId(id);
+    const item = shopItems?.find((i) => i.id === id);
+    if (!item) {
+      // "nenhum": os campos ficam como estão, mas o visual da Loja deixa de ir junto
+      setDraft((d) => ({ ...d, rewardItemCosmetic: undefined }));
+      return;
+    }
+    setDraft((d) => ({
+      ...d,
+      rewardItemName: item.name,
+      rewardItemIcon: item.icon,
+      rewardItemDescription: item.description,
+      rewardItemRarity: item.rarity,
+      rewardItemValue: item.value,
+      rewardItemXp: item.cosmetic ? 0 : item.xp,
+      rewardItemCosmetic: item.cosmetic,
+    }));
+  }
 
   function updateQuestion(index: number, patch: Partial<QuestionDraft>) {
     setDraft((d) => ({ ...d, questions: d.questions.map((q, i) => (i === index ? { ...q, ...patch } : q)) }));
@@ -262,6 +299,19 @@ export default function MissionEditor({
                 className="cg-input"
               />
             </div>
+
+            {shopItems && (
+              <div className="rounded-xl border border-violet-500/30 bg-violet-500/5 p-3 sm:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-violet-300">🛍️ Usar um item da Loja como recompensa</label>
+                <ShopItemPicker
+                  items={shopItems}
+                  value={shopItemId}
+                  onChange={pickShopItem}
+                  placeholder="Nenhum — criar um item só pra esta missão"
+                  note={shopItemId ? "Os campos abaixo foram preenchidos com o item da Loja — dá pra ajustar se quiser." : null}
+                />
+              </div>
+            )}
 
             <div>
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Item — nome</label>

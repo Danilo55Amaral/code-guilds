@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar } from "@/engine/students";
+import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar, ownsCosmetic } from "@/engine/students";
+import { ShopItem } from "@/engine/shop";
 import {
   SKIN_TONES,
   EYE_COLORS,
@@ -16,6 +17,7 @@ import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAUL
 import ItemEconomyFields from "./ItemEconomyFields";
 import EmojiPicker from "./EmojiPicker";
 import ItemDetailsModal from "./ItemDetailsModal";
+import ShopItemPicker from "./ShopItemPicker";
 import { PaginationFooter, usePagination } from "./Pagination";
 
 const MESSAGES_PER_PAGE = 5;
@@ -61,6 +63,8 @@ export default function StudentDetails({
   onChangeHouse,
   teachers,
   onChangeTeacher,
+  shopItems,
+  onGrantShopItem,
   onClose,
 }: {
   student: Student;
@@ -79,8 +83,23 @@ export default function StudentDetails({
   /** Só o Painel ADM passa: permite trocar o professor do aluno. */
   teachers?: Teacher[];
   onChangeTeacher?: (teacherId: string) => void;
+  /** Só o Painel ADM passa: doar um item da Loja (itens da Loja só podem ser doados pelo ADM). */
+  shopItems?: ShopItem[];
+  onGrantShopItem?: (shopItemId: string) => void;
   onClose: () => void;
 }) {
+  const [giveMode, setGiveMode] = useState<"loja" | "criar">("loja");
+  const [giftShopItemId, setGiftShopItemId] = useState("");
+  const giftShopItem = shopItems?.find((i) => i.id === giftShopItemId) ?? null;
+  const giftAlreadyOwned = !!giftShopItem?.cosmetic && ownsCosmetic(student, giftShopItem.cosmetic);
+
+  function handleGrantShopItem() {
+    if (!giftShopItem || !onGrantShopItem) return;
+    onGrantShopItem(giftShopItem.id);
+    setGrantedMsg(`${giftShopItem.icon} "${giftShopItem.name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
+    setTimeout(() => setGrantedMsg(null), 3000);
+    setGiftShopItemId("");
+  }
   const [itemName, setItemName] = useState("");
   const [itemIcon, setItemIcon] = useState(DEFAULT_ITEM_ICON);
   const [itemDescription, setItemDescription] = useState("");
@@ -540,7 +559,42 @@ export default function StudentDetails({
 
           <div className="rounded-xl border border-slate-800 bg-cg-sunken p-4">
             <SectionTitle>Dar item</SectionTitle>
-            <div className="flex flex-col gap-3">
+            {shopItems && onGrantShopItem && (
+              <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
+                {(
+                  [
+                    ["loja", "🛍️ Item da Loja"],
+                    ["criar", "✏️ Criar item"],
+                  ] as const
+                ).map(([m, label]) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setGiveMode(m)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${giveMode === m ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {shopItems && onGrantShopItem && giveMode === "loja" && (
+              <div className="flex flex-col gap-3">
+                <ShopItemPicker
+                  items={shopItems}
+                  value={giftShopItemId}
+                  onChange={setGiftShopItemId}
+                  note={giftAlreadyOwned ? `${student.name} já tem esse visual — vai ganhar mais um (dá pra vender).` : null}
+                />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-emerald-300">{grantedMsg}</p>
+                  <button onClick={handleGrantShopItem} disabled={!giftShopItem} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">
+                    🎁 Dar item da Loja
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className={`flex flex-col gap-3 ${shopItems && onGrantShopItem && giveMode === "loja" ? "hidden" : ""}`}>
               <input
                 value={itemName}
                 onChange={(e) => {

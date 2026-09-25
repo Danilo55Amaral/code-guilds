@@ -9,12 +9,14 @@ import { COLLECTION_THEME } from "./collections";
 import Avatar from "./Avatar";
 import { CoinIcon, RarityBadge } from "./GameUI";
 import ShopItemEditor from "./ShopItemEditor";
+import ShopQuickEdit from "./ShopQuickEdit";
 
 /** Aba "Loja" do Painel ADM: os itens à venda, quanto já venderam, e o cadastro de novos. */
 export default function ShopManager() {
   const { items, addItem, editItem, removeItem, addCollection, removeCollection } = useShop();
   const [target, setTarget] = useState<ShopItem | "new" | null>(null);
   const [confirmRemove, setConfirmRemove] = useState<CosmeticCollection | null>(null);
+  const [view, setView] = useState<"itens" | "rapida">("itens");
   const [notice, setNotice] = useState<string | null>(null);
 
   const existing = target && target !== "new" ? target : undefined;
@@ -114,7 +116,28 @@ export default function ShopManager() {
       </div>
       {notice && <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">{notice}</p>}
 
-      {items.length === 0 ? (
+      {items.length > 0 && (
+        <div className="mb-3 inline-flex gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
+          {(
+            [
+              ["itens", "📦 Itens à venda"],
+              ["rapida", "✏️ Edição rápida (raridade, preço, moedas e XP)"],
+            ] as const
+          ).map(([v, label]) => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${view === v ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {items.length > 0 && view === "rapida" ? (
+        <ShopQuickEdit items={items} onSave={(changes) => changes.forEach((c) => editItem(c.id, c.data))} />
+      ) : items.length === 0 ? (
         <p className="text-sm text-slate-500">A Loja está vazia — clique em &quot;+ Novo item&quot; pra colocar o primeiro à venda.</p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">

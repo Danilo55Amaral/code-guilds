@@ -32,8 +32,9 @@ const SPARKLES = [
   { left: 94, top: 70, delay: 2.8, size: 10 },
 ];
 
-// Flocos caindo na seção de Natal: posição, tamanho, velocidade e vento fixos (sem Math.random no render).
-const SNOWFLAKES = Array.from({ length: 22 }, (_, i) => ({
+// O que cai no fundo das seções especiais (neve no Natal, pétalas na Páscoa):
+// posição, tamanho, velocidade e vento fixos (sem Math.random no render).
+const FALLING = Array.from({ length: 22 }, (_, i) => ({
   left: (i * 47) % 100,
   size: 9 + (i % 4) * 3,
   duration: 8 + (i % 5) * 1.6,
@@ -279,12 +280,12 @@ export default function LojaPage() {
                 className={`cg-dark-scope relative mb-8 overflow-hidden rounded-3xl border p-5 sm:p-6 ${theme.borderClass}`}
                 style={{ background: theme.background }}
               >
-                {theme.snow &&
-                  SNOWFLAKES.map((f, i) => (
+                {theme.falling &&
+                  FALLING.map((f, i) => (
                     <span
-                      key={`neve-${i}`}
+                      key={`cai-${i}`}
                       aria-hidden="true"
-                      className="cg-anim-snow pointer-events-none absolute top-0 select-none text-white"
+                      className={`cg-anim-snow pointer-events-none absolute top-0 select-none ${theme.falling!.colorClass}`}
                       style={
                         {
                           left: `${f.left}%`,
@@ -295,7 +296,7 @@ export default function LojaPage() {
                         } as React.CSSProperties
                       }
                     >
-                      ❄
+                      {i % 2 && theme.falling!.alt ? theme.falling!.alt : theme.falling!.char}
                     </span>
                   ))}
                 {theme.decor.map((d, i) => (

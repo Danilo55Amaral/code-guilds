@@ -273,16 +273,18 @@ export function addXp(student: Student, amount: number): { level: number; xp: nu
 /** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). */
 export function grantItem(
   student: Student,
-  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number },
+  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic },
 ): Student {
   const newItem: InventoryItem = {
+    // item da Loja doado pelo ADM: se for visual, o aluno pode equipar (e visual não é consumível)
+    ...(item.cosmetic && { cosmetic: item.cosmetic }),
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
     icon: item.icon.trim() || DEFAULT_ITEM_ICON,
     description: item.description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
-    xp: Math.max(0, Math.round(item.xp)),
+    xp: item.cosmetic ? 0 : Math.max(0, Math.round(item.xp)),
     obtainedAt: new Date().toISOString(),
   };
   return { ...student, inventory: [...student.inventory, newItem] };
@@ -378,7 +380,9 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     description: mission.rewardItem.description,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
-    xp: mission.rewardItem.xp,
+    xp: mission.rewardItem.cosmetic ? 0 : mission.rewardItem.xp,
+    // recompensa que é item de visual da Loja: o aluno pode equipar
+    ...(mission.rewardItem.cosmetic && { cosmetic: mission.rewardItem.cosmetic }),
     obtainedAt: new Date().toISOString(),
   };
 

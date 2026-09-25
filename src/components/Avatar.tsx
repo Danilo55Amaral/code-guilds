@@ -21,7 +21,11 @@ function shade(hex: string, amount: number): string {
 }
 
 /** Chapéus que cobrem o topo da cabeça — cabelos altos ficam "por baixo" deles. */
-const COVERING_HATS: Hat[] = ["mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-elfo"];
+const COVERING_HATS: Hat[] = [
+  "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
+  "capacete-tatico", "cerebro-exposto", "chapeu-xerife",
+  "chapeu-aluminio", "capacete-espacial", "capacete-cyber",
+];
 /** Chapéus que escondem o cabelo da frente por inteiro. */
 const FULL_HEAD_HATS: Hat[] = ["elmo", "elmo-espartano", "nemes"];
 const TALL_HAIR: HairStyle[] = ["espetado", "moicano", "coque", "afro", "cacheado"];
@@ -365,6 +369,222 @@ function Outfit({ config, skin, steelId }: { config: AvatarConfig; skin: string;
           <rect x="59" y="117" width="10" height="8" rx="1" fill="none" stroke="#fbbf24" strokeWidth="1.8" />
         </g>
       );
+    // --- Páscoa ---
+    case "fantasia-coelho":
+      return (
+        <g>
+          <path d={body} fill="#f8fafc" />
+          <ellipse cx="64" cy="118" rx="15" ry="11" fill="#fbcfe8" />
+          <path d="M55 98 L62 102 L55 106 Z M73 98 L66 102 L73 106 Z" fill="#f472b6" />
+          <circle cx="64" cy="102" r="2.4" fill="#db2777" />
+          <path d="M30 116 C32 110 36 106 40 104 M98 116 C96 110 92 106 88 104" stroke="#e2e8f0" strokeWidth="2" fill="none" />
+        </g>
+      );
+    case "ovo-chocolate":
+      return (
+        <g>
+          <path d={body} fill="#78350f" />
+          <path d="M34 104 C42 100 50 100 56 102" stroke="#a16207" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.7" />
+          {/* papel dourado e laço */}
+          <path d="M22 116 C44 110 84 110 106 116 L106 123 C84 117 44 117 22 123 Z" fill="#fbbf24" />
+          <path d="M64 114 C58 108 52 110 54 114 C56 118 62 117 64 115 C66 117 72 118 74 114 C76 110 70 108 64 114 Z" fill="#dc2626" />
+          <circle cx="64" cy="114.5" r="2" fill="#b91c1c" />
+          <path d="M26 109 L30 112 M98 109 L94 112" stroke="#fde68a" strokeWidth="1.2" opacity="0.7" />
+        </g>
+      );
+    case "ovo-pintado":
+      return (
+        <g>
+          <path d={body} fill="#c4b5fd" />
+          <path d="M28 104 C44 100 84 100 100 104" stroke="#fde047" strokeWidth="3" fill="none" />
+          <path d="M22 114 L30 108 L38 114 L46 108 L54 114 L62 108 L70 114 L78 108 L86 114 L94 108 L102 114" stroke="#f472b6" strokeWidth="3" fill="none" strokeLinejoin="round" />
+          {[30, 44, 58, 72, 86, 100].map((x) => (
+            <circle key={x} cx={x} cy="122" r="2.4" fill="#86efac" />
+          ))}
+        </g>
+      );
+    // --- Apocalipse Zumbi ---
+    case "roupa-zumbi":
+      return (
+        <g>
+          <path d={body} fill="#4d5c36" />
+          {/* gola rasgada mostrando a pele esverdeada */}
+          <path d="M51 96 L55 105 L58.5 100 L62 109 L65.5 101 L69 107 L72.5 99.5 L77 96 C70 98 58 98 51 96 Z" fill="#9fb58a" />
+          {/* rasgo no peito com a costela aparecendo */}
+          <path d="M33 111 L37 105.5 L42 107.5 L46.5 104 L50 110 L48 117.5 L42 119.5 L35.5 117.5 Z" fill="#1c1917" />
+          <path d="M37 109.5 C40 108.5 44 108.5 47 109.5 M36.5 113.2 C40 112.2 44 112.2 47.5 113.2 M38 116.6 C41 116 44 116 46 116.6" stroke="#e7e5e4" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          {/* remendo costurado de qualquer jeito */}
+          <g transform="rotate(-8 83 113.5)">
+            <rect x="76" y="108" width="14" height="11" rx="1" fill="#78716c" />
+            <rect x="76" y="108" width="14" height="11" rx="1" fill="none" stroke="#e7e5e4" strokeWidth="0.9" strokeDasharray="2 1.6" />
+          </g>
+          {/* manchas de terra e rasgos */}
+          <ellipse cx="60" cy="122" rx="6" ry="3" fill="#3f2a14" opacity="0.55" />
+          <ellipse cx="96" cy="124" rx="4" ry="2" fill="#3f2a14" opacity="0.55" />
+          <ellipse cx="70" cy="113" rx="2.5" ry="1.6" fill="#3f2a14" opacity="0.45" />
+          <path d="M24 123 L28 118 L30.5 124 M100 115 L104 120.5 L102 124" stroke="#2b3320" strokeWidth="1.4" fill="none" strokeLinejoin="round" />
+        </g>
+      );
+    case "sobrevivente":
+      return (
+        <g>
+          <path d={body} fill="#3f3f46" />
+          {/* camiseta por baixo do colete */}
+          <path d="M53 97 L57 128 L71 128 L75 97 C70 99.5 58 99.5 53 97 Z" fill="#a8a29e" />
+          {/* colete tático verde-oliva com bolsos */}
+          <path d="M31 128 C31 111 39 101 52 98 L57 128 Z" fill="#556b2f" />
+          <path d="M97 128 C97 111 89 101 76 98 L71 128 Z" fill="#556b2f" />
+          <rect x="37" y="113" width="12" height="9" rx="1.5" fill="#3f5222" stroke="#27351a" strokeWidth="0.8" />
+          <rect x="79" y="113" width="12" height="9" rx="1.5" fill="#3f5222" stroke="#27351a" strokeWidth="0.8" />
+          <path d="M37 116 L49 116 M79 116 L91 116" stroke="#27351a" strokeWidth="0.8" />
+          {/* alças da mochila e rádio comunicador */}
+          <path d="M46 99 L50 112 M82 99 L78 112" stroke="#78350f" strokeWidth="3" strokeLinecap="round" />
+          <rect x="39" y="102" width="6" height="9" rx="1" fill="#18181b" />
+          <path d="M40.5 102 L40.5 97" stroke="#18181b" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="42" cy="105" r="1" fill="#22c55e" />
+          <rect x="22" y="123" width="84" height="5" fill="#292524" />
+          <rect x="60" y="122" width="8" height="7" rx="1" fill="none" stroke="#a8a29e" strokeWidth="1.4" />
+        </g>
+      );
+    case "hazmat":
+      return (
+        <g>
+          <path d={body} fill="#facc15" />
+          {/* borda do capuz, zíper e faixas refletivas */}
+          <path d="M40 100 C48 93.5 80 93.5 88 100" stroke="#a16207" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+          <path d="M64 100 L64 128" stroke="#3f3f46" strokeWidth="2" />
+          <path d="M62.5 104 L65.5 104 M62.5 110 L65.5 110 M62.5 116 L65.5 116 M62.5 122 L65.5 122" stroke="#3f3f46" strokeWidth="1" />
+          <path d="M24 118 L36 112.5 M104 118 L92 112.5" stroke="#e5e7eb" strokeWidth="3.2" strokeLinecap="round" />
+          {/* símbolo de risco biológico */}
+          <circle cx="48" cy="112" r="7.5" fill="#18181b" />
+          {[-90, 30, 150].map((a) => (
+            <circle
+              key={a}
+              cx={48 + Math.cos((a * Math.PI) / 180) * 3.2}
+              cy={112 + Math.sin((a * Math.PI) / 180) * 3.2}
+              r="2.9"
+              fill="none"
+              stroke="#facc15"
+              strokeWidth="1.5"
+            />
+          ))}
+          <circle cx="48" cy="112" r="1.5" fill="#facc15" />
+          <rect x="74" y="106" width="16" height="6" rx="1" fill="#18181b" />
+          <text x="82" y="110.8" textAnchor="middle" fontSize="4.6" fontWeight="bold" fontFamily="monospace" fill="#facc15">
+            ANTI-Z
+          </text>
+        </g>
+      );
+    // --- Ataque Alienígena ---
+    case "traje-espacial":
+      return (
+        <g>
+          <path d={body} fill="#f1f5f9" />
+          <path d="M38 128 C38 116 36 108 32 104 M90 128 C90 116 92 108 96 104" stroke="#cbd5e1" strokeWidth="1.4" fill="none" />
+          {/* anel do capacete no pescoço */}
+          <path d="M42 100 C48 92 80 92 86 100" stroke="#94a3b8" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+          <path d="M42 100 C48 92 80 92 86 100" stroke="#e2e8f0" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+          {/* painel de controle no peito */}
+          <rect x="54" y="106" width="20" height="13" rx="2" fill="#475569" stroke="#334155" strokeWidth="1" />
+          <circle cx="59" cy="110.5" r="1.8" fill="#ef4444" />
+          <circle cx="64" cy="110.5" r="1.8" fill="#22c55e" />
+          <circle cx="69" cy="110.5" r="1.8" fill="#3b82f6" />
+          <rect x="57" y="114.5" width="14" height="2" rx="1" fill="#fbbf24" />
+          {/* emblema da missão e mangueira de oxigênio */}
+          <circle cx="36" cy="112" r="5.5" fill="#1d4ed8" stroke="#e2e8f0" strokeWidth="1.2" />
+          <path d={starPath(36, 112, 3, 1.3)} fill="#fff" />
+          <path d="M74 116 C82 118 86 122 90 128" stroke="#64748b" strokeWidth="2.5" fill="none" />
+        </g>
+      );
+    case "fantasia-alien":
+      return (
+        <g>
+          <path d={body} fill="#22c55e" />
+          {/* gola alta prateada */}
+          <path d="M40 101 L32 84 L56 95 Z" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+          <path d="M88 101 L96 84 L72 95 Z" fill="#cbd5e1" stroke="#64748b" strokeWidth="1" />
+          {/* cabecinha de alien brilhando no peito */}
+          <circle cx="64" cy="114" r="11" fill="#bbf7d0" opacity="0.35" />
+          <path d="M64 104 C57.5 104 54.5 109 55.5 114 C56.5 119 61 123.5 64 124.5 C67 123.5 71.5 119 72.5 114 C73.5 109 70.5 104 64 104 Z" fill="#14532d" />
+          <ellipse cx="60" cy="113" rx="3.2" ry="1.8" fill="#bbf7d0" transform="rotate(25 60 113)" />
+          <ellipse cx="68" cy="113" rx="3.2" ry="1.8" fill="#bbf7d0" transform="rotate(-25 68 113)" />
+          <rect x="22" y="125" width="84" height="3" fill="#cbd5e1" />
+        </g>
+      );
+    case "uniforme-galactico":
+      return (
+        <g>
+          <path d={body} fill="#1e1b4b" />
+          <path d="M24 114 C30 103 44 98 64 98 C84 98 98 103 104 114 L103 119 C96 109 84 105 64 105 C44 105 32 109 25 119 Z" fill="#7c3aed" />
+          <path d="M55 96 L64 104 L73 96" stroke="#fbbf24" strokeWidth="1.8" fill="none" strokeLinejoin="round" />
+          {/* insígnia dourada e divisas de patente */}
+          <path d="M46 108 L51 121 L46 118 L41 121 Z" fill="#fbbf24" stroke="#a16207" strokeWidth="0.8" strokeLinejoin="round" />
+          {[78, 83, 88].map((x) => (
+            <circle key={x} cx={x} cy="113" r="1.4" fill="#fbbf24" />
+          ))}
+        </g>
+      );
+    // --- Robôs e IA ---
+    case "armadura-mecha":
+      return (
+        <g>
+          <path d={body} fill="#64748b" />
+          <rect x="54" y="94" width="20" height="5" rx="2" fill="#334155" />
+          {/* ombreiras com faixa de alerta */}
+          <ellipse cx="30" cy="108" rx="13" ry="9" fill="#475569" stroke="#334155" strokeWidth="1.2" />
+          <ellipse cx="98" cy="108" rx="13" ry="9" fill="#475569" stroke="#334155" strokeWidth="1.2" />
+          <path d="M20 106 L38 104 M90 104 L108 106" stroke="#facc15" strokeWidth="2.2" strokeLinecap="round" />
+          {/* placa do peito com o reator brilhando */}
+          <path d="M40 104 C48 98 80 98 88 104 L84 122 C76 126 52 126 44 122 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1.2" />
+          <circle cx="64" cy="112" r="10" fill="#67e8f9" opacity="0.3" />
+          <circle cx="64" cy="112" r="7" fill="#0e7490" stroke="#334155" strokeWidth="1" />
+          <circle cx="64" cy="112" r="4.5" fill="#22d3ee" />
+          <circle cx="64" cy="112" r="2" fill="#ecfeff" />
+          {[
+            [46, 106],
+            [82, 106],
+            [47, 119],
+            [81, 119],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="1" fill="#334155" />
+          ))}
+        </g>
+      );
+    case "jaqueta-cyberpunk":
+      return (
+        <g>
+          <path d={body} fill="#2e2e3a" stroke="#52525b" strokeWidth="1.2" />
+          <path d="M36 110 C40 104 46 101 52 100 M92 110 C88 104 82 101 76 100" stroke="#3f3f4f" strokeWidth="2" fill="none" />
+          <path d="M54 97 L64 112 L74 97 Z" fill="#ec4899" />
+          {/* gola alta com neon ciano e rosa */}
+          <path d="M44 100 L36 85 L56 96 Z" fill="#27272a" stroke="#22d3ee" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M84 100 L92 85 L72 96 Z" fill="#27272a" stroke="#ec4899" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M52 100 L59 128" stroke="#22d3ee" strokeWidth="1.5" />
+          <path d="M76 100 L69 128" stroke="#ec4899" strokeWidth="1.5" />
+          <path d="M26 118 L34 108" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" />
+          <path d="M102 118 L94 108" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" />
+          <rect x="34" y="113" width="12" height="7" rx="1" fill="#facc15" />
+          <text x="40" y="118.4" textAnchor="middle" fontSize="5" fontWeight="bold" fontFamily="monospace" fill="#18181b">
+            AI
+          </text>
+        </g>
+      );
+    case "traje-androide":
+      return (
+        <g>
+          <path d={body} fill="#f8fafc" />
+          {/* costuras de painel */}
+          <path d="M52 97 C58 101 70 101 76 97" stroke="#94a3b8" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path d="M64 101 L64 128 M40 104 C48 112 56 114 64 114 C72 114 80 112 88 104 M30 116 L40 110 M98 116 L88 110" stroke="#cbd5e1" strokeWidth="1.2" fill="none" />
+          {/* triângulo azul, número de série e luz de status */}
+          <path d="M42 117 L50 117 L46 124 Z" fill="#2563eb" />
+          <text x="80" y="110" textAnchor="middle" fontSize="3.6" fontFamily="monospace" fill="#64748b">
+            AND-01
+          </text>
+          <circle cx="80" cy="118" r="3.5" fill="#38bdf8" opacity="0.35" />
+          <circle cx="80" cy="118" r="2" fill="#38bdf8" />
+        </g>
+      );
     case "tunica":
     default:
       return (
@@ -681,6 +901,157 @@ function EyewearLayer({ eyewear }: { eyewear: AvatarConfig["eyewear"] }) {
           <path d="M60 59 Q64 56 68 59 M44 59 L37 56 M84 59 L91 56" stroke="#e0f2fe" strokeWidth="1.8" fill="none" />
         </g>
       );
+    // --- Páscoa ---
+    case "oculos-ovo":
+      // lentes em formato de ovinho, uma rosa e uma verde, com zigue-zague
+      return (
+        <g>
+          {[
+            [52, "#fbcfe8", "#db2777"],
+            [76, "#bbf7d0", "#16a34a"],
+          ].map(([cx, fill, stripe]) => (
+            <g key={cx as number}>
+              <path
+                d={`M${cx} 51.5 C${Number(cx) + 5} 51.5 ${Number(cx) + 7.5} 57 ${Number(cx) + 7.5} 61 C${Number(cx) + 7.5} 65.5 ${Number(cx) + 4.5} 68 ${cx} 68 C${Number(cx) - 4.5} 68 ${Number(cx) - 7.5} 65.5 ${Number(cx) - 7.5} 61 C${Number(cx) - 7.5} 57 ${Number(cx) - 5} 51.5 ${cx} 51.5 Z`}
+                fill={fill as string}
+                fillOpacity="0.7"
+                stroke="#a78bfa"
+                strokeWidth="2"
+              />
+              <path d={`M${Number(cx) - 6.5} 60 L${Number(cx) - 3} 57.5 L${cx} 60 L${Number(cx) + 3} 57.5 L${Number(cx) + 6.5} 60`} stroke={stripe as string} strokeWidth="1.2" fill="none" />
+            </g>
+          ))}
+          <path d="M59.5 59 Q64 56.5 68.5 59 M44.5 59 L37 56 M83.5 59 L91 56" stroke="#a78bfa" strokeWidth="1.8" fill="none" />
+        </g>
+      );
+    case "oculos-cenoura":
+      return (
+        <g>
+          <circle cx="52" cy="60" r="7.5" fill="rgba(255,255,255,0.1)" stroke="#f97316" strokeWidth="2.6" />
+          <circle cx="76" cy="60" r="7.5" fill="rgba(255,255,255,0.1)" stroke="#f97316" strokeWidth="2.6" />
+          <path d="M59.5 59 Q64 56 68.5 59 M44.5 59 L37 56 M83.5 59 L91 56" stroke="#f97316" strokeWidth="2" fill="none" />
+          <path d="M53 57 L55.5 56 M77 57 L79.5 56" stroke="#c2410c" strokeWidth="0.9" />
+          {/* folhinhas de cenoura saindo das armações */}
+          <path d="M45 54 C42 49 43 46 45 45 M47 53 C47 48 49 46 51 46 M83 54 C86 49 85 46 83 45 M81 53 C81 48 79 46 77 46" stroke="#16a34a" strokeWidth="1.8" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    // --- Apocalipse Zumbi ---
+    case "mascara-gas":
+      // cobre olhos, nariz e boca: lentes redondas e dois filtros
+      return (
+        <g>
+          <path d="M38 54 C38 47 50 45.5 64 46.5 C78 45.5 90 47 90 54 L88 66 C84 75 76 81 64 82.5 C52 81 44 75 40 66 Z" fill="#27272a" stroke="#18181b" strokeWidth="1.2" />
+          <path d="M38 55 L33 52.5 M90 55 L95 52.5" stroke="#18181b" strokeWidth="3" strokeLinecap="round" />
+          {[52, 76].map((cx) => (
+            <g key={cx}>
+              <circle cx={cx} cy="59" r="7.2" fill="#a3e635" fillOpacity="0.3" stroke="#71717a" strokeWidth="2.4" />
+              <path d={`M${cx - 3.5} 56.5 L${cx - 1} 54.5`} stroke="#f7fee7" strokeWidth="1.3" strokeLinecap="round" opacity="0.7" />
+            </g>
+          ))}
+          {/* filtros dos lados e a válvula no meio */}
+          {[
+            [51, -20],
+            [77, 20],
+          ].map(([cx, a]) => (
+            <g key={cx} transform={`rotate(${a} ${cx} 76)`}>
+              <rect x={cx - 5} y="71" width="10" height="10" rx="3" fill="#52525b" stroke="#3f3f46" strokeWidth="1" />
+              <path d={`M${cx - 3} 74 L${cx + 3} 74 M${cx - 3} 76.5 L${cx + 3} 76.5 M${cx - 3} 79 L${cx + 3} 79`} stroke="#27272a" strokeWidth="0.8" />
+            </g>
+          ))}
+          <circle cx="64" cy="74" r="4" fill="#3f3f46" stroke="#71717a" strokeWidth="1.2" />
+          <circle cx="64" cy="74" r="1.4" fill="#18181b" />
+        </g>
+      );
+    case "olhos-zumbi":
+      // olhos brancos, pálpebra caída, olheiras fundas, veinhas e manchas esverdeadas na pele
+      return (
+        <g>
+          <ellipse cx="44" cy="71" rx="5" ry="3.5" fill="#65a30d" opacity="0.3" />
+          <ellipse cx="85" cy="73" rx="4" ry="3" fill="#65a30d" opacity="0.3" />
+          <path d="M80 66 L88 75" stroke="#57534e" strokeWidth="1.1" strokeLinecap="round" />
+          <path d="M81.5 69.5 L84.5 67 M83.5 72 L86.5 69.5" stroke="#57534e" strokeWidth="0.9" strokeLinecap="round" />
+          {[52, 76].map((cx) => (
+            <g key={cx}>
+              <path d={`M${cx - 6.5} 64 Q${cx} 71 ${cx + 6.5} 64 Q${cx} 67.5 ${cx - 6.5} 64 Z`} fill="#44403c" opacity="0.6" />
+              <ellipse cx={cx} cy="60" rx="5.7" ry="6.2" fill="#f7fee7" stroke="#a3e635" strokeWidth="1" />
+              <circle cx={cx + 0.6} cy="61" r="1.5" fill="#a8a29e" opacity="0.75" />
+              <path d={`M${cx - 5.4} 59.5 L${cx - 3} 60.3 L${cx - 2} 59.4 M${cx + 5.4} 61.5 L${cx + 3.2} 61`} stroke="#dc2626" strokeWidth="0.55" fill="none" />
+              {/* pálpebra caída */}
+              <path d={`M${cx - 6.2} 58.8 Q${cx} 52.5 ${cx + 6.2} 58.8 Q${cx} 56 ${cx - 6.2} 58.8 Z`} fill="#57534e" />
+            </g>
+          ))}
+        </g>
+      );
+    // --- Ataque Alienígena ---
+    case "oculos-alien":
+      // lentes enormes, pretas e puxadas pra cima nos cantos de fora
+      return (
+        <g>
+          <ellipse cx="51" cy="60" rx="10" ry="6" fill="#0b0b10" stroke="#4ade80" strokeWidth="1.6" transform="rotate(25 51 60)" />
+          <ellipse cx="77" cy="60" rx="10" ry="6" fill="#0b0b10" stroke="#4ade80" strokeWidth="1.6" transform="rotate(-25 77 60)" />
+          <ellipse cx="48" cy="57.5" rx="2.6" ry="1.4" fill="#fff" opacity="0.75" transform="rotate(25 48 57.5)" />
+          <ellipse cx="74" cy="58.5" rx="2.6" ry="1.4" fill="#fff" opacity="0.75" transform="rotate(-25 74 58.5)" />
+          <path d="M59.5 64 Q64 62 68.5 64 M42 55.5 L36 53 M86 55.5 L92 53" stroke="#4ade80" strokeWidth="1.6" fill="none" />
+        </g>
+      );
+    case "visor-laser":
+      return (
+        <g>
+          <path d="M38 54 C50 51 78 51 90 54 L89 65 C78 68 50 68 39 65 Z" fill="#ef4444" fillOpacity="0.5" stroke="#7f1d1d" strokeWidth="1.5" />
+          <path d="M41 59.5 L87 59.5" stroke="#fecaca" strokeWidth="1.2" opacity="0.9" />
+          {/* mira sobre o olho direito */}
+          <circle cx="76" cy="60" r="3.6" fill="none" stroke="#fef2f2" strokeWidth="0.9" />
+          <path d="M76 54.5 L76 57 M76 63 L76 65.5 M70.5 60 L73 60 M79 60 L81.5 60" stroke="#fef2f2" strokeWidth="0.9" />
+          {/* emissores dos lados e o feixe laser */}
+          <rect x="34" y="55" width="5" height="9" rx="1.5" fill="#334155" />
+          <rect x="88" y="55" width="6" height="8" rx="1.5" fill="#334155" />
+          <circle cx="93" cy="57.5" r="1.3" fill="#f87171" />
+          <path d="M94 57.5 L128 44" stroke="#f87171" strokeWidth="1.6" opacity="0.8" strokeLinecap="round" />
+        </g>
+      );
+    // --- Robôs e IA ---
+    case "oculos-ra":
+      // lente transparente com mira, gráfico e o selo "AI"
+      return (
+        <g>
+          <path d="M40 53 L88 53 L87 66 L41 66 Z" fill="#22d3ee" fillOpacity="0.18" stroke="#67e8f9" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M40 55 L34 53 M88 55 L94 53" stroke="#67e8f9" strokeWidth="1.6" />
+          <path d="M42 55.5 L60 55.5" stroke="#a5f3fc" strokeWidth="0.5" opacity="0.7" />
+          <circle cx="52" cy="60" r="4.5" fill="none" stroke="#a5f3fc" strokeWidth="0.8" strokeDasharray="1.5 1" />
+          <path d="M52 54.5 L52 56 M52 64 L52 65.5 M46.5 60 L48 60 M56 60 L57.5 60" stroke="#a5f3fc" strokeWidth="0.8" />
+          <text x="84" y="58.5" textAnchor="middle" fontSize="3.6" fontWeight="bold" fontFamily="monospace" fill="#a5f3fc">
+            AI
+          </text>
+          {[
+            [80.5, 2],
+            [82.5, 4],
+            [84.5, 3],
+            [86.5, 5],
+          ].map(([x, h]) => (
+            <rect key={x} x={x - 0.8} y={64.5 - h} width="1.6" height={h} fill="#a5f3fc" opacity="0.85" />
+          ))}
+        </g>
+      );
+    case "olho-cyborg":
+      // placa de metal parafusada no olho direito, com lente vermelha
+      return (
+        <g>
+          <path d="M67 50 L84 48 L90 56 L88 68 L76 72 L68 66 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M84 48 L90 44 M90 56 L95 55" stroke="#475569" strokeWidth="1.2" strokeLinecap="round" />
+          <circle cx="77" cy="60" r="7" fill="#ef4444" opacity="0.3" />
+          <circle cx="77" cy="60" r="5" fill="#18181b" stroke="#64748b" strokeWidth="1" />
+          <circle cx="77" cy="60" r="2.8" fill="#ef4444" />
+          <circle cx="77" cy="60" r="1.2" fill="#fecaca" />
+          {[
+            [70, 52],
+            [86, 52],
+            [86, 66],
+            [72, 68],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" fill="#475569" />
+          ))}
+        </g>
+      );
     default:
       return null;
   }
@@ -708,7 +1079,147 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   neve: ["#e0f2fe", "#1e3a8a"],
   luzes: ["#fde68a", "#14532d"],
   aurora: ["#86efac", "#312e81"],
+  ovos: ["#fbcfe8", "#7e22ce"],
+  flores: ["#bbf7d0", "#be185d"],
+  "arco-iris": ["#fef9c3", "#6d28d9"],
+  radioativa: ["#d9f99d", "#365314"],
+  "maos-zumbi": ["#bef264", "#1a2e05"],
+  "cidade-ruinas": ["#fdba74", "#431407"],
+  "raio-trator": ["#bef264", "#1e1b4b"],
+  planetas: ["#c4b5fd", "#0c0a2e"],
+  invasao: ["#86efac", "#0f172a"],
+  circuito: ["#67e8f9", "#082f49"],
+  "codigo-matrix": ["#86efac", "#022c22"],
+  "grade-neon": ["#f0abfc", "#1e1b4b"],
 };
+
+// Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
+const MATRIX_COLUMNS: [number, number, number][] = [
+  [8, 6, 9],
+  [18, 26, 8],
+  [28, 4, 4],
+  [40, 2, 2],
+  [88, 2, 3],
+  [100, 10, 8],
+  [110, 30, 9],
+  [120, 4, 11],
+];
+
+/** Florzinha de 5 pétalas (coroa de flores, aura Jardim florido), centrada em (x, y). */
+function Flower({ x, y, r = 3, color = "#f9a8d4" }: { x: number; y: number; r?: number; color?: string }) {
+  return (
+    <g>
+      {[0, 72, 144, 216, 288].map((a) => (
+        <circle key={a} cx={x + Math.cos((a * Math.PI) / 180) * r} cy={y + Math.sin((a * Math.PI) / 180) * r} r={r * 0.85} fill={color} />
+      ))}
+      <circle cx={x} cy={y} r={r * 0.6} fill="#fde047" />
+    </g>
+  );
+}
+
+/** Ovinho de Páscoa pintado (aura de ovinhos), centrado em (x, y). */
+function EasterEgg({ x, y, s = 1, color = "#f9a8d4", stripe = "#a78bfa" }: { x: number; y: number; s?: number; color?: string; stripe?: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <path d="M0 -7 C4 -7 6 -1 6 2 C6 6 3.5 8 0 8 C-3.5 8 -6 6 -6 2 C-6 -1 -4 -7 0 -7 Z" fill={color} stroke="#fff" strokeWidth="0.6" />
+      <path d="M-5.6 1 L-3 -1 L0 1 L3 -1 L5.6 1" stroke={stripe} strokeWidth="1.3" fill="none" />
+      <circle cx="-2" cy="4.5" r="0.9" fill="#fff" />
+      <circle cx="2" cy="4.5" r="0.9" fill="#fff" />
+    </g>
+  );
+}
+
+/** Símbolo de radiação (aura radioativa), centrado em (x, y). */
+function Radiation({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  const p = (r: number, deg: number) => `${(Math.cos((deg * Math.PI) / 180) * r).toFixed(2)} ${(Math.sin((deg * Math.PI) / 180) * r).toFixed(2)}`;
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <circle r="7.5" fill="#facc15" stroke="#1c1917" strokeWidth="0.8" />
+      {[-150, -30, 90].map((c) => (
+        <path key={c} d={`M${p(1.9, c - 30)} L${p(6.2, c - 30)} A6.2 6.2 0 0 1 ${p(6.2, c + 30)} L${p(1.9, c + 30)} A1.9 1.9 0 0 0 ${p(1.9, c - 30)} Z`} fill="#1c1917" />
+      ))}
+      <circle r="1.2" fill="#1c1917" />
+    </g>
+  );
+}
+
+/** Mão de zumbi saindo da terra (aura Horda), com o pulso em (x, y); `flip` espelha. */
+function ZombieHand({ x, y, s = 1, flip = false }: { x: number; y: number; s?: number; flip?: boolean }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${flip ? -s : s} ${s})`}>
+      <path d="M-3 0 L-2.5 -12 L2.5 -12 L3 0 Z" fill="#6b8f4e" />
+      <path d="M-3.6 -9.5 L-2.2 -12.2 L0 -10.4 L2.2 -12.2 L3.6 -9.5 L3.6 -7 L-3.6 -7 Z" fill="#57534e" />
+      <ellipse cx="0" cy="-15.5" rx="4.6" ry="4.2" fill="#84a86a" />
+      <g stroke="#84a86a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none">
+        <path d="M-3.4 -17 L-4.6 -23.5" />
+        <path d="M-1.2 -18.5 L-1.4 -26" />
+        <path d="M1.2 -18.5 L1.8 -25.5 L3.2 -26.5" />
+        <path d="M3.4 -17 L5 -22.5" />
+        <path d="M-4.2 -14 L-7.8 -17.5" />
+      </g>
+      <path d="M-2 -14 L1 -13 M-1 -16.5 L2 -16" stroke="#3f6212" strokeWidth="0.6" opacity="0.7" />
+      <ellipse cx="0" cy="0.5" rx="7" ry="2.4" fill="#292524" />
+    </g>
+  );
+}
+
+/** Disco voador (aura Raio trator), centrado em (x, y). */
+function Ufo({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <ellipse cx="0" cy="-4" rx="8" ry="6.5" fill="#a5f3fc" opacity="0.9" />
+      <ellipse cx="-2.5" cy="-6" rx="2.5" ry="1.8" fill="#fff" opacity="0.7" />
+      <ellipse cx="0" cy="1" rx="22" ry="5.5" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+      <ellipse cx="0" cy="-0.5" rx="18" ry="2.5" fill="#cbd5e1" />
+      {[-15, -7.5, 0, 7.5, 15].map((lx, i) => (
+        <circle key={lx} cx={lx} cy={2.8 - Math.abs(lx) / 10} r="1.5" fill={i % 2 ? "#f87171" : "#fde047"} />
+      ))}
+    </g>
+  );
+}
+
+// Invasor de fliperama em 11x8 pixels (aura Invasão pixelada).
+const INVADER_PIXELS: [number, number][] = [
+  "  X     X  ",
+  "   X   X   ",
+  "  XXXXXXX  ",
+  " XX XXX XX ",
+  "XXXXXXXXXXX",
+  "X XXXXXXX X",
+  "X X     X X",
+  "   XX XX   ",
+].flatMap((row, py) => [...row].flatMap((c, px) => (c === "X" ? [[px, py] as [number, number]] : [])));
+
+/** Invasor pixelado, centrado em (x, y); `p` é o tamanho de cada pixel. */
+function PixelInvader({ x, y, p = 1, color }: { x: number; y: number; p?: number; color: string }) {
+  return (
+    <g transform={`translate(${x - 5.5 * p} ${y - 4 * p}) scale(${p})`} fill={color}>
+      {INVADER_PIXELS.map(([px, py]) => (
+        <rect key={`${px}-${py}`} x={px} y={py} width="1.05" height="1.05" />
+      ))}
+    </g>
+  );
+}
+
+/** Estrelinha de 4 pontas (aura Sistema solar), centrada em (x, y). */
+function Sparkle({ x, y, r = 1.5 }: { x: number; y: number; r?: number }) {
+  return (
+    <path
+      d={`M${x} ${y - r * 2} L${x + r * 0.6} ${y - r * 0.6} L${x + r * 2} ${y} L${x + r * 0.6} ${y + r * 0.6} L${x} ${y + r * 2} L${x - r * 0.6} ${y + r * 0.6} L${x - r * 2} ${y} L${x - r * 0.6} ${y - r * 0.6} Z`}
+      fill="#fef9c3"
+    />
+  );
+}
+
+/** Estrela de 5 pontas centrada em (x, y), com raio de fora `R` e de dentro `r`. */
+function starPath(x: number, y: number, R: number, r: number): string {
+  const points = Array.from({ length: 10 }, (_, i) => {
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const d = i % 2 ? r : R;
+    return `${i ? "L" : "M"}${(x + Math.cos(a) * d).toFixed(2)} ${(y + Math.sin(a) * d).toFixed(2)}`;
+  });
+  return `${points.join(" ")} Z`;
+}
 
 /** Floco de neve (aura Nevasca), centrado em (x, y), com raio `r`. */
 function Snowflake({ x, y, r = 4 }: { x: number; y: number; r?: number }) {
@@ -817,6 +1328,272 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
         </radialGradient>
       </defs>
       <circle cx="64" cy="60" r="72" fill={`url(#${gradientId})`} />
+      {aura === "ovos" && (
+        <g>
+          <EasterEgg x={18} y={40} s={1.3} color="#f9a8d4" stripe="#7c3aed" />
+          <EasterEgg x={108} y={36} s={1.2} color="#86efac" stripe="#db2777" />
+          <EasterEgg x={20} y={86} s={1.1} color="#fde047" stripe="#2563eb" />
+          <EasterEgg x={108} y={84} s={1.3} color="#c4b5fd" stripe="#f59e0b" />
+          <EasterEgg x={36} y={14} s={0.9} color="#93c5fd" stripe="#db2777" />
+          <EasterEgg x={92} y={12} s={0.9} color="#fdba74" stripe="#16a34a" />
+        </g>
+      )}
+      {aura === "flores" && (
+        <g>
+          {[
+            [16, 42, 3.4, "#f9a8d4"],
+            [110, 38, 3.2, "#fde68a"],
+            [22, 88, 3, "#c4b5fd"],
+            [106, 86, 3.4, "#fbcfe8"],
+            [34, 14, 2.6, "#fef9c3"],
+            [94, 12, 2.8, "#f9a8d4"],
+            [8, 66, 2.4, "#fff"],
+            [120, 62, 2.4, "#c4b5fd"],
+          ].map(([x, y, r, color]) => (
+            <Flower key={`${x}-${y}`} x={Number(x)} y={Number(y)} r={Number(r)} color={color as string} />
+          ))}
+        </g>
+      )}
+      {aura === "arco-iris" && (
+        <g fill="none" strokeLinecap="round" opacity="0.85">
+          {["#fca5a5", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#c4b5fd"].map((color, i) => {
+            const r = 60 - i * 5;
+            return <path key={color} d={`M${64 - r} 70 A${r} ${r} 0 0 1 ${64 + r} 70`} stroke={color} strokeWidth="4.5" />;
+          })}
+          <g fill="#fff" stroke="none" opacity="0.95">
+            <circle cx="6" cy="72" r="6" />
+            <circle cx="14" cy="70" r="7" />
+            <circle cx="114" cy="70" r="7" />
+            <circle cx="122" cy="72" r="6" />
+          </g>
+        </g>
+      )}
+      {aura === "radioativa" && (
+        <g>
+          <Radiation x={20} y={40} s={1.2} />
+          <Radiation x={108} y={34} s={1} />
+          <Radiation x={106} y={88} s={0.85} />
+          {[
+            [24, 86, 4],
+            [16, 64, 2.6],
+            [34, 16, 3],
+            [94, 12, 2.4],
+            [112, 60, 2.8],
+            [30, 100, 2],
+            [8, 28, 2],
+          ].map(([x, y, r]) => (
+            <g key={`${x}-${y}`}>
+              <circle cx={x} cy={y} r={r} fill="#a3e635" fillOpacity="0.35" stroke="#d9f99d" strokeWidth="0.9" />
+              <circle cx={x - r * 0.35} cy={y - r * 0.35} r={r * 0.25} fill="#f7fee7" opacity="0.8" />
+            </g>
+          ))}
+        </g>
+      )}
+      {aura === "maos-zumbi" && (
+        <g>
+          {/* lua verde e névoa no chão */}
+          <circle cx="100" cy="22" r="13" fill="#d9f99d" opacity="0.9" />
+          <circle cx="95" cy="19" r="2.6" fill="#a3e635" opacity="0.6" />
+          <circle cx="104" cy="27" r="1.8" fill="#a3e635" opacity="0.6" />
+          <path d="M0 128 L0 112 C8 108 20 110 30 114 L30 128 Z M128 128 L128 110 C120 106 108 108 98 113 L98 128 Z" fill="#1c1917" />
+          <ZombieHand x={12} y={113} s={1.3} />
+          <ZombieHand x={116} y={111} s={1.25} flip />
+          <ZombieHand x={27} y={100} s={0.9} flip />
+          <ZombieHand x={103} y={99} s={0.85} />
+          <ellipse cx="18" cy="118" rx="16" ry="3" fill="#d9f99d" opacity="0.2" />
+          <ellipse cx="110" cy="116" rx="16" ry="3" fill="#d9f99d" opacity="0.2" />
+        </g>
+      )}
+      {aura === "cidade-ruinas" && (
+        <g>
+          {/* fumaça subindo dos prédios destruídos */}
+          <g fill="#57534e" opacity="0.6">
+            {[
+              [14, 52, 6],
+              [20, 41, 8],
+              [12, 29, 7],
+              [22, 18, 5],
+              [112, 46, 6],
+              [106, 34, 8],
+              [114, 22, 6],
+            ].map(([x, y, r]) => (
+              <circle key={`${x}-${y}`} cx={x} cy={y} r={r} />
+            ))}
+          </g>
+          <path
+            d="M0 128 L0 74 L8 74 L8 64 L13 68 L17 59 L22 64 L22 82 L29 82 L29 70 L33 73 L38 67 L38 128 Z M128 128 L128 70 L121 70 L121 58 L115 62 L111 55 L106 60 L106 80 L98 80 L98 72 L94 75 L90 70 L90 128 Z"
+            fill="#1c1917"
+          />
+          {[
+            [3, 80, true],
+            [3, 90, false],
+            [12, 76, false],
+            [12, 86, true],
+            [25, 88, false],
+            [32, 80, true],
+            [123, 76, true],
+            [116, 68, false],
+            [116, 84, true],
+            [109, 72, false],
+            [101, 86, true],
+            [93, 80, false],
+          ].map(([x, y, lit]) => (
+            <rect key={`${x}-${y}`} x={Number(x)} y={Number(y)} width="3" height="4" fill={lit ? "#fbbf24" : "#44403c"} opacity={lit ? 0.8 : 1} />
+          ))}
+        </g>
+      )}
+      {aura === "raio-trator" && (
+        <g>
+          {/* feixe de luz saindo do disco voador e envolvendo o personagem */}
+          <path d="M52 16 L76 16 L112 128 L16 128 Z" fill="#bef264" opacity="0.28" />
+          <path d="M56 16 L72 16 L96 128 L32 128 Z" fill="#ecfccb" opacity="0.2" />
+          {[
+            [40, 90],
+            [88, 96],
+            [46, 56],
+            [84, 50],
+            [30, 112],
+            [98, 114],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" fill="#f7fee7" />
+          ))}
+          {[
+            [12, 20],
+            [26, 44],
+            [112, 30],
+            [118, 70],
+            [8, 80],
+          ].map(([x, y]) => (
+            <circle key={`e${x}-${y}`} cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+          ))}
+          <Ufo x={64} y={10} />
+        </g>
+      )}
+      {aura === "planetas" && (
+        <g>
+          <ellipse cx="64" cy="62" rx="60" ry="20" fill="none" stroke="#c4b5fd" strokeWidth="1" strokeDasharray="2 3" opacity="0.45" transform="rotate(-15 64 62)" />
+          {/* planeta com anéis: metade de trás do anel, planeta, metade da frente */}
+          <g transform="rotate(-20 22 32)">
+            <path d="M4 32 A18 4.5 0 0 1 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
+            <circle cx="22" cy="32" r="9.5" fill="#f59e0b" />
+            <path d="M13.5 29 C18 30.5 26 30.5 30.5 29 M13 34.5 C18 36 26 36 31 34.5" stroke="#b45309" strokeWidth="1.2" fill="none" opacity="0.7" />
+            <path d="M4 32 A18 4.5 0 0 0 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
+          </g>
+          {/* planetinha azul com continentes */}
+          <circle cx="108" cy="26" r="7.5" fill="#3b82f6" />
+          <path d="M103 23 C105 20 108 21 108 24 C107 27 104 27 103 23 Z M110 28 C112 26 114 28 113 31 C111 32 109 31 110 28 Z" fill="#22c55e" />
+          {/* planeta vermelho e lua */}
+          <circle cx="108" cy="88" r="5.5" fill="#ef4444" />
+          <circle cx="106" cy="86.5" r="1.2" fill="#b91c1c" />
+          <circle cx="110" cy="90" r="0.9" fill="#b91c1c" />
+          <circle cx="18" cy="86" r="4.5" fill="#e5e7eb" />
+          <circle cx="16.5" cy="85" r="1" fill="#9ca3af" />
+          <circle cx="19.5" cy="88" r="0.8" fill="#9ca3af" />
+          <Sparkle x={36} y={10} r={1.6} />
+          <Sparkle x={90} y={8} r={1.4} />
+          <Sparkle x={8} y={58} r={1.3} />
+          <Sparkle x={120} y={56} r={1.5} />
+          <Sparkle x={30} y={104} r={1.2} />
+          <Sparkle x={100} y={110} r={1.3} />
+        </g>
+      )}
+      {aura === "invasao" && (
+        <g>
+          <PixelInvader x={20} y={26} p={1.5} color="#4ade80" />
+          <PixelInvader x={108} y={24} p={1.4} color="#e879f9" />
+          <PixelInvader x={14} y={62} p={1.2} color="#22d3ee" />
+          <PixelInvader x={114} y={60} p={1.2} color="#fde047" />
+          <PixelInvader x={22} y={96} p={1.1} color="#f87171" />
+          <PixelInvader x={106} y={96} p={1.1} color="#4ade80" />
+          <path d="M20 35 L20 41 M108 33 L108 39 M14 69 L14 74 M114 67 L114 72" stroke="#fef08a" strokeWidth="1.3" strokeLinecap="round" />
+        </g>
+      )}
+      {aura === "circuito" && (
+        <g>
+          <g stroke="#22d3ee" strokeWidth="1.3" fill="none" opacity="0.85" strokeLinejoin="round">
+            <path d="M0 30 L14 30 L22 38 L22 56" />
+            <path d="M0 70 L10 70 L18 62 L28 62" />
+            <path d="M6 110 L16 100 L16 80" />
+            <path d="M30 0 L30 10 L38 18" />
+            <path d="M128 36 L114 36 L106 44 L106 58" />
+            <path d="M128 76 L118 76 L110 68 L100 68" />
+            <path d="M122 110 L112 100 L112 82" />
+            <path d="M98 0 L98 12 L90 20" />
+          </g>
+          {[
+            [22, 56],
+            [28, 62],
+            [16, 80],
+            [38, 18],
+            [106, 58],
+            [100, 68],
+            [112, 82],
+            [90, 20],
+          ].map(([x, y]) => (
+            <g key={`${x}-${y}`}>
+              <circle cx={x} cy={y} r="3.5" fill="#67e8f9" opacity="0.35" />
+              <circle cx={x} cy={y} r="1.8" fill="#ecfeff" stroke="#22d3ee" strokeWidth="0.8" />
+            </g>
+          ))}
+          {[
+            [4, 44],
+            [113, 44],
+          ].map(([x, y]) => (
+            <g key={`chip${x}`}>
+              <rect x={x} y={y} width="10" height="10" rx="1" fill="#0e7490" stroke="#67e8f9" strokeWidth="0.8" />
+              <path d={`M${x + 2.5} ${y} L${x + 2.5} ${y - 2} M${x + 5} ${y} L${x + 5} ${y - 2} M${x + 7.5} ${y} L${x + 7.5} ${y - 2} M${x + 2.5} ${y + 10} L${x + 2.5} ${y + 12} M${x + 5} ${y + 10} L${x + 5} ${y + 12} M${x + 7.5} ${y + 10} L${x + 7.5} ${y + 12}`} stroke="#67e8f9" strokeWidth="0.8" />
+            </g>
+          ))}
+        </g>
+      )}
+      {aura === "codigo-matrix" && (
+        <g fontFamily="monospace" fontSize="6.5" fontWeight="bold" textAnchor="middle">
+          {MATRIX_COLUMNS.map(([x, y0, n]) =>
+            Array.from({ length: n }, (_, j) => (
+              <text key={`${x}-${j}`} x={x} y={y0 + j * 7.5} fill={j === n - 1 ? "#dcfce7" : "#4ade80"} opacity={0.3 + (0.7 * (j + 1)) / n}>
+                {(x + j * 5) % 3 ? "1" : "0"}
+              </text>
+            )),
+          )}
+        </g>
+      )}
+      {aura === "grade-neon" && (
+        <g>
+          <defs>
+            <linearGradient id={`${gradientId}s`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#fde047" />
+              <stop offset="1" stopColor="#ec4899" />
+            </linearGradient>
+            <clipPath id={`${gradientId}c`}>
+              <circle cx="64" cy="44" r="43" />
+            </clipPath>
+          </defs>
+          {/* sol listrado se pondo no horizonte (grande pra aparecer em volta da cabeça) */}
+          <circle cx="64" cy="44" r="43" fill={`url(#${gradientId}s)`} />
+          <g clipPath={`url(#${gradientId}c)`} fill="#1e1b4b">
+            <rect x="0" y="54" width="128" height="2" />
+            <rect x="0" y="62" width="128" height="2.5" />
+            <rect x="0" y="69" width="128" height="3" />
+            <rect x="0" y="76" width="128" height="3.5" />
+          </g>
+          {/* grade neon em perspectiva */}
+          <rect x="0" y="84" width="128" height="44" fill="#1e1b4b" opacity="0.85" />
+          <g stroke="#e879f9" strokeWidth="1" opacity="0.9">
+            <path d="M0 84 L128 84" strokeWidth="1.6" stroke="#f0abfc" />
+            <path d="M0 89 L128 89 M0 96 L128 96 M0 105 L128 105 M0 117 L128 117" />
+            <path d="M64 84 L-60 128 M64 84 L-20 128 M64 84 L20 128 M64 84 L108 128 M64 84 L148 128 M64 84 L188 128" />
+          </g>
+          {[
+            [14, 16],
+            [30, 8],
+            [104, 12],
+            [118, 30],
+            [8, 44],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+          ))}
+        </g>
+      )}
       {aura === "neve" && (
         <g>
           {[
@@ -1037,15 +1814,77 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
   );
 }
 
-/** Mascote no ombro do personagem (emoji), desenhado por último. */
+/** Mascotes com desenho próprio (não existe emoji bom pra eles), em volta de (97, 99). */
+function drawnPet(pet: Pet) {
+  switch (pet) {
+    case "drone":
+      return (
+        <g>
+          <path d="M88 92 L106 106 M106 92 L88 106" stroke="#475569" strokeWidth="2" strokeLinecap="round" />
+          {[
+            [87, 91],
+            [107, 91],
+            [87, 107],
+            [107, 107],
+          ].map(([x, y]) => (
+            <g key={`${x}-${y}`}>
+              <ellipse cx={x} cy={y} rx="5.5" ry="1.7" fill="#cbd5e1" opacity="0.75" />
+              <circle cx={x} cy={y} r="1.2" fill="#334155" />
+            </g>
+          ))}
+          <rect x="91" y="94" width="12" height="10" rx="3" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
+          <circle cx="97" cy="100" r="2.8" fill="#0f172a" />
+          <circle cx="97" cy="100" r="1.3" fill="#22d3ee" />
+          <circle cx="100.5" cy="96" r="0.8" fill="#ef4444" />
+        </g>
+      );
+    case "gato-robo":
+      return (
+        <g>
+          <path d="M97 88 L97 83" stroke="#64748b" strokeWidth="1.2" />
+          <circle cx="97" cy="82" r="1.6" fill="#f87171" />
+          <path d="M86 94 L88 83 L94 90 Z M108 94 L106 83 L100 90 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M88.5 91 L89.5 86 L92 89 Z M105.5 91 L104.5 86 L102 89 Z" fill="#f472b6" />
+          <rect x="85" y="88" width="24" height="20" rx="7" fill="#cbd5e1" stroke="#475569" strokeWidth="1" />
+          <rect x="89.5" y="94" width="5" height="3.5" rx="1.5" fill="#22d3ee" />
+          <rect x="99.5" y="94" width="5" height="3.5" rx="1.5" fill="#22d3ee" />
+          <path d="M95.8 100 L98.2 100 L97 101.4 Z" fill="#f472b6" />
+          <path d="M94 103 Q95.5 104.5 97 103 Q98.5 104.5 100 103" stroke="#475569" strokeWidth="0.9" fill="none" />
+          <path d="M92 101 L84 100 M92 102.5 L84 103.5 M102 101 L110 100 M102 102.5 L110 103.5" stroke="#64748b" strokeWidth="0.7" />
+          <circle cx="87.5" cy="105" r="0.9" fill="#64748b" />
+          <circle cx="106.5" cy="105" r="0.9" fill="#64748b" />
+        </g>
+      );
+    case "ia-orbe":
+      return (
+        <g>
+          <circle cx="97" cy="99" r="12" fill="#a5f3fc" opacity="0.3" />
+          <circle cx="97" cy="99" r="7.5" fill="#0891b2" />
+          <circle cx="97" cy="99" r="5.5" fill="#22d3ee" />
+          <ellipse cx="94.8" cy="97.8" rx="0.9" ry="1.3" fill="#164e63" />
+          <ellipse cx="99.2" cy="97.8" rx="0.9" ry="1.3" fill="#164e63" />
+          <path d="M94.6 100.6 Q97 102.6 99.4 100.6" stroke="#164e63" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <ellipse cx="97" cy="99" rx="13" ry="4" fill="none" stroke="#67e8f9" strokeWidth="1.2" transform="rotate(-20 97 99)" />
+          <circle cx="109" cy="94.5" r="1.4" fill="#ecfeff" />
+        </g>
+      );
+    default:
+      return null;
+  }
+}
+
+/** Mascote no ombro do personagem (emoji ou desenho próprio), desenhado por último. */
 function PetLayer({ pet }: { pet: Pet }) {
   if (pet === "nenhum") return null;
+  const drawn = drawnPet(pet);
   return (
     <g>
       <circle cx="97" cy="99" r="14" fill="#000" opacity="0.25" />
-      <text x="97" y="107" fontSize="23" textAnchor="middle">
-        {PET_EMOJI[pet]}
-      </text>
+      {drawn ?? (
+        <text x="97" y="107" fontSize="23" textAnchor="middle">
+          {PET_EMOJI[pet]}
+        </text>
+      )}
     </g>
   );
 }
@@ -1438,6 +2277,275 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
           <path d="M44 33 L46 39 M54 31.5 L55 37.5 M64 31 L64 37 M74 31.5 L73 37.5 M84 33 L82 39" stroke="#f8fafc" strokeWidth="1.6" />
           <circle cx="95" cy="12" r="3.6" fill="#fbbf24" stroke="#a16207" strokeWidth="0.8" />
           <path d="M93.5 13.5 L96.5 13.5" stroke="#78350f" strokeWidth="0.8" />
+        </g>
+      );
+    // --- Páscoa ---
+    case "orelhas-coelho":
+      return (
+        <g>
+          <path d="M38 41 C44 30 84 30 90 41" stroke="#f472b6" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+          {/* orelha esquerda em pé, direita dobrada na ponta */}
+          <path d="M49 34 C41 22 38 5 44 -1 C50 -5 57 5 57 19 C57 26 55 31 53 34 Z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
+          <path d="M50 30 C45 20 43 8 46 3 C49 1 53 8 53 18 C53 24 52 28 51 30 Z" fill="#f9a8d4" />
+          <path d="M79 34 C87 24 90 12 88 6 C94 8 98 12 99 16 C94 14 91 16 89 20 C88 26 84 31 75 34 Z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
+          <path d="M78 31 C84 24 87 16 87 11 C88 16 87 22 83 28 Z" fill="#f9a8d4" />
+        </g>
+      );
+    case "coroa-flores":
+      return (
+        <g>
+          <path d="M38 42 C42 26 86 26 90 42" stroke="#16a34a" strokeWidth="2.2" fill="none" />
+          {[
+            [44, 29, -30],
+            [58, 23, -10],
+            [70, 23, 10],
+            [84, 29, 30],
+          ].map(([x, y, a]) => (
+            <ellipse key={x} cx={x} cy={y} rx="4" ry="1.8" fill="#22c55e" transform={`rotate(${a} ${x} ${y})`} />
+          ))}
+          <Flower x={39} y={38} r={2.8} color="#f9a8d4" />
+          <Flower x={48} y={28} r={3} color="#c4b5fd" />
+          <Flower x={64} y={24} r={3.4} color="#fbcfe8" />
+          <Flower x={80} y={28} r={3} color="#fde68a" />
+          <Flower x={89} y={38} r={2.8} color="#c4b5fd" />
+        </g>
+      );
+    case "casca-ovo":
+      return (
+        <g>
+          {/* metade de cima da casca, com a borda quebrada em zigue-zague */}
+          <path
+            d="M34 36 C34 12 48 0 64 0 C80 0 94 12 94 36 L88 31 L82 37 L76 30 L70 37 L64 30 L58 37 L52 30 L46 37 L40 31 Z"
+            fill="#fefce8"
+            stroke="#d6d3d1"
+            strokeWidth="1.2"
+            strokeLinejoin="round"
+          />
+          <circle cx="52" cy="14" r="2.2" fill="#fde68a" opacity="0.7" />
+          <circle cx="74" cy="10" r="1.6" fill="#fde68a" opacity="0.7" />
+          <circle cx="80" cy="22" r="2" fill="#fde68a" opacity="0.7" />
+        </g>
+      );
+    case "chapeu-pascoa":
+      return (
+        <g>
+          {/* chapéu de palha com fita lilás e florzinhas */}
+          <ellipse cx="64" cy="33" rx="41" ry="8.5" fill="#fde68a" stroke="#d97706" strokeWidth="1" />
+          <path d="M43 33 C43 16 53 9 64 9 C75 9 85 16 85 33 Z" fill="#fcd34d" stroke="#d97706" strokeWidth="1" />
+          <path d="M50 16 C58 13 70 13 78 16 M46 23 C56 20 72 20 82 23" stroke="#d97706" strokeWidth="0.6" fill="none" opacity="0.6" />
+          <path d="M43.5 26 C54 23 74 23 84.5 26 L85 31.5 C74 28.5 54 28.5 43 31.5 Z" fill="#c084fc" />
+          <Flower x={80} y={27} r={2.8} color="#f9a8d4" />
+          <Flower x={73} y={25} r={2.2} color="#fff" />
+          <path d="M44 30 C38 34 36 40 38 46 M44 30 C42 36 44 42 46 44" stroke="#c084fc" strokeWidth="2" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    // --- Apocalipse Zumbi ---
+    case "capacete-tatico":
+      return (
+        <g>
+          <path d="M32 46 C32 22 46 12 64 12 C82 12 96 22 96 46 C86 42 76 40 64 40 C52 40 42 42 32 46 Z" fill="#4d5b2c" />
+          {/* manchas de camuflagem */}
+          <ellipse cx="46" cy="26" rx="6" ry="3.5" fill="#3f4a24" transform="rotate(-25 46 26)" />
+          <ellipse cx="84" cy="30" rx="5" ry="3" fill="#6b7a3a" transform="rotate(20 84 30)" />
+          <ellipse cx="74" cy="18" rx="4" ry="2.4" fill="#3f4a24" />
+          <path d="M28 46 C40 40 88 40 100 46 L98 50 C86 45 42 45 30 50 Z" fill="#3f4a24" />
+          {/* elástico e lanterna acesa na frente */}
+          <path d="M33 37 C44 32 84 32 95 37" stroke="#18181b" strokeWidth="3" fill="none" />
+          <circle cx="64" cy="30.5" r="9" fill="#fef08a" opacity="0.35" />
+          <rect x="57" y="26" width="14" height="9" rx="2" fill="#27272a" />
+          <circle cx="64" cy="30.5" r="3.3" fill="#fef9c3" stroke="#a1a1aa" strokeWidth="0.8" />
+        </g>
+      );
+    case "cerebro-exposto":
+      return (
+        <g>
+          {/* cérebro saindo do topo da cabeça */}
+          <path d="M40 37 C35 27 41 15 51 15 C53 8 62 6 66 10 C72 5 82 8 84 16 C92 18 95 30 88 37 Z" fill="#f9a8d4" stroke="#db2777" strokeWidth="1.2" />
+          <g stroke="#db2777" strokeWidth="1.1" fill="none" strokeLinecap="round">
+            <path d="M64 10 C62 18 66 26 64 36" />
+            <path d="M47 22 C51 19 54 25 58 22" />
+            <path d="M44 30 C48 27 51 33 56 30" />
+            <path d="M72 14 C76 19 72 23 78 25" />
+            <path d="M70 30 C74 27 77 32 82 29" />
+            <path d="M52 15 C54 18 58 16 59 12" />
+          </g>
+          <path d="M48 19 C50 17 53 18 54 20" stroke="#fdf2f8" strokeWidth="1.2" fill="none" strokeLinecap="round" opacity="0.8" />
+          {/* borda da pele aberta e os pontos na testa */}
+          <path d="M37 38 L41 34 L45 38 L49 34 L53 38 L57 34 L61 38 L65 34 L69 38 L73 34 L77 38 L81 34 L85 38 L89 34 L92 37" stroke="#9f1239" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
+          <path d="M44 44 C50 42 56 43 61 46" stroke="#1c1917" strokeWidth="1" fill="none" />
+          <path d="M46 41.5 L47 46 M50 41 L50.8 45.5 M54 41.5 L54.5 46 M58 42.5 L58.3 47" stroke="#1c1917" strokeWidth="0.9" strokeLinecap="round" />
+        </g>
+      );
+    case "bandana-sobrevivente":
+      return (
+        <g>
+          <path d="M35 44 C44 36 84 36 93 44 L93 51 C84 43 44 43 35 51 Z" fill="#b91c1c" />
+          {[
+            [44, 45],
+            [54, 42],
+            [64, 41.5],
+            [74, 42],
+            [84, 45],
+          ].map(([x, y]) => (
+            <circle key={x} cx={x} cy={y} r="1.1" fill="#fecaca" opacity="0.85" />
+          ))}
+          {/* rasgo e o nó com as pontas esfiapadas */}
+          <path d="M58 44 L60 42.5 L61 45" stroke="#7f1d1d" strokeWidth="0.9" fill="none" />
+          <path d="M92 44 C99 46 104 54 103 63 L100 60 L98 64 L96 58 C96 53 95 50 92 48 Z" fill="#991b1b" />
+          <path d="M92 46 C98 45 104 49 108 55 L104 55 L105 59 L101 56 C98 52 95 50 92 49 Z" fill="#b91c1c" />
+          <circle cx="93" cy="47" r="3" fill="#7f1d1d" />
+        </g>
+      );
+    case "chapeu-xerife":
+      return (
+        <g>
+          <path d="M42 34 C40 20 44 9 52 9 C56 9 60 13 64 13 C68 13 72 9 76 9 C84 9 88 20 86 34 Z" fill="#92400e" />
+          <path d="M60 12 C62 18 66 18 68 12" stroke="#78350f" strokeWidth="1.2" fill="none" />
+          <path d="M42.5 27.5 C56 29.5 72 29.5 85.5 27.5 L86 33 C72 35 56 35 42 33 Z" fill="#451a03" />
+          {/* aba curvada pra cima dos lados */}
+          <path d="M14 28 C20 38 40 35 64 35 C88 35 108 38 114 28 C114 40 96 44 64 44 C32 44 14 40 14 28 Z" fill="#a16207" />
+          <path d="M18 33 C28 39 44 38 64 38 C84 38 100 39 110 33" stroke="#78350f" strokeWidth="1" fill="none" opacity="0.7" />
+          <path d={starPath(64, 21, 5.5, 2.3)} fill="#fbbf24" stroke="#a16207" strokeWidth="0.8" strokeLinejoin="round" />
+        </g>
+      );
+    // --- Ataque Alienígena ---
+    case "antenas":
+      return (
+        <g>
+          <path d="M36 42 C44 32 84 32 92 42" stroke="#94a3b8" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M50 35 C46 28 51 22 46 12 M78 35 C82 28 77 22 82 12" stroke="#16a34a" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          {[
+            [45, 9],
+            [83, 9],
+          ].map(([x, y]) => (
+            <g key={x}>
+              <circle cx={x} cy={y} r="7.5" fill="#d9f99d" opacity="0.35" />
+              <circle cx={x} cy={y} r="4.5" fill="#a3e635" stroke="#4d7c0f" strokeWidth="0.8" />
+              <circle cx={x - 1.5} cy={y - 1.5} r="1.3" fill="#fff" opacity="0.8" />
+            </g>
+          ))}
+        </g>
+      );
+    case "chapeu-aluminio":
+      return (
+        <g>
+          <path
+            d="M34 42 L38 30 L45 21 L53 12 L62 5 L69 7 L77 12 L85 19 L91 29 L95 42 C80 37 50 37 34 42 Z"
+            fill={`url(#${steelId})`}
+            stroke="#64748b"
+            strokeWidth="1"
+            strokeLinejoin="round"
+          />
+          {/* dobras do papel amassado */}
+          <path
+            d="M38 30 L48 36 L56 29 L66 33 L76 27 L85 34 L91 29 M45 21 L48 36 M53 12 L56 29 L62 5 M69 7 L66 33 M77 12 L76 27 M85 19 L85 34"
+            stroke="#94a3b8"
+            strokeWidth="0.8"
+            fill="none"
+            strokeLinejoin="round"
+          />
+          <path d="M50 20 L55 15 M70 14 L74 18" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" opacity="0.8" />
+        </g>
+      );
+    case "capacete-espacial":
+      return (
+        <g>
+          {/* bolha de vidro em volta da cabeça, com reflexos, antena e anel de metal */}
+          <circle cx="64" cy="58" r="37" fill="#bae6fd" fillOpacity="0.16" stroke="#e0f2fe" strokeWidth="2.5" />
+          <path d="M36 44 C40 33 49 26 59 24" stroke="#fff" strokeWidth="3" fill="none" strokeLinecap="round" opacity="0.7" />
+          <path d="M33.5 53 L34 58" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" opacity="0.6" />
+          <path d="M85 27 L94 12" stroke="#94a3b8" strokeWidth="1.8" />
+          <circle cx="95" cy="10.5" r="2.6" fill="#ef4444" />
+          <path d="M34 90 C44 98 84 98 94 90" stroke="#94a3b8" strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path d="M34 90 C44 98 84 98 94 90" stroke="#e2e8f0" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case "chapeu-radar":
+      return (
+        <g>
+          <path d="M36 42 C44 32 84 32 92 42" stroke="#475569" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          <path d="M64 34 L64 20" stroke="#64748b" strokeWidth="3" strokeLinecap="round" />
+          {/* prato da parabólica apontado pro céu, com o receptor e o sinal */}
+          <ellipse cx="64" cy="18" rx="18" ry="6" fill="#e2e8f0" stroke="#64748b" strokeWidth="1.2" transform="rotate(-20 64 18)" />
+          <ellipse cx="64" cy="17.3" rx="13.5" ry="3.8" fill="#cbd5e1" transform="rotate(-20 64 17.3)" />
+          <path d="M64 18 L68.3 6.5" stroke="#64748b" strokeWidth="1.4" />
+          <circle cx="68.6" cy="5.6" r="2" fill="#ef4444" />
+          <path d="M74 2 Q77.5 5 76 9 M78 -1 Q84 5 81 12" stroke="#4ade80" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    // --- Robôs e IA ---
+    case "capacete-cyber":
+      return (
+        <g>
+          <path d="M32 50 C30 24 46 12 64 12 C82 12 98 24 96 50 C90 44 80 41 64 41 C48 41 38 44 32 50 Z" fill="#18181b" stroke="#3f3f46" strokeWidth="1.2" />
+          <path d="M64 12 L64 30" stroke="#3f3f46" strokeWidth="1" />
+          <path d="M44 22 C50 17 56 15 62 15" stroke="#fff" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.35" />
+          {/* faixa de LED e fones embutidos */}
+          <path d="M36 40 C46 33 82 33 92 40" stroke="#22d3ee" strokeWidth="6" fill="none" strokeLinecap="round" opacity="0.3" />
+          <path d="M36 40 C46 33 82 33 92 40" stroke="#22d3ee" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          <rect x="28" y="48" width="9" height="17" rx="3" fill="#27272a" stroke="#22d3ee" strokeWidth="1" />
+          <rect x="91" y="48" width="9" height="17" rx="3" fill="#27272a" stroke="#22d3ee" strokeWidth="1" />
+          <circle cx="32.5" cy="56.5" r="1.3" fill="#ec4899" />
+          <circle cx="95.5" cy="56.5" r="1.3" fill="#ec4899" />
+        </g>
+      );
+    case "coroa-holografica":
+      return (
+        <g>
+          {/* cópia deslocada em rosa: efeito glitch */}
+          <path d="M43.5 32 L41.5 14 L51.5 22 L58.5 8 L65.5 20 L72.5 8 L79.5 22 L89.5 14 L87.5 32 Z" fill="none" stroke="#f0abfc" strokeWidth="1" opacity="0.5" strokeLinejoin="round" />
+          <path d="M42 32 L40 14 L50 22 L57 8 L64 20 L71 8 L78 22 L88 14 L86 32 Z" fill="#22d3ee" fillOpacity="0.18" stroke="#67e8f9" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M44 27 L84 27 M47 22.5 L52 22.5 M76 22.5 L81 22.5" stroke="#a5f3fc" strokeWidth="0.5" opacity="0.6" />
+          <ellipse cx="64" cy="32" rx="23" ry="4" fill="none" stroke="#67e8f9" strokeWidth="1.6" />
+          {[
+            [40, 14],
+            [57, 8],
+            [71, 8],
+            [88, 14],
+          ].map(([x, y]) => (
+            <rect key={x} x={x - 1.3} y={y - 1.3} width="2.6" height="2.6" fill="#ecfeff" />
+          ))}
+        </g>
+      );
+    case "implante-neural":
+      return (
+        <g>
+          <path d="M62 38 L70 38 L74 34" stroke="#22d3ee" strokeWidth="1" fill="none" opacity="0.85" />
+          <circle cx="62" cy="38" r="1.1" fill="#22d3ee" />
+          <path d="M76 30 C84 30 92 36 93 46 L93 54 L82 54 C80 46 78 38 76 30 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" strokeLinejoin="round" />
+          {[
+            [80, 34],
+            [89, 40],
+            [90, 51],
+            [84, 51],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" fill="#475569" />
+          ))}
+          <circle cx="85" cy="42" r="1.4" fill="#22d3ee" />
+          <circle cx="88" cy="46" r="1.1" fill="#ef4444" />
+          <circle cx="84" cy="47" r="1" fill="#4ade80" />
+          <path d="M93 50 C100 52 102 60 98 66" stroke="#f472b6" strokeWidth="1.2" fill="none" />
+          <path d="M93 47 C102 46 106 56 102 62" stroke="#22d3ee" strokeWidth="1.2" fill="none" />
+        </g>
+      );
+    case "antena-robo":
+      return (
+        <g>
+          {/* antena de mola com luz vermelha e placa no topo */}
+          <path d="M64 28 L60 25 L68 22 L60 19 L68 16 L64 13" stroke="#94a3b8" strokeWidth="1.6" fill="none" strokeLinejoin="round" />
+          <circle cx="64" cy="9.5" r="5.5" fill="#ef4444" opacity="0.3" />
+          <circle cx="64" cy="9.5" r="3.2" fill="#ef4444" />
+          <circle cx="63" cy="8.5" r="1" fill="#fecaca" />
+          <path d="M48 31 C52 25 76 25 80 31 L78 34 L50 34 Z" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+          <circle cx="54" cy="31" r="0.9" fill="#475569" />
+          <circle cx="74" cy="31" r="0.9" fill="#475569" />
+          {/* parafusos nas orelhas */}
+          {[32, 96].map((x) => (
+            <g key={x}>
+              <circle cx={x} cy="61" r="4.2" fill="#94a3b8" stroke="#475569" strokeWidth="1" />
+              <path d={`M${x - 2} 61 L${x + 2} 61 M${x} 59 L${x} 63`} stroke="#475569" strokeWidth="1" />
+            </g>
+          ))}
         </g>
       );
     default:

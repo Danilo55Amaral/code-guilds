@@ -453,6 +453,230 @@ const CHRISTMAS_PRESETS: Preset[] = [
     description: "Com marshmallow e canela, pra esquentar as noites de estudo. Use pra ganhar +300 XP." },
 ];
 
+// ============================================================================
+// COLEÇÃO ESPECIAL DE PÁSCOA — coelhinhos, ovos pintados e primavera.
+// ============================================================================
+
+const EASTER_PRESETS: Preset[] = [
+  // mascotes
+  { name: "Coelhinho da Páscoa", icon: "🐰", rarity: "lendario", price: 380, featured: true, cosmetic: { slot: "pet", value: "coelho" },
+    description: "O próprio coelhinho que esconde os ovos! Ele pula no seu ombro e ainda dá dicas de onde estão os bugs." },
+  { name: "Pintinho Recém-Nascido", icon: "🐣", rarity: "raro", price: 150, cosmetic: { slot: "pet", value: "pintinho" },
+    description: "Acabou de sair da casca e já quer aprender a programar. Piu-piu!" },
+  { name: "Ovelhinha Fofinha", icon: "🐑", rarity: "raro", price: 160, cosmetic: { slot: "pet", value: "ovelha" },
+    description: "Macia como algodão, calminha como um domingo de Páscoa." },
+  { name: "Borboleta da Primavera", icon: "🦋", rarity: "epico", price: 210, cosmetic: { slot: "pet", value: "borboleta" },
+    description: "Saiu do casulo junto com a primavera e escolheu pousar em você." },
+  // chapéus
+  { name: "Orelhas de Coelho", icon: "🐰", rarity: "epico", price: 220, featured: true, cosmetic: { slot: "hat", value: "orelhas-coelho" },
+    description: "Brancas e fofinhas, uma em pé e outra dobradinha. Impossível não sorrir." },
+  { name: "Coroa de Flores", icon: "🌸", rarity: "raro", price: 150, cosmetic: { slot: "hat", value: "coroa-flores" },
+    description: "Florzinhas cor-de-rosa, lilás e amarelas colhidas no primeiro dia de primavera." },
+  { name: "Casca de Ovo", icon: "🥚", rarity: "epico", price: 200, cosmetic: { slot: "hat", value: "casca-ovo" },
+    description: "Você acabou de nascer pra programação! A metade de cima da casca, com a borda quebradinha." },
+  { name: "Chapéu de Páscoa", icon: "👒", rarity: "lendario", price: 320, cosmetic: { slot: "hat", value: "chapeu-pascoa" },
+    description: "Chapéu de palha com fita lilás e flores, perfeito pra caça aos ovos." },
+  // óculos
+  { name: "Óculos de Ovinho", icon: "🥚", rarity: "raro", price: 130, cosmetic: { slot: "eyewear", value: "oculos-ovo" },
+    description: "Lentes em formato de ovinho pintado: uma rosa e outra verde, com zigue-zague." },
+  { name: "Óculos de Cenoura", icon: "🥕", rarity: "epico", price: 170, cosmetic: { slot: "eyewear", value: "oculos-cenoura" },
+    description: "Armação laranja com folhinhas de cenoura. Dizem que melhora a visão (os coelhos garantem)." },
+  // fantasias
+  { name: "Fantasia de Coelho", icon: "🐰", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "outfit", value: "fantasia-coelho" },
+    description: "Macacão branco com barriguinha rosa e gravata-borboleta. Vire o coelhinho da Páscoa!" },
+  { name: "Fantasia de Ovo de Chocolate", icon: "🍫", rarity: "epico", price: 260, cosmetic: { slot: "outfit", value: "ovo-chocolate" },
+    description: "Embrulhado em papel dourado com laço vermelho. Cuidado pra ninguém te morder!" },
+  { name: "Fantasia de Ovo Pintado", icon: "🎨", rarity: "epico", price: 230, cosmetic: { slot: "outfit", value: "ovo-pintado" },
+    description: "Lilás com zigue-zague rosa e bolinhas verdes, pintado à mão pelos coelhinhos." },
+  // cores de roupa
+  { name: "Traje Rosa Algodão-Doce", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#f9a8d4" },
+    description: "Um rosa docinho, da cor do algodão-doce da feira de primavera." },
+  { name: "Traje Lilás Primavera", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#c4b5fd" },
+    description: "O lilás das flores que abrem na época da Páscoa." },
+  { name: "Traje Verde Menta", icon: "👕", rarity: "raro", price: 100, cosmetic: { slot: "outfitColor", value: "#86efac" },
+    description: "Fresquinho como uma folha de hortelã." },
+  // auras
+  { name: "Aura de Ovinhos", icon: "🥚", rarity: "epico", price: 230, cosmetic: { slot: "aura", value: "ovos" },
+    description: "Ovinhos pintados de todas as cores flutuando ao seu redor. Achou todos?" },
+  { name: "Jardim Florido", icon: "🌷", rarity: "raro", price: 180, cosmetic: { slot: "aura", value: "flores" },
+    description: "Florzinhas desabrochando em volta de você, como um jardim de primavera." },
+  { name: "Arco-Íris de Primavera", icon: "🌈", rarity: "lendario", price: 360, featured: true, cosmetic: { slot: "aura", value: "arco-iris" },
+    description: "Um arco-íris em tons pastel com nuvenzinhas nas pontas, bem atrás de você." },
+  // itens comuns
+  { name: "Ovo de Chocolate", icon: "🥚", rarity: "raro", price: 60, xp: 200,
+    description: "Recheado e embrulhado com carinho. Use no Inventário pra ganhar +200 XP." },
+  { name: "Cenoura Dourada", icon: "🥕", rarity: "epico", price: 90, xp: 350,
+    description: "A cenoura favorita do coelhinho, banhada a ouro. Use pra ganhar +350 XP." },
+];
+
+// ============================================================================
+// COLEÇÃO APOCALIPSE ZUMBI — sobreviventes, hordas e o misterioso Vírus Z.
+// ============================================================================
+
+const ZOMBIE_PRESETS: Preset[] = [
+  // mascotes
+  { name: "Zumbizinho de Estimação", icon: "🧟", rarity: "lendario", price: 380, featured: true, cosmetic: { slot: "pet", value: "zumbi" },
+    description: "Ele até tentou morder você, mas desistiu: prefere cérebros que programam. Agora é o seu melhor amigo." },
+  { name: "Cérebro Saltitante", icon: "🧠", rarity: "epico", price: 220, cosmetic: { slot: "pet", value: "cerebro" },
+    description: "Fugiu de um zumbi faminto e se escondeu no seu ombro. Pelo menos ele ajuda a pensar." },
+  { name: "Rato do Esgoto", icon: "🐀", rarity: "comum", price: 110, cosmetic: { slot: "pet", value: "rato" },
+    description: "Sobreviveu a tudo e conhece cada túnel da cidade. Ótimo guia de fuga." },
+  { name: "Vírus Z", icon: "🦠", rarity: "raro", price: 170, cosmetic: { slot: "pet", value: "virus" },
+    description: "O responsável por tudo isso! Preso num campo de força... por enquanto." },
+  // chapéus
+  { name: "Capacete com Lanterna", icon: "🔦", rarity: "epico", price: 230, featured: true, cosmetic: { slot: "hat", value: "capacete-tatico" },
+    description: "Capacete verde-oliva com lanterna acesa. Nenhum zumbi te pega no escuro." },
+  { name: "Cérebro à Mostra", icon: "🧠", rarity: "lendario", price: 330, cosmetic: { slot: "hat", value: "cerebro-exposto" },
+    description: "O topo da cabeça aberto, costurado de qualquer jeito, com o cérebro de fora. Nojento e irresistível." },
+  { name: "Bandana de Sobrevivente", icon: "🎒", rarity: "comum", price: 90, cosmetic: { slot: "hat", value: "bandana-sobrevivente" },
+    description: "Bandana vermelha rasgada, amarrada na testa. Estilo de quem já fugiu de muita horda." },
+  { name: "Chapéu de Xerife", icon: "🤠", rarity: "raro", price: 160, cosmetic: { slot: "hat", value: "chapeu-xerife" },
+    description: "Chapéu de couro com estrela dourada, de quem lidera o grupo de sobreviventes." },
+  // óculos
+  { name: "Máscara de Gás", icon: "😷", rarity: "epico", price: 210, cosmetic: { slot: "eyewear", value: "mascara-gas" },
+    description: "Lentes redondas e filtro duplo: o ar lá fora não é confiável." },
+  { name: "Olhos de Zumbi", icon: "👁️", rarity: "raro", price: 150, cosmetic: { slot: "eyewear", value: "olhos-zumbi" },
+    description: "Olhos brancos e brilhantes, com olheiras de quem não dorme há 300 anos. Cééérebrooo..." },
+  // fantasias
+  { name: "Roupa de Zumbi", icon: "🧟", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "outfit", value: "roupa-zumbi" },
+    description: "Camisa rasgada, remendos, manchas de terra e uma costela aparecendo. Direto do cemitério!" },
+  { name: "Colete de Sobrevivente", icon: "🎒", rarity: "epico", price: 250, cosmetic: { slot: "outfit", value: "sobrevivente" },
+    description: "Colete tático com bolsos, alças de mochila e rádio comunicador. Pronto pra qualquer missão." },
+  { name: "Traje Antivírus", icon: "☣️", rarity: "epico", price: 240, cosmetic: { slot: "outfit", value: "hazmat" },
+    description: "Traje amarelo de proteção com o símbolo de risco biológico. O Vírus Z não passa!" },
+  // cores de roupa
+  { name: "Traje Verde Zumbi", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#4a5d23" },
+    description: "O verde meio podre de quem acabou de levantar do túmulo." },
+  { name: "Traje Cinza das Cinzas", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#57534e" },
+    description: "Cinza da poeira da cidade abandonada." },
+  { name: "Traje Ferrugem", icon: "👕", rarity: "raro", price: 100, cosmetic: { slot: "outfitColor", value: "#9a3412" },
+    description: "A cor dos carros esquecidos no meio da estrada." },
+  // auras
+  { name: "Aura Radioativa", icon: "☢️", rarity: "epico", price: 230, cosmetic: { slot: "aura", value: "radioativa" },
+    description: "Um brilho verde tóxico com bolhas e símbolos de radiação. Não encoste!" },
+  { name: "Horda Saindo da Terra", icon: "🖐️", rarity: "lendario", price: 370, featured: true, cosmetic: { slot: "aura", value: "maos-zumbi" },
+    description: "Mãos de zumbi brotando do chão ao seu redor, debaixo de uma lua verde. Corre!" },
+  { name: "Cidade em Ruínas", icon: "🏚️", rarity: "raro", price: 180, cosmetic: { slot: "aura", value: "cidade-ruinas" },
+    description: "Prédios destruídos e fumaça num céu alaranjado. O mundo acabou, mas você continua estudando." },
+  // itens comuns
+  { name: "Lata de Feijão", icon: "🥫", rarity: "comum", price: 40, xp: 150,
+    description: "O jantar clássico do fim do mundo. Use no Inventário pra ganhar +150 XP." },
+  { name: "Vacina Anti-Z", icon: "💉", rarity: "epico", price: 90, xp: 350,
+    description: "A cura que todos procuram, desenvolvida no laboratório da academia. Use pra ganhar +350 XP." },
+];
+
+// ============================================================================
+// COLEÇÃO ATAQUE ALIENÍGENA — discos voadores, marcianos e o espaço sideral.
+// ============================================================================
+
+const ALIEN_PRESETS: Preset[] = [
+  // mascotes
+  { name: "Alienzinho", icon: "👽", rarity: "lendario", price: 380, featured: true, cosmetic: { slot: "pet", value: "alien" },
+    description: "Veio de outra galáxia só pra aprender a programar com você. Leve-me ao seu líder... digo, ao seu professor!" },
+  { name: "Mini Disco Voador", icon: "🛸", rarity: "epico", price: 230, cosmetic: { slot: "pet", value: "ovni" },
+    description: "Um OVNI de bolso que paira sobre o seu ombro e pisca luzinhas quando o código compila." },
+  { name: "Invasor Pixelado", icon: "👾", rarity: "raro", price: 160, cosmetic: { slot: "pet", value: "invasor" },
+    description: "Fugiu de um fliperama dos anos 80 e agora vive no seu ombro. Pew pew!" },
+  { name: "Polvo de Marte", icon: "🐙", rarity: "comum", price: 110, cosmetic: { slot: "pet", value: "polvo" },
+    description: "Oito tentáculos pra digitar oito vezes mais rápido. O melhor parceiro de programação do planeta vermelho." },
+  // chapéus
+  { name: "Antenas de Marciano", icon: "👽", rarity: "epico", price: 220, featured: true, cosmetic: { slot: "hat", value: "antenas" },
+    description: "Duas antenas molinhas com bolinhas verdes que brilham. Captam sinais de outros planetas (e respostas de prova)." },
+  { name: "Chapéu de Papel-Alumínio", icon: "🛡️", rarity: "comum", price: 90, cosmetic: { slot: "hat", value: "chapeu-aluminio" },
+    description: "Amassadinho e brilhante. Garante que nenhum alienígena leia seus pensamentos." },
+  { name: "Capacete Espacial", icon: "🚀", rarity: "lendario", price: 330, cosmetic: { slot: "hat", value: "capacete-espacial" },
+    description: "Bolha de vidro com anel de metal e antena. Pronto pra caminhar na Lua." },
+  { name: "Antena Parabólica", icon: "📡", rarity: "raro", price: 160, cosmetic: { slot: "hat", value: "chapeu-radar" },
+    description: "Uma mini parabólica na cabeça, sempre procurando sinais do espaço." },
+  // óculos
+  { name: "Olhos de Alienígena", icon: "👽", rarity: "epico", price: 200, cosmetic: { slot: "eyewear", value: "oculos-alien" },
+    description: "Lentes enormes, pretas e puxadas, com aro verde neon. Você enxerga em 12 dimensões." },
+  { name: "Visor Laser", icon: "🥽", rarity: "raro", price: 150, cosmetic: { slot: "eyewear", value: "visor-laser" },
+    description: "Visor vermelho com linha de varredura e mira. Dispara um feixe laser pro lado (inofensivo, prometemos)." },
+  // fantasias
+  { name: "Traje de Astronauta", icon: "🚀", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "outfit", value: "traje-espacial" },
+    description: "Macacão branco com anel do capacete, painel de controle no peito e emblema da missão." },
+  { name: "Fantasia de Alienígena", icon: "👽", rarity: "epico", price: 250, cosmetic: { slot: "outfit", value: "fantasia-alien" },
+    description: "Roupa verde de marciano com gola prateada e uma cabecinha de alien brilhando no peito." },
+  { name: "Uniforme da Frota Galáctica", icon: "🌌", rarity: "epico", price: 240, cosmetic: { slot: "outfit", value: "uniforme-galactico" },
+    description: "Uniforme de capitão de nave estelar, com insígnia dourada e divisas de patente." },
+  // cores de roupa
+  { name: "Traje Verde Marciano", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#7ed957" },
+    description: "O verde clássico dos homenzinhos de Marte." },
+  { name: "Traje Prata Cromada", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#cbd5e1" },
+    description: "Brilhante como o casco de um disco voador." },
+  { name: "Traje Roxo Nebulosa", icon: "👕", rarity: "raro", price: 100, cosmetic: { slot: "outfitColor", value: "#6d28d9" },
+    description: "O roxo profundo das nebulosas onde nascem as estrelas." },
+  // auras
+  { name: "Raio Trator", icon: "🛸", rarity: "lendario", price: 370, featured: true, cosmetic: { slot: "aura", value: "raio-trator" },
+    description: "Um disco voador parado bem em cima de você, puxando você pra nave com um feixe de luz verde. Socorro!" },
+  { name: "Sistema Solar", icon: "🌍", rarity: "raro", price: 180, cosmetic: { slot: "aura", value: "planetas" },
+    description: "Planetas com anéis, luas e estrelinhas orbitando ao seu redor." },
+  { name: "Invasão Pixelada", icon: "👾", rarity: "epico", price: 230, cosmetic: { slot: "aura", value: "invasao" },
+    description: "Uma frota de invasores pixelados coloridos atirando lasers. Aperte start!" },
+  // itens comuns
+  { name: "Gosma Alienígena", icon: "🧪", rarity: "raro", price: 60, xp: 200,
+    description: "Verde, brilhante e (quase) comestível. Use no Inventário pra ganhar +200 XP." },
+  { name: "Cristal de Energia", icon: "💎", rarity: "epico", price: 90, xp: 350,
+    description: "A fonte de energia das naves alienígenas, achada numa cratera. Use pra ganhar +350 XP." },
+];
+
+// ============================================================================
+// COLEÇÃO ROBÔS E IA — o futuro: robôs, ciborgues, neon e inteligência artificial.
+// ============================================================================
+
+const FUTURE_PRESETS: Preset[] = [
+  // mascotes
+  { name: "Núcleo de IA", icon: "💠", rarity: "lendario", price: 380, featured: true, cosmetic: { slot: "pet", value: "ia-orbe" },
+    description: "Uma inteligência artificial em forma de esfera brilhante, com anel orbitando e carinha sorridente. Ela revisa o seu código antes de você apertar Enter." },
+  { name: "Drone de Estimação", icon: "🚁", rarity: "epico", price: 230, cosmetic: { slot: "pet", value: "drone" },
+    description: "Quadricóptero com câmera de olho azul que voa do seu lado e filma todas as suas conquistas." },
+  { name: "Gato-Robô", icon: "⚙️", rarity: "raro", price: 170, cosmetic: { slot: "pet", value: "gato-robo" },
+    description: "Orelhas de metal, olhos de LED e bigodes de fio. Mia em binário: 01101101 01101001 01100001 01110101." },
+  { name: "Satélite de Bolso", icon: "🛰️", rarity: "comum", price: 110, cosmetic: { slot: "pet", value: "satelite" },
+    description: "Orbita o seu ombro e garante Wi-Fi em qualquer lugar da academia." },
+  // chapéus
+  { name: "Capacete Cyber", icon: "⚡", rarity: "lendario", price: 330, cosmetic: { slot: "hat", value: "capacete-cyber" },
+    description: "Capacete preto e liso com faixa de LED ciano e fones embutidos. Visual de piloto do ano 3000." },
+  { name: "Coroa Holográfica", icon: "👑", rarity: "epico", price: 230, featured: true, cosmetic: { slot: "hat", value: "coroa-holografica" },
+    description: "Uma coroa feita de luz, flutuando e piscando com um leve efeito glitch. Realeza digital." },
+  { name: "Implante Neural", icon: "🧠", rarity: "raro", price: 160, cosmetic: { slot: "hat", value: "implante-neural" },
+    description: "Placa de metal na lateral da cabeça, com LEDs e fios coloridos. Baixe conhecimento direto pro cérebro!" },
+  { name: "Antena e Parafusos de Robô", icon: "📶", rarity: "comum", price: 90, cosmetic: { slot: "hat", value: "antena-robo" },
+    description: "Antena de mola com luzinha vermelha, placa de metal no topo e parafusos nas orelhas. Bip bop!" },
+  // óculos
+  { name: "Óculos de Realidade Aumentada", icon: "🥽", rarity: "epico", price: 200, cosmetic: { slot: "eyewear", value: "oculos-ra" },
+    description: "Lente transparente com mira, gráficos e o selo \"AI\" flutuando na sua frente." },
+  { name: "Olho Biônico", icon: "🔴", rarity: "raro", price: 150, cosmetic: { slot: "eyewear", value: "olho-cyborg" },
+    description: "Placa de metal parafusada com uma lente vermelha brilhando. Metade humano, metade máquina." },
+  // fantasias
+  { name: "Armadura Mecha", icon: "🤖", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "outfit", value: "armadura-mecha" },
+    description: "Placas de metal, ombreiras com faixa de alerta e um reator azul brilhando no peito." },
+  { name: "Jaqueta Cyberpunk", icon: "🧥", rarity: "epico", price: 250, cosmetic: { slot: "outfit", value: "jaqueta-cyberpunk" },
+    description: "Jaqueta preta de gola alta com neon ciano e rosa e o patch \"AI\" no peito." },
+  { name: "Traje de Androide", icon: "💠", rarity: "epico", price: 240, cosmetic: { slot: "outfit", value: "traje-androide" },
+    description: "Macacão branco com costuras de painel, triângulo azul, número de série e luz de status." },
+  // cores de roupa
+  { name: "Traje Azul Holograma", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#38bdf8" },
+    description: "O azul-claro de um holograma projetado no ar." },
+  { name: "Traje Rosa Cyberpunk", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#ec4899" },
+    description: "O rosa neon dos letreiros da cidade do futuro." },
+  { name: "Traje Grafite de Titânio", icon: "👕", rarity: "raro", price: 100, cosmetic: { slot: "outfitColor", value: "#3f3f46" },
+    description: "Escuro e resistente como o chassi de um robô." },
+  // auras
+  { name: "Chuva de Código", icon: "💻", rarity: "lendario", price: 370, featured: true, cosmetic: { slot: "aura", value: "codigo-matrix" },
+    description: "Colunas de zeros e uns caindo em verde ao seu redor. Você finalmente enxerga o código do universo." },
+  { name: "Placa de Circuito", icon: "🔌", rarity: "raro", price: 180, cosmetic: { slot: "aura", value: "circuito" },
+    description: "Trilhas de circuito ciano com pontos de energia acesos, como se você estivesse dentro de um computador." },
+  { name: "Horizonte Neon", icon: "🌆", rarity: "epico", price: 230, cosmetic: { slot: "aura", value: "grade-neon" },
+    description: "Sol listrado em rosa e amarelo se pondo numa grade neon infinita. Estilo retrô-futurista." },
+  // itens comuns
+  { name: "Bateria Turbo", icon: "🔋", rarity: "raro", price: 60, xp: 200,
+    description: "Carga completa em 3 segundos. Use no Inventário pra ganhar +200 XP." },
+  { name: "Chip Quântico", icon: "💾", rarity: "epico", price: 90, xp: 350,
+    description: "Processa todas as respostas possíveis ao mesmo tempo. Use pra ganhar +350 XP." },
+];
+
 function toCollection(presets: Preset[], collection: CosmeticCollection): ShopItemData[] {
   return presets.map((p) => ({ ...p, value: Math.floor(p.price / 2), xp: p.xp ?? 0, featured: p.featured ?? false, collection }));
 }
@@ -460,7 +684,11 @@ function toCollection(presets: Preset[], collection: CosmeticCollection): ShopIt
 /** Os itens prontos de cada coleção temática. */
 export const SHOP_COLLECTIONS: Record<CosmeticCollection, ShopItemData[]> = {
   natal: toCollection(CHRISTMAS_PRESETS, "natal"),
+  pascoa: toCollection(EASTER_PRESETS, "pascoa"),
   halloween: toCollection(HALLOWEEN_PRESETS, "halloween"),
+  zumbi: toCollection(ZOMBIE_PRESETS, "zumbi"),
+  alien: toCollection(ALIEN_PRESETS, "alien"),
+  futuro: toCollection(FUTURE_PRESETS, "futuro"),
   grega: toCollection(GREEK_PRESETS, "grega"),
   egipcia: toCollection(EGYPTIAN_PRESETS, "egipcia"),
 };
