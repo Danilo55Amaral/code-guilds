@@ -8,7 +8,7 @@ import {
   HAIR_STYLE_LABELS,
   EXPRESSION_LABELS,
   FACE_DETAIL_LABELS,
-  OUTFIT_LABELS,
+  outfitLabel,
   eyewearLabel,
   hatLabel,
 } from "@/engine/avatar";
@@ -356,7 +356,7 @@ export default function StudentDetails({
               <InfoRow label="Roupa">
                 <span className="inline-flex items-center gap-2">
                   <span className="h-4 w-4 rounded-full border border-slate-700" style={{ backgroundColor: student.avatar.outfitColor }} />
-                  {OUTFIT_LABELS[student.avatar.outfit]}
+                  {outfitLabel(student.avatar.outfit)}
                 </span>
               </InfoRow>
               <InfoRow label="Óculos">{eyewearLabel(student.avatar.eyewear)}</InfoRow>

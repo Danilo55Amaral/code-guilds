@@ -5,7 +5,7 @@ import Image from "next/image";
 import { useStudents } from "@/engine/store";
 import { HOUSES } from "@/engine/houses";
 import { totalXp, wornAvatar } from "@/engine/students";
-import { HAIR_STYLE_LABELS, OUTFIT_LABELS } from "@/engine/avatar";
+import { HAIR_STYLE_LABELS, outfitLabel } from "@/engine/avatar";
 import Avatar from "@/components/Avatar";
 import { CoinIcon } from "@/components/GameUI";
 import HousemateSheet from "@/components/HousemateSheet";
@@ -51,7 +51,7 @@ export default function CasaPage() {
             <p className="text-sm font-semibold text-white">
               {activeStudent.name} • <span className={house.colorClass}>{house.name}</span>
             </p>
-            <p className="text-xs text-slate-500">Avatar forjado • {OUTFIT_LABELS[activeStudent.avatar.outfit]} • cabelo {HAIR_STYLE_LABELS[activeStudent.avatar.hairStyle].toLowerCase()}</p>
+            <p className="text-xs text-slate-500">Avatar forjado • {outfitLabel(activeStudent.avatar.outfit)} • cabelo {HAIR_STYLE_LABELS[activeStudent.avatar.hairStyle].toLowerCase()}</p>
           </div>
         </div>
 

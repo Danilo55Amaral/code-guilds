@@ -41,7 +41,8 @@ import {
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
 import { Theme, getTheme, setTheme, applyTheme } from "./theme";
-import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem } from "./shop";
+import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem, addCollection, removeCollection } from "./shop";
+import { CosmeticCollection } from "./avatar";
 
 /**
  * Inscreve um "sync" nos avisos de mudança: tanto os avisos internos
@@ -309,7 +310,19 @@ export function useShop() {
     return result;
   }, []);
 
-  return { items, ready, addItem, editItem, removeItem, buy };
+  const addItemsOfCollection = useCallback((collection: CosmeticCollection) => {
+    const n = addCollection(collection);
+    emitChange();
+    return n;
+  }, []);
+
+  const removeItemsOfCollection = useCallback((collection: CosmeticCollection) => {
+    const n = removeCollection(collection);
+    emitChange();
+    return n;
+  }, []);
+
+  return { items, ready, addItem, editItem, removeItem, buy, addCollection: addItemsOfCollection, removeCollection: removeItemsOfCollection };
 }
 
 /** Tema escuro/claro. Também acompanha a troca feita em outra aba (evento "storage"). */

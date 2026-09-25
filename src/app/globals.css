@@ -176,6 +176,12 @@
   0% { transform: scale(0.85) translateY(10px); opacity: 0; }
   100% { transform: scale(1) translateY(0); opacity: 1; }
 }
+/* ---- neve caindo (seção de Natal da Loja) ---- */
+@keyframes cg-snowfall {
+  0% { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+  10% { opacity: 0.9; }
+  100% { transform: translate3d(var(--cg-drift, 20px), var(--cg-fall, 900px), 0) rotate(240deg); opacity: 0.2; }
+}
 @keyframes cg-caret {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0; }
@@ -221,6 +227,7 @@
   .cg-anim-wizard-enter { animation: cg-wizard-enter 1.1s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
   .cg-anim-bubble { animation: cg-bubble-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
   .cg-anim-caret { animation: cg-caret 0.9s step-end infinite; }
+  .cg-anim-snow { animation: cg-snowfall var(--cg-duration, 9s) linear var(--cg-delay, 0s) infinite both; }
   .cg-anim-shimmer-violet {
     background: linear-gradient(90deg, #c4b5fd, #8b5cf6, #f5f3ff, #8b5cf6, #c4b5fd);
     background-size: 200% auto;
@@ -237,6 +244,7 @@
     animation: none !important;
   }
   .cg-anim-confetti,
+  .cg-anim-snow,
   .cg-anim-slash,
   .cg-anim-sparkle,
   .cg-anim-shockwave,

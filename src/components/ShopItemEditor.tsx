@@ -5,6 +5,7 @@ import { ShopItem, ShopItemData } from "@/engine/shop";
 import { Rarity, RARITY_META, RARITY_DEFAULT_VALUE, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import { COSMETIC_CATALOG, COSMETIC_SLOT_LABELS, CosmeticOption, CosmeticSlot, DEFAULT_AVATAR, applyCosmetic, sameCosmetic } from "@/engine/avatar";
 import Avatar from "./Avatar";
+import { COLLECTION_THEME } from "./collections";
 import EmojiPicker from "./EmojiPicker";
 import ItemEconomyFields from "./ItemEconomyFields";
 
@@ -69,6 +70,10 @@ export default function ShopItemEditor({
       xp: kind === "item" ? Math.max(0, Math.round(xp)) : 0,
       featured,
       ...(kind === "visual" && { cosmetic: { slot: cosmetic.slot, value: cosmetic.value } }),
+      // visual de coleção entra na coleção; item comum mantém a que já tinha (ex.: Doce ou Travessura)
+      ...((kind === "visual" ? cosmetic.collection : existing?.collection) && {
+        collection: kind === "visual" ? cosmetic.collection : existing?.collection,
+      }),
     });
     setError(problem);
   }
@@ -128,7 +133,10 @@ export default function ShopItemEditor({
                             } disabled:cursor-not-allowed disabled:opacity-35`}
                           >
                             <Avatar config={applyCosmetic(DEFAULT_AVATAR, o)} size={52} framing={slot === "eyewear" ? "face" : "full"} />
-                            <span className="line-clamp-2 leading-tight">{onSale ? "À venda" : o.label}</span>
+                            <span className="line-clamp-2 leading-tight">
+                              {o.collection && `${COLLECTION_THEME[o.collection].emoji} `}
+                              {onSale ? "À venda" : o.label}
+                            </span>
                           </button>
                         );
                       })}

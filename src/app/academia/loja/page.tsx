@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useStudents, useShop } from "@/engine/store";
 import { ShopItem } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
-import { COSMETIC_SLOT_LABELS, applyCosmetic } from "@/engine/avatar";
+import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
+import { COLLECTION_THEME } from "@/components/collections";
 import { Student, equipItem, getStudent, ownsCosmetic, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "@/components/Avatar";
@@ -30,6 +31,15 @@ const SPARKLES = [
   { left: 88, top: 14, delay: 1.2, size: 13 },
   { left: 94, top: 70, delay: 2.8, size: 10 },
 ];
+
+// Flocos caindo na seção de Natal: posição, tamanho, velocidade e vento fixos (sem Math.random no render).
+const SNOWFLAKES = Array.from({ length: 22 }, (_, i) => ({
+  left: (i * 47) % 100,
+  size: 9 + (i % 4) * 3,
+  duration: 8 + (i % 5) * 1.6,
+  delay: -((i * 1.3) % 11), // negativo: a neve já começa espalhada pela seção
+  drift: ((i % 3) - 1) * 30,
+}));
 
 /** Prévia do item: o próprio aluno vestindo o visual, ou o ícone flutuando. */
 function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: number }) {
@@ -69,8 +79,12 @@ export default function LojaPage() {
   const me = activeStudent;
   const house = me.houseId ? getHouse(me.houseId) : null;
 
-  const featured = items.filter((i) => i.featured);
-  const visible = items
+  // Cada coleção temática tem seção própria — os itens dela não repetem nos destaques nem na vitrine.
+  const collectionItems = (c: CosmeticCollection) =>
+    items.filter((i) => i.collection === c).sort((a, b) => Number(b.featured) - Number(a.featured) || b.price - a.price);
+  const regular = items.filter((i) => !i.collection);
+  const featured = regular.filter((i) => i.featured);
+  const visible = regular
     .filter((i) => (tab === "visuais" ? !!i.cosmetic : tab === "itens" ? !i.cosmetic : true))
     .sort((a, b) => {
       if (sort === "menor") return a.price - b.price;
@@ -106,6 +120,49 @@ export default function LojaPage() {
     const fresh = getStudent(me.id);
     if (fresh) patchActive({ equipped: equipItem(fresh, bought.inventoryId).equipped });
     setBought(null);
+  }
+
+  /** Card da vitrine (e das seções de coleção, com a cor da coleção). */
+  function card(item: ShopItem, i: number, collection?: CosmeticCollection) {
+    const theme = collection ? COLLECTION_THEME[collection] : null;
+    const glow = theme ? theme.glow : RARITY_GLOW[item.rarity];
+    return (
+      <div
+        key={item.id}
+        className={`cg-card cg-anim-rise group relative overflow-hidden transition-all duration-300 hover:-translate-y-1 ${theme?.cardBorderClass ?? ""}`}
+        style={{ animationDelay: `${Math.min(i, 8) * 0.05}s`, boxShadow: `0 12px 36px -24px ${glow}` }}
+      >
+        <div className="absolute left-3 top-3 z-10">
+          <RarityBadge rarity={item.rarity} />
+        </div>
+        {owned(item) ? (
+          <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">✓ Seu</span>
+        ) : item.sold >= POPULAR_FROM ? (
+          <span className="absolute right-3 top-3 z-10 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">🔥 Popular</span>
+        ) : (
+          item.featured &&
+          theme && (
+            <span className={`absolute right-3 top-3 z-10 rounded-full bg-gradient-to-r px-2 py-0.5 text-[10px] font-black text-cg-ink ${theme.buttonClass}`}>
+              ⭐ Destaque
+            </span>
+          )
+        )}
+        <ItemPreview item={item} me={me} size={92} />
+        <div className="px-4 pb-4">
+          <p className="font-semibold text-white">{item.name}</p>
+          <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs text-slate-400">{item.description}</p>
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <span className="flex items-center gap-1 text-base font-black text-amber-300">
+              <CoinIcon size={16} /> {item.price}
+            </span>
+            <span className="text-slate-500">
+              {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : item.xp > 0 ? `✨ +${item.xp} XP ao usar` : "🎒 Item"}
+            </span>
+          </div>
+          {actions(item)}
+        </div>
+      </div>
+    );
   }
 
   /** Botões de cada card: 👁 Provar (visual) + Comprar, ou "já é seu". */
@@ -211,6 +268,58 @@ export default function LojaPage() {
         </div>
       ) : (
         <>
+          {/* ===== COLEÇÕES TEMÁTICAS ===== uma seção por coleção à venda, sempre escura, nos dois temas */}
+          {COLLECTIONS.map((collection) => {
+            const list = collectionItems(collection);
+            if (list.length === 0) return null;
+            const theme = COLLECTION_THEME[collection];
+            return (
+              <div
+                key={collection}
+                className={`cg-dark-scope relative mb-8 overflow-hidden rounded-3xl border p-5 sm:p-6 ${theme.borderClass}`}
+                style={{ background: theme.background }}
+              >
+                {theme.snow &&
+                  SNOWFLAKES.map((f, i) => (
+                    <span
+                      key={`neve-${i}`}
+                      aria-hidden="true"
+                      className="cg-anim-snow pointer-events-none absolute top-0 select-none text-white"
+                      style={
+                        {
+                          left: `${f.left}%`,
+                          fontSize: f.size,
+                          "--cg-duration": `${f.duration}s`,
+                          "--cg-delay": `${f.delay}s`,
+                          "--cg-drift": `${f.drift}px`,
+                        } as React.CSSProperties
+                      }
+                    >
+                      ❄
+                    </span>
+                  ))}
+                {theme.decor.map((d, i) => (
+                  <span
+                    key={i}
+                    aria-hidden="true"
+                    className="cg-anim-float pointer-events-none absolute select-none"
+                    style={{ left: `${d.left}%`, top: `${d.top}%`, fontSize: d.size, animationDelay: `${d.delay}s`, opacity: 0.55 }}
+                  >
+                    {d.emoji}
+                  </span>
+                ))}
+                <div className="relative mb-4 text-center sm:text-left">
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${theme.subtitleClass}`}>{theme.tagline}</p>
+                  <h2 className={`mt-1 text-2xl font-black uppercase tracking-wide sm:text-3xl ${theme.titleClass}`} style={{ textShadow: theme.titleGlow }}>
+                    {theme.emoji} {theme.title}
+                  </h2>
+                  <p className={`mt-1 text-sm ${theme.subtitleClass}`}>{theme.subtitle}</p>
+                </div>
+                <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{list.map((item, i) => card(item, i, collection))}</div>
+              </div>
+            );
+          })}
+
           {/* ===== DESTAQUES ===== */}
           {featured.length > 0 && (
             <div className="mb-8">
@@ -284,41 +393,7 @@ export default function LojaPage() {
             <p className="text-sm text-slate-500">Nenhum item nessa categoria por enquanto.</p>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {visible.map((item, i) => {
-                const glow = RARITY_GLOW[item.rarity];
-                return (
-                  <div
-                    key={item.id}
-                    className="cg-card cg-anim-rise group relative overflow-hidden transition-all duration-300 hover:-translate-y-1"
-                    style={{ animationDelay: `${Math.min(i, 8) * 0.05}s`, boxShadow: `0 12px 36px -24px ${glow}` }}
-                  >
-                    <div className="absolute left-3 top-3 z-10">
-                      <RarityBadge rarity={item.rarity} />
-                    </div>
-                    {owned(item) ? (
-                      <span className="absolute right-3 top-3 z-10 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">✓ Seu</span>
-                    ) : (
-                      item.sold >= POPULAR_FROM && (
-                        <span className="absolute right-3 top-3 z-10 rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">🔥 Popular</span>
-                      )
-                    )}
-                    <ItemPreview item={item} me={me} size={92} />
-                    <div className="px-4 pb-4">
-                      <p className="font-semibold text-white">{item.name}</p>
-                      <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs text-slate-400">{item.description}</p>
-                      <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-                        <span className="flex items-center gap-1 text-base font-black text-amber-300">
-                          <CoinIcon size={16} /> {item.price}
-                        </span>
-                        <span className="text-slate-500">
-                          {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : item.xp > 0 ? `✨ +${item.xp} XP ao usar` : "🎒 Item"}
-                        </span>
-                      </div>
-                      {actions(item)}
-                    </div>
-                  </div>
-                );
-              })}
+              {visible.map((item, i) => card(item, i))}
             </div>
           )}
         </>

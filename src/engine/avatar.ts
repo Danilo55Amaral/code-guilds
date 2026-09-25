@@ -7,16 +7,39 @@
 export type HairStyle = "curto" | "espetado" | "cacheado" | "afro" | "longo" | "rabo" | "coque" | "moicano" | "careca";
 export type Expression = "feliz" | "sorrisao" | "confiante" | "serio";
 export type FaceDetail = "nenhum" | "sardas" | "bochechas" | "barba" | "bigode" | "cicatriz";
-export type Outfit = "tunica" | "moletom" | "manto" | "armadura";
+export type BaseOutfit = "tunica" | "moletom" | "manto" | "armadura";
 export type BaseEyewear = "nenhum" | "redondo" | "quadrado" | "escuro" | "visor" | "monoculo" | "tapa-olho";
 export type BaseHat = "nenhum" | "mago" | "coroa" | "bone" | "elmo" | "pirata" | "fones";
 // Peças exclusivas da Loja — não aparecem no editor de avatar, só dá pra usar comprando.
-export type ShopEyewear = "neon" | "coracao" | "pixel";
-export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola";
+// Linhas de cada tipo: do ano todo, Halloween, Mitologia Grega, Mitologia Egípcia, Natal.
+export type ShopOutfit =
+  | "vampiro" | "esqueleto" | "abobora"
+  | "toga" | "hoplita" | "zeus"
+  | "farao" | "mumia" | "cleopatra"
+  | "papai-noel" | "sueter" | "elfo";
+export type ShopEyewear = "neon" | "coracao" | "pixel"
+  | "oculos-abobora" | "vampiro" | "teia"
+  | "olhar-medusa" | "oraculo"
+  | "horus" | "oculos-farao"
+  | "oculos-noel" | "flocos";
+export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola"
+  | "bruxa" | "cabeca-abobora" | "orelhas-lobo" | "morcego"
+  | "louros" | "elmo-espartano" | "asas-hermes" | "serpentes"
+  | "nemes" | "anubis" | "uraeus" | "disco-ra"
+  | "gorro-noel" | "chifres-rena" | "azevinho" | "gorro-elfo";
+export type Outfit = BaseOutfit | ShopOutfit;
 export type Eyewear = BaseEyewear | ShopEyewear;
 export type Hat = BaseHat | ShopHat;
-export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas";
-export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo";
+export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
+  | "assombrada" | "lua-sangrenta" | "morcegos" | "abobora"
+  | "raios" | "poseidon" | "olimpo"
+  | "ra" | "areia" | "hieroglifos"
+  | "neve" | "luzes" | "aurora";
+export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
+  | "abobora" | "lobo" | "morcego" | "aranha" | "caveira"
+  | "aguia" | "serpente" | "minotauro" | "golfinho"
+  | "bastet" | "escorpiao" | "crocodilo" | "camelo"
+  | "rena" | "boneco-neve" | "pinguim" | "elfo";
 
 export interface AvatarConfig {
   skinTone: number; // índice em SKIN_TONES
@@ -99,7 +122,7 @@ export const FACE_DETAIL_LABELS: Record<FaceDetail, string> = {
   cicatriz: "Cicatriz",
 };
 
-export const OUTFIT_LABELS: Record<Outfit, string> = {
+export const OUTFIT_LABELS: Record<BaseOutfit, string> = {
   tunica: "Túnica",
   moletom: "Moletom",
   manto: "Manto de mago",
@@ -126,21 +149,151 @@ export const HAT_LABELS: Record<BaseHat, string> = {
   fones: "Fones gamer",
 };
 
-export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = { neon: "Óculos neon", coracao: "Óculos de coração", pixel: "Óculos pixelado" };
-export const SHOP_HAT_LABELS: Record<ShopHat, string> = { aureola: "Auréola", chifres: "Chifres", tiara: "Tiara estelar", cartola: "Cartola" };
-export const AURA_LABELS: Record<Aura, string> = { nenhum: "Nenhuma", fogo: "Aura de fogo", arcana: "Aura arcana", gelo: "Aura de gelo", estrelas: "Aura estelar" };
-export const PET_LABELS: Record<Pet, string> = { nenhum: "Nenhum", dragao: "Dragãozinho", coruja: "Coruja sábia", gato: "Gato", fantasma: "Fantasminha", robo: "Robô" };
+export const SHOP_OUTFIT_LABELS: Record<ShopOutfit, string> = {
+  vampiro: "Fantasia de vampiro",
+  esqueleto: "Fantasia de esqueleto",
+  abobora: "Fantasia de abóbora",
+  toga: "Toga grega",
+  hoplita: "Armadura de hoplita",
+  zeus: "Manto de Zeus",
+  farao: "Traje de faraó",
+  mumia: "Fantasia de múmia",
+  cleopatra: "Vestido de Cleópatra",
+  "papai-noel": "Roupa de Papai Noel",
+  sueter: "Suéter de Natal",
+  elfo: "Roupa de elfo",
+};
+export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = {
+  neon: "Óculos neon",
+  coracao: "Óculos de coração",
+  pixel: "Óculos pixelado",
+  "oculos-abobora": "Óculos Jack-o'-Lantern",
+  vampiro: "Óculos de vampiro",
+  teia: "Óculos teia de aranha",
+  "olhar-medusa": "Olhar da Medusa",
+  oraculo: "Venda do Oráculo",
+  horus: "Olho de Hórus",
+  "oculos-farao": "Óculos do faraó",
+  "oculos-noel": "Óculos do Papai Noel",
+  flocos: "Óculos floco de neve",
+};
+export const SHOP_HAT_LABELS: Record<ShopHat, string> = {
+  aureola: "Auréola",
+  chifres: "Chifres",
+  tiara: "Tiara estelar",
+  cartola: "Cartola",
+  bruxa: "Chapéu de bruxa",
+  "cabeca-abobora": "Cabeça de abóbora",
+  "orelhas-lobo": "Orelhas de lobisomem",
+  morcego: "Tiara de morcego",
+  louros: "Coroa de louros",
+  "elmo-espartano": "Elmo espartano",
+  "asas-hermes": "Asas de Hermes",
+  serpentes: "Cabelo de serpentes",
+  nemes: "Nemes do faraó",
+  anubis: "Orelhas de Anúbis",
+  uraeus: "Coroa da cobra real",
+  "disco-ra": "Disco solar de Rá",
+  "gorro-noel": "Gorro do Papai Noel",
+  "chifres-rena": "Chifres de rena",
+  azevinho: "Coroa de azevinho",
+  "gorro-elfo": "Gorro de elfo",
+};
+export const AURA_LABELS: Record<Aura, string> = {
+  nenhum: "Nenhuma",
+  fogo: "Aura de fogo",
+  arcana: "Aura arcana",
+  gelo: "Aura de gelo",
+  estrelas: "Aura estelar",
+  assombrada: "Aura assombrada",
+  "lua-sangrenta": "Aura da lua sangrenta",
+  morcegos: "Revoada de morcegos",
+  abobora: "Aura de abóboras",
+  raios: "Raios de Zeus",
+  poseidon: "Mar de Poseidon",
+  olimpo: "Luz do Olimpo",
+  ra: "Sol de Rá",
+  areia: "Tempestade do deserto",
+  hieroglifos: "Aura dos hieróglifos",
+  neve: "Nevasca",
+  luzes: "Luzinhas de Natal",
+  aurora: "Aurora boreal",
+};
+export const PET_LABELS: Record<Pet, string> = {
+  nenhum: "Nenhum",
+  dragao: "Dragãozinho",
+  coruja: "Coruja sábia",
+  gato: "Gato",
+  fantasma: "Fantasminha",
+  robo: "Robô",
+  abobora: "Abobrinha assombrada",
+  lobo: "Lobinho",
+  morcego: "Morceguinho",
+  aranha: "Aranha tecelã",
+  caveira: "Caveirinha",
+  aguia: "Águia de Zeus",
+  serpente: "Serpente da Medusa",
+  minotauro: "Minotaurinho",
+  golfinho: "Golfinho de Poseidon",
+  bastet: "Gato de Bastet",
+  escorpiao: "Escorpião dourado",
+  crocodilo: "Crocodilo de Sobek",
+  camelo: "Camelo do deserto",
+  rena: "Renazinha",
+  "boneco-neve": "Boneco de neve",
+  pinguim: "Pinguim do Polo Norte",
+  elfo: "Elfo ajudante",
+};
 /** Emoji desenhado como mascote no canto do avatar. */
-export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = { dragao: "🐉", coruja: "🦉", gato: "🐱", fantasma: "👻", robo: "🤖" };
+export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
+  dragao: "🐉",
+  coruja: "🦉",
+  gato: "🐱",
+  fantasma: "👻",
+  robo: "🤖",
+  abobora: "🎃",
+  lobo: "🐺",
+  morcego: "🦇",
+  aranha: "🕷️",
+  caveira: "💀",
+  aguia: "🦅",
+  serpente: "🐍",
+  minotauro: "🐂",
+  golfinho: "🐬",
+  bastet: "🐈",
+  escorpiao: "🦂",
+  crocodilo: "🐊",
+  camelo: "🐫",
+  rena: "🦌",
+  "boneco-neve": "⛄",
+  pinguim: "🐧",
+  elfo: "🧝",
+};
 /** Cores de roupa que só a Loja vende. */
-export const SHOP_OUTFIT_COLORS: { hex: string; label: string }[] = [
+export const SHOP_OUTFIT_COLORS: { hex: string; label: string; collection?: CosmeticCollection }[] = [
   { hex: "#ca8a04", label: "Ouro real" },
   { hex: "#94a3b8", label: "Prata lunar" },
   { hex: "#7f1d1d", label: "Carmesim sombrio" },
   { hex: "#06b6d4", label: "Ciano neon" },
+  { hex: "#ea580c", label: "Laranja abóbora", collection: "halloween" },
+  { hex: "#18181b", label: "Preto meia-noite", collection: "halloween" },
+  { hex: "#65a30d", label: "Verde poção", collection: "halloween" },
+  { hex: "#581c87", label: "Roxo bruxa", collection: "halloween" },
+  { hex: "#e7e5e4", label: "Mármore do Partenon", collection: "grega" },
+  { hex: "#0369a1", label: "Azul do mar Egeu", collection: "grega" },
+  { hex: "#4d7c0f", label: "Oliva de Atena", collection: "grega" },
+  { hex: "#d6b370", label: "Areia do deserto", collection: "egipcia" },
+  { hex: "#0d9488", label: "Turquesa do Nilo", collection: "egipcia" },
+  { hex: "#1e3a8a", label: "Lápis-lazúli", collection: "egipcia" },
+  { hex: "#b91c1c", label: "Vermelho Noel", collection: "natal" },
+  { hex: "#166534", label: "Verde pinheiro", collection: "natal" },
+  { hex: "#f8fafc", label: "Branco neve", collection: "natal" },
 ];
 
-/** Nome de qualquer óculos/chapéu (do editor ou da Loja). */
+/** Nome de qualquer roupa/óculos/chapéu (do editor ou da Loja). */
+export function outfitLabel(o: Outfit): string {
+  return o in SHOP_OUTFIT_LABELS ? SHOP_OUTFIT_LABELS[o as ShopOutfit] : OUTFIT_LABELS[o as BaseOutfit];
+}
 export function eyewearLabel(e: Eyewear): string {
   return e in SHOP_EYEWEAR_LABELS ? SHOP_EYEWEAR_LABELS[e as ShopEyewear] : EYEWEAR_LABELS[e as BaseEyewear];
 }
@@ -154,28 +307,121 @@ export function hatLabel(h: Hat): string {
 // continua guardado e volta ao retirar o item).
 // ============================================================================
 
-export type CosmeticSlot = "hat" | "eyewear" | "outfitColor" | "aura" | "pet";
+export type CosmeticSlot = "hat" | "eyewear" | "outfit" | "outfitColor" | "aura" | "pet";
 
 export const COSMETIC_SLOT_LABELS: Record<CosmeticSlot, string> = {
   hat: "Chapéu",
   eyewear: "Óculos",
+  outfit: "Fantasia",
   outfitColor: "Cor da roupa",
   aura: "Aura",
   pet: "Mascote",
 };
 
+/** Coleções temáticas da Loja. O visual de cada uma (cores, enfeites) fica em components/collections.ts. */
+export type CosmeticCollection = "natal" | "halloween" | "grega" | "egipcia";
+
+/** Ordem das coleções no Painel ADM e na Loja (a especial de Natal vem primeiro). */
+export const COLLECTIONS: CosmeticCollection[] = ["natal", "halloween", "grega", "egipcia"];
+
+export const COLLECTION_LABELS: Record<CosmeticCollection, string> = {
+  natal: "🎄 Especial de Natal",
+  halloween: "🎃 Halloween",
+  grega: "🏛️ Mitologia Grega",
+  egipcia: "🏺 Mitologia Egípcia",
+};
+
 export interface Cosmetic {
   slot: CosmeticSlot;
-  value: string; // id do chapéu/óculos/aura/mascote, ou o hex da cor da roupa
+  value: string; // id do chapéu/óculos/fantasia/aura/mascote, ou o hex da cor da roupa
 }
 
 export interface CosmeticOption extends Cosmetic {
   label: string;
   icon: string;
+  collection?: CosmeticCollection;
 }
+
+const HALLOWEEN = "halloween" as const;
+const GREGA = "grega" as const;
+const EGIPCIA = "egipcia" as const;
+const NATAL = "natal" as const;
 
 /** Tudo que o ADM pode colocar à venda como visual do avatar. */
 export const COSMETIC_CATALOG: CosmeticOption[] = [
+  // ---- coleção de Halloween ----
+  { slot: "hat", value: "bruxa", label: SHOP_HAT_LABELS.bruxa, icon: "🧙", collection: HALLOWEEN },
+  { slot: "hat", value: "cabeca-abobora", label: SHOP_HAT_LABELS["cabeca-abobora"], icon: "🎃", collection: HALLOWEEN },
+  { slot: "hat", value: "orelhas-lobo", label: SHOP_HAT_LABELS["orelhas-lobo"], icon: "🐺", collection: HALLOWEEN },
+  { slot: "hat", value: "morcego", label: SHOP_HAT_LABELS.morcego, icon: "🦇", collection: HALLOWEEN },
+  { slot: "eyewear", value: "oculos-abobora", label: SHOP_EYEWEAR_LABELS["oculos-abobora"], icon: "🎃", collection: HALLOWEEN },
+  { slot: "eyewear", value: "vampiro", label: SHOP_EYEWEAR_LABELS.vampiro, icon: "🧛", collection: HALLOWEEN },
+  { slot: "eyewear", value: "teia", label: SHOP_EYEWEAR_LABELS.teia, icon: "🕸️", collection: HALLOWEEN },
+  { slot: "outfit", value: "vampiro", label: SHOP_OUTFIT_LABELS.vampiro, icon: "🧛", collection: HALLOWEEN },
+  { slot: "outfit", value: "esqueleto", label: SHOP_OUTFIT_LABELS.esqueleto, icon: "💀", collection: HALLOWEEN },
+  { slot: "outfit", value: "abobora", label: SHOP_OUTFIT_LABELS.abobora, icon: "🎃", collection: HALLOWEEN },
+  { slot: "aura", value: "assombrada", label: AURA_LABELS.assombrada, icon: "👻", collection: HALLOWEEN },
+  { slot: "aura", value: "lua-sangrenta", label: AURA_LABELS["lua-sangrenta"], icon: "🌕", collection: HALLOWEEN },
+  { slot: "aura", value: "morcegos", label: AURA_LABELS.morcegos, icon: "🦇", collection: HALLOWEEN },
+  { slot: "aura", value: "abobora", label: AURA_LABELS.abobora, icon: "🎃", collection: HALLOWEEN },
+  { slot: "pet", value: "abobora", label: PET_LABELS.abobora, icon: PET_EMOJI.abobora, collection: HALLOWEEN },
+  { slot: "pet", value: "lobo", label: PET_LABELS.lobo, icon: PET_EMOJI.lobo, collection: HALLOWEEN },
+  { slot: "pet", value: "morcego", label: PET_LABELS.morcego, icon: PET_EMOJI.morcego, collection: HALLOWEEN },
+  { slot: "pet", value: "aranha", label: PET_LABELS.aranha, icon: PET_EMOJI.aranha, collection: HALLOWEEN },
+  { slot: "pet", value: "caveira", label: PET_LABELS.caveira, icon: PET_EMOJI.caveira, collection: HALLOWEEN },
+  { slot: "pet", value: "fantasma", label: PET_LABELS.fantasma, icon: PET_EMOJI.fantasma, collection: HALLOWEEN },
+  // ---- coleção Mitologia Grega ----
+  { slot: "hat", value: "louros", label: SHOP_HAT_LABELS.louros, icon: "🌿", collection: GREGA },
+  { slot: "hat", value: "elmo-espartano", label: SHOP_HAT_LABELS["elmo-espartano"], icon: "⚔️", collection: GREGA },
+  { slot: "hat", value: "asas-hermes", label: SHOP_HAT_LABELS["asas-hermes"], icon: "🕊️", collection: GREGA },
+  { slot: "hat", value: "serpentes", label: SHOP_HAT_LABELS.serpentes, icon: "🐍", collection: GREGA },
+  { slot: "eyewear", value: "olhar-medusa", label: SHOP_EYEWEAR_LABELS["olhar-medusa"], icon: "👁️", collection: GREGA },
+  { slot: "eyewear", value: "oraculo", label: SHOP_EYEWEAR_LABELS.oraculo, icon: "🔮", collection: GREGA },
+  { slot: "outfit", value: "toga", label: SHOP_OUTFIT_LABELS.toga, icon: "🏛️", collection: GREGA },
+  { slot: "outfit", value: "hoplita", label: SHOP_OUTFIT_LABELS.hoplita, icon: "🛡️", collection: GREGA },
+  { slot: "outfit", value: "zeus", label: SHOP_OUTFIT_LABELS.zeus, icon: "⚡", collection: GREGA },
+  { slot: "aura", value: "raios", label: AURA_LABELS.raios, icon: "⚡", collection: GREGA },
+  { slot: "aura", value: "poseidon", label: AURA_LABELS.poseidon, icon: "🌊", collection: GREGA },
+  { slot: "aura", value: "olimpo", label: AURA_LABELS.olimpo, icon: "☀️", collection: GREGA },
+  { slot: "pet", value: "aguia", label: PET_LABELS.aguia, icon: PET_EMOJI.aguia, collection: GREGA },
+  { slot: "pet", value: "serpente", label: PET_LABELS.serpente, icon: PET_EMOJI.serpente, collection: GREGA },
+  { slot: "pet", value: "minotauro", label: PET_LABELS.minotauro, icon: PET_EMOJI.minotauro, collection: GREGA },
+  { slot: "pet", value: "golfinho", label: PET_LABELS.golfinho, icon: PET_EMOJI.golfinho, collection: GREGA },
+  // ---- coleção Mitologia Egípcia ----
+  { slot: "hat", value: "nemes", label: SHOP_HAT_LABELS.nemes, icon: "👑", collection: EGIPCIA },
+  { slot: "hat", value: "anubis", label: SHOP_HAT_LABELS.anubis, icon: "🐺", collection: EGIPCIA },
+  { slot: "hat", value: "uraeus", label: SHOP_HAT_LABELS.uraeus, icon: "🐍", collection: EGIPCIA },
+  { slot: "hat", value: "disco-ra", label: SHOP_HAT_LABELS["disco-ra"], icon: "🌞", collection: EGIPCIA },
+  { slot: "eyewear", value: "horus", label: SHOP_EYEWEAR_LABELS.horus, icon: "👁️", collection: EGIPCIA },
+  { slot: "eyewear", value: "oculos-farao", label: SHOP_EYEWEAR_LABELS["oculos-farao"], icon: "🕶️", collection: EGIPCIA },
+  { slot: "outfit", value: "farao", label: SHOP_OUTFIT_LABELS.farao, icon: "👑", collection: EGIPCIA },
+  { slot: "outfit", value: "mumia", label: SHOP_OUTFIT_LABELS.mumia, icon: "🧟", collection: EGIPCIA },
+  { slot: "outfit", value: "cleopatra", label: SHOP_OUTFIT_LABELS.cleopatra, icon: "💃", collection: EGIPCIA },
+  { slot: "aura", value: "ra", label: AURA_LABELS.ra, icon: "🌞", collection: EGIPCIA },
+  { slot: "aura", value: "areia", label: AURA_LABELS.areia, icon: "🏜️", collection: EGIPCIA },
+  { slot: "aura", value: "hieroglifos", label: AURA_LABELS.hieroglifos, icon: "📜", collection: EGIPCIA },
+  { slot: "pet", value: "bastet", label: PET_LABELS.bastet, icon: PET_EMOJI.bastet, collection: EGIPCIA },
+  { slot: "pet", value: "escorpiao", label: PET_LABELS.escorpiao, icon: PET_EMOJI.escorpiao, collection: EGIPCIA },
+  { slot: "pet", value: "crocodilo", label: PET_LABELS.crocodilo, icon: PET_EMOJI.crocodilo, collection: EGIPCIA },
+  { slot: "pet", value: "camelo", label: PET_LABELS.camelo, icon: PET_EMOJI.camelo, collection: EGIPCIA },
+  // ---- coleção Especial de Natal ----
+  { slot: "hat", value: "gorro-noel", label: SHOP_HAT_LABELS["gorro-noel"], icon: "🎅", collection: NATAL },
+  { slot: "hat", value: "chifres-rena", label: SHOP_HAT_LABELS["chifres-rena"], icon: "🦌", collection: NATAL },
+  { slot: "hat", value: "azevinho", label: SHOP_HAT_LABELS.azevinho, icon: "🌿", collection: NATAL },
+  { slot: "hat", value: "gorro-elfo", label: SHOP_HAT_LABELS["gorro-elfo"], icon: "🔔", collection: NATAL },
+  { slot: "eyewear", value: "oculos-noel", label: SHOP_EYEWEAR_LABELS["oculos-noel"], icon: "👓", collection: NATAL },
+  { slot: "eyewear", value: "flocos", label: SHOP_EYEWEAR_LABELS.flocos, icon: "❄️", collection: NATAL },
+  { slot: "outfit", value: "papai-noel", label: SHOP_OUTFIT_LABELS["papai-noel"], icon: "🎅", collection: NATAL },
+  { slot: "outfit", value: "sueter", label: SHOP_OUTFIT_LABELS.sueter, icon: "🧶", collection: NATAL },
+  { slot: "outfit", value: "elfo", label: SHOP_OUTFIT_LABELS.elfo, icon: "🧝", collection: NATAL },
+  { slot: "aura", value: "neve", label: AURA_LABELS.neve, icon: "❄️", collection: NATAL },
+  { slot: "aura", value: "luzes", label: AURA_LABELS.luzes, icon: "💡", collection: NATAL },
+  { slot: "aura", value: "aurora", label: AURA_LABELS.aurora, icon: "🌌", collection: NATAL },
+  { slot: "pet", value: "rena", label: PET_LABELS.rena, icon: PET_EMOJI.rena, collection: NATAL },
+  { slot: "pet", value: "boneco-neve", label: PET_LABELS["boneco-neve"], icon: PET_EMOJI["boneco-neve"], collection: NATAL },
+  { slot: "pet", value: "pinguim", label: PET_LABELS.pinguim, icon: PET_EMOJI.pinguim, collection: NATAL },
+  { slot: "pet", value: "elfo", label: PET_LABELS.elfo, icon: PET_EMOJI.elfo, collection: NATAL },
+  // ---- visuais do ano todo ----
   { slot: "hat", value: "aureola", label: SHOP_HAT_LABELS.aureola, icon: "😇" },
   { slot: "hat", value: "chifres", label: SHOP_HAT_LABELS.chifres, icon: "😈" },
   { slot: "hat", value: "tiara", label: SHOP_HAT_LABELS.tiara, icon: "👸" },
@@ -183,7 +429,13 @@ export const COSMETIC_CATALOG: CosmeticOption[] = [
   { slot: "eyewear", value: "neon", label: SHOP_EYEWEAR_LABELS.neon, icon: "🕶️" },
   { slot: "eyewear", value: "coracao", label: SHOP_EYEWEAR_LABELS.coracao, icon: "😍" },
   { slot: "eyewear", value: "pixel", label: SHOP_EYEWEAR_LABELS.pixel, icon: "😎" },
-  ...SHOP_OUTFIT_COLORS.map((c) => ({ slot: "outfitColor" as const, value: c.hex, label: `Roupa ${c.label.toLowerCase()}`, icon: "👕" })),
+  ...SHOP_OUTFIT_COLORS.map((c) => ({
+    slot: "outfitColor" as const,
+    value: c.hex,
+    label: `Roupa ${c.label.toLowerCase()}`,
+    icon: "👕",
+    ...(c.collection && { collection: c.collection }),
+  })),
   { slot: "aura", value: "fogo", label: AURA_LABELS.fogo, icon: "🔥" },
   { slot: "aura", value: "arcana", label: AURA_LABELS.arcana, icon: "🔮" },
   { slot: "aura", value: "gelo", label: AURA_LABELS.gelo, icon: "❄️" },
@@ -191,7 +443,6 @@ export const COSMETIC_CATALOG: CosmeticOption[] = [
   { slot: "pet", value: "dragao", label: PET_LABELS.dragao, icon: PET_EMOJI.dragao },
   { slot: "pet", value: "coruja", label: PET_LABELS.coruja, icon: PET_EMOJI.coruja },
   { slot: "pet", value: "gato", label: PET_LABELS.gato, icon: PET_EMOJI.gato },
-  { slot: "pet", value: "fantasma", label: PET_LABELS.fantasma, icon: PET_EMOJI.fantasma },
   { slot: "pet", value: "robo", label: PET_LABELS.robo, icon: PET_EMOJI.robo },
 ];
 

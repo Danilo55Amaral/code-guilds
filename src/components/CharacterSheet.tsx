@@ -9,7 +9,7 @@ import {
   HAIR_STYLE_LABELS,
   EXPRESSION_LABELS,
   FACE_DETAIL_LABELS,
-  OUTFIT_LABELS,
+  outfitLabel,
   eyewearLabel,
   hatLabel,
 } from "@/engine/avatar";
@@ -195,7 +195,7 @@ export default function CharacterSheet({
               <InfoRow label="Roupa">
                 <span className="inline-flex items-center gap-2">
                   <span className="h-3.5 w-3.5 rounded-full border border-slate-700" style={{ backgroundColor: av.outfitColor }} />
-                  {OUTFIT_LABELS[av.outfit]}
+                  {outfitLabel(av.outfit)}
                 </span>
               </InfoRow>
               <InfoRow label="Acessórios">

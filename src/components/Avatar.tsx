@@ -21,7 +21,9 @@ function shade(hex: string, amount: number): string {
 }
 
 /** Chapéus que cobrem o topo da cabeça — cabelos altos ficam "por baixo" deles. */
-const COVERING_HATS: Hat[] = ["mago", "bone", "elmo", "pirata", "cartola"];
+const COVERING_HATS: Hat[] = ["mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-elfo"];
+/** Chapéus que escondem o cabelo da frente por inteiro. */
+const FULL_HEAD_HATS: Hat[] = ["elmo", "elmo-espartano", "nemes"];
 const TALL_HAIR: HairStyle[] = ["espetado", "moicano", "coque", "afro", "cacheado"];
 
 // ---------------------------------------------------------------------------
@@ -84,7 +86,7 @@ function HairBack({ style, color, hat }: { style: HairStyle; color: string; hat:
 }
 
 function HairFront({ style, color, hat }: { style: HairStyle; color: string; hat: Hat }) {
-  if (hat === "elmo") return null; // o elmo cobre a cabeça toda
+  if (FULL_HEAD_HATS.includes(hat)) return null; // elmos e o nemes cobrem a cabeça toda
   const effective: HairStyle = COVERING_HATS.includes(hat) && TALL_HAIR.includes(style) ? "curto" : style;
   const light = shade(color, 0.3);
 
@@ -200,6 +202,167 @@ function Outfit({ config, skin, steelId }: { config: AvatarConfig; skin: string;
           <path d="M64 102 L64 128" stroke="#475569" strokeWidth="1.2" />
           <path d="M52 96 C58 100 70 100 76 96 L76 100 C70 104 58 104 52 100 Z" fill="#94a3b8" />
           <circle cx="64" cy="115" r="5.5" fill={c} stroke="#fbbf24" strokeWidth="1.5" />
+        </g>
+      );
+    // --- fantasias de Halloween (exclusivas da Loja; ignoram a cor da roupa) ---
+    case "vampiro":
+      return (
+        <g>
+          <path d={body} fill="#18181b" />
+          {/* gola alta da capa, forrada de vermelho */}
+          <path d="M40 101 L28 74 L56 94 Z" fill="#18181b" stroke="#991b1b" strokeWidth="1.2" />
+          <path d="M88 101 L100 74 L72 94 Z" fill="#18181b" stroke="#991b1b" strokeWidth="1.2" />
+          <path d="M40 99 L32 80 L53 94 Z" fill="#991b1b" />
+          <path d="M88 99 L96 80 L75 94 Z" fill="#991b1b" />
+          <path d="M55 96 L64 114 L73 96 Z" fill="#f8fafc" />
+          <path d="M59 96 L64 102 L69 96" fill="#18181b" />
+          <circle cx="64" cy="107" r="3.2" fill="#dc2626" stroke="#fbbf24" strokeWidth="1.2" />
+          <path d="M26 128 C30 114 38 108 44 106 M102 128 C98 114 90 108 84 106" stroke="#991b1b" strokeWidth="1.5" fill="none" opacity="0.7" />
+        </g>
+      );
+    case "esqueleto":
+      return (
+        <g>
+          <path d={body} fill="#111827" />
+          <path d="M44 101 C52 98 58 99 64 101 C70 99 76 98 84 101" stroke="#e5e7eb" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+          <path d="M64 100 L64 127" stroke="#e5e7eb" strokeWidth="3" strokeLinecap="round" />
+          {[106, 112, 118, 124].map((y) => (
+            <path
+              key={y}
+              d={`M${48 + (y - 106) / 3} ${y} C54 ${y + 3} 60 ${y + 3} 64 ${y + 1} M${80 - (y - 106) / 3} ${y} C74 ${y + 3} 68 ${y + 3} 64 ${y + 1}`}
+              stroke="#e5e7eb"
+              strokeWidth="2.2"
+              fill="none"
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+      );
+    case "abobora":
+      return (
+        <g>
+          <path d={body} fill="#f97316" />
+          <path d="M42 102 C37 112 37 121 39 128 M86 102 C91 112 91 121 89 128 M54 99 C51 110 51 120 52 128 M74 99 C77 110 77 120 76 128" stroke="#c2410c" strokeWidth="2" fill="none" />
+          {/* carinha de Jack-o'-Lantern na barriga */}
+          <path d="M55 108 L59 114 L51 114 Z M73 108 L77 114 L69 114 Z" fill="#fde047" stroke="#431407" strokeWidth="1" />
+          <path d="M52 119 L56 122 L60 119 L64 122 L68 119 L72 122 L76 119 L72 126 L56 126 Z" fill="#fde047" stroke="#431407" strokeWidth="1" />
+          <path d="M48 97 C54 91 59 96 64 93 C69 96 74 91 80 97 L75 101 L64 97 L53 101 Z" fill="#16a34a" />
+        </g>
+      );
+    // --- Mitologia Grega ---
+    case "toga":
+      return (
+        <g>
+          <path d={body} fill="#f5f5f4" />
+          <path d="M55 96 L64 108 L73 96 Z" fill={shade(skin, -0.08)} />
+          {/* faixa dourada caindo do ombro esquerdo pro quadril direito */}
+          <path d="M30 104 C44 98 52 100 60 108 C70 118 82 122 96 128 L84 128 C72 124 62 118 54 112 C46 106 40 106 34 110 Z" fill="#eab308" />
+          <path d="M34 108 C46 102 54 106 62 114 C72 122 84 125 94 128" stroke="#a16207" strokeWidth="0.8" fill="none" />
+          <path d="M40 112 C44 118 44 124 42 128 M86 108 C88 116 90 122 92 128" stroke="#d6d3d1" strokeWidth="1.4" fill="none" />
+          <circle cx="36" cy="105" r="3.6" fill="#fde047" stroke="#a16207" strokeWidth="1" />
+        </g>
+      );
+    case "hoplita":
+      return (
+        <g>
+          <path d="M14 128 C16 104 30 97 42 97 L86 97 C98 97 112 104 114 128 Z" fill="#b91c1c" />
+          <path d="M26 128 C26 108 40 98 64 98 C88 98 102 108 102 128 Z" fill={`url(#${steelId})`} opacity="0.35" />
+          <path d="M28 128 C28 108 41 99 64 99 C87 99 100 108 100 128 Z" fill="#b45309" />
+          <path d="M44 106 C50 111 57 111 62 106 M66 106 C71 111 78 111 84 106" stroke="#78350f" strokeWidth="1.6" fill="none" />
+          <path d="M64 108 L64 126 M52 116 L76 116 M54 122 L74 122" stroke="#78350f" strokeWidth="1.2" />
+          <path d="M40 102 C46 99 52 99 56 100 M72 100 C76 99 82 99 88 102" stroke="#fbbf24" strokeWidth="1.8" fill="none" />
+          <circle cx="44" cy="104" r="2" fill="#fbbf24" />
+          <circle cx="84" cy="104" r="2" fill="#fbbf24" />
+        </g>
+      );
+    case "zeus":
+      return (
+        <g>
+          <path d={body} fill="#f8fafc" />
+          <path d="M20 128 C20 110 28 101 40 98 L58 128 Z" fill="#1d4ed8" />
+          <path d="M40 98 L58 128" stroke="#fbbf24" strokeWidth="2" />
+          <path d="M55 96 L64 106 L73 96 Z" fill={shade(skin, -0.08)} />
+          {/* raio dourado no peito */}
+          <path d="M70 102 L61 114 L67 114 L62 126 L76 110 L69 110 L74 102 Z" fill="#facc15" stroke="#a16207" strokeWidth="1" strokeLinejoin="round" />
+        </g>
+      );
+    // --- Mitologia Egípcia ---
+    case "farao":
+      return (
+        <g>
+          <path d={body} fill="#f5f5f4" />
+          {/* colar largo (usekh) em faixas azul, dourado e turquesa */}
+          <path d="M36 100 C44 118 84 118 92 100" stroke="#1d4ed8" strokeWidth="4" fill="none" />
+          <path d="M40 99 C47 113 81 113 88 99" stroke="#eab308" strokeWidth="3.5" fill="none" />
+          <path d="M44 98 C50 108 78 108 84 98" stroke="#0d9488" strokeWidth="3" fill="none" />
+          <path d="M48 97 C53 103 75 103 80 97" stroke="#eab308" strokeWidth="2.5" fill="none" />
+          <ellipse cx="64" cy="118" rx="4.5" ry="5.5" fill="#1d4ed8" stroke="#eab308" strokeWidth="1.5" />
+          <rect x="30" y="124" width="68" height="4" fill="#eab308" />
+        </g>
+      );
+    case "mumia":
+      return (
+        <g>
+          <path d={body} fill="#e7e5e4" />
+          {[102, 108, 114, 120, 126].map((y, i) => (
+            <path
+              key={y}
+              d={`M22 ${y + (i % 2 ? 4 : -2)} C44 ${y + (i % 2 ? -3 : 5)} 84 ${y + (i % 2 ? 6 : -4)} 106 ${y + (i % 2 ? -1 : 4)}`}
+              stroke="#a8a29e"
+              strokeWidth="1.6"
+              fill="none"
+            />
+          ))}
+          <path d="M84 110 C90 116 88 124 94 128" stroke="#d6d3d1" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M84 110 C90 116 88 124 94 128" stroke="#a8a29e" strokeWidth="0.8" fill="none" />
+          <path d="M55 96 C58 100 70 100 73 96" stroke="#a8a29e" strokeWidth="1.4" fill="none" />
+        </g>
+      );
+    case "cleopatra":
+      return (
+        <g>
+          <path d={body} fill="#0d9488" />
+          <path d="M34 101 C44 120 84 120 94 101" stroke="#eab308" strokeWidth="4.5" fill="none" />
+          <path d="M39 100 C47 114 81 114 89 100" stroke="#dc2626" strokeWidth="2" fill="none" />
+          <path d="M43 99 C50 110 78 110 85 99" stroke="#eab308" strokeWidth="3" fill="none" />
+          <path d="M60 116 L68 116 L67 128 L61 128 Z" fill="#eab308" />
+          <circle cx="64" cy="112" r="3" fill="#dc2626" stroke="#fde047" strokeWidth="1" />
+        </g>
+      );
+    // --- Natal ---
+    case "papai-noel":
+      return (
+        <g>
+          <path d={body} fill="#dc2626" />
+          <path d="M40 98 C48 106 80 106 88 98 C88 104 80 110 64 110 C48 110 40 104 40 98 Z" fill="#f8fafc" />
+          <rect x="59" y="108" width="10" height="20" fill="#f8fafc" />
+          <rect x="22" y="117" width="84" height="7" fill="#18181b" />
+          <rect x="57" y="115.5" width="14" height="10" rx="1.5" fill="none" stroke="#fbbf24" strokeWidth="2.2" />
+          <path d="M24 128 C26 122 28 120 30 119 M104 128 C102 122 100 120 98 119" stroke="#f8fafc" strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    case "sueter":
+      return (
+        <g>
+          <path d={body} fill="#b91c1c" />
+          <path d="M44 98 C50 104 78 104 84 98" stroke="#7f1d1d" strokeWidth="4" fill="none" />
+          <rect x="22" y="108" width="84" height="8" fill="#15803d" />
+          <path d="M22 116 L28 108 L34 116 L40 108 L46 116 L52 108 L58 116 L64 108 L70 116 L76 108 L82 116 L88 108 L94 116 L100 108 L106 116" stroke="#f8fafc" strokeWidth="1.4" fill="none" />
+          {[32, 48, 64, 80, 96].map((x) => (
+            <circle key={x} cx={x} cy="122" r="1.8" fill="#f8fafc" />
+          ))}
+        </g>
+      );
+    case "elfo":
+      return (
+        <g>
+          <path d={body} fill="#16a34a" />
+          <path d="M38 98 L44 106 L50 99 L56 107 L64 100 L72 107 L78 99 L84 106 L90 98 C84 96 72 95 64 95 C56 95 44 96 38 98 Z" fill="#dc2626" />
+          {[44, 56, 72, 84].map((x, i) => (
+            <circle key={x} cx={x} cy={i % 3 === 0 ? 106.5 : 107.5} r="2" fill="#fbbf24" stroke="#a16207" strokeWidth="0.6" />
+          ))}
+          <rect x="22" y="118" width="84" height="6" fill="#78350f" />
+          <rect x="59" y="117" width="10" height="8" rx="1" fill="none" stroke="#fbbf24" strokeWidth="1.8" />
         </g>
       );
     case "tunica":
@@ -403,6 +566,121 @@ function EyewearLayer({ eyewear }: { eyewear: AvatarConfig["eyewear"] }) {
           <rect x="72" y="59.5" width="2" height="2" fill="#fff" />
         </g>
       );
+    // --- Halloween ---
+    case "oculos-abobora":
+      return (
+        <g stroke="#c2410c" strokeWidth="2.4" strokeLinejoin="round">
+          <path d="M43 66 L52 52 L61 66 Z" fill="#fde047" fillOpacity="0.55" />
+          <path d="M67 66 L76 52 L85 66 Z" fill="#fde047" fillOpacity="0.55" />
+          <path d="M61 62 Q64 59 67 62 M43 62 L37 59 M85 62 L91 59" fill="none" />
+        </g>
+      );
+    case "vampiro":
+      return (
+        <g>
+          <circle cx="52" cy="60" r="7.5" fill="#dc2626" fillOpacity="0.8" stroke="#18181b" strokeWidth="2" />
+          <circle cx="76" cy="60" r="7.5" fill="#dc2626" fillOpacity="0.8" stroke="#18181b" strokeWidth="2" />
+          <path d="M59.5 59 Q64 56 68.5 59 M44.5 59 L37 56 M83.5 59 L91 56" stroke="#18181b" strokeWidth="2" fill="none" />
+          <path d="M48 57 L51 55 M72 57 L75 55" stroke="#fecaca" strokeWidth="1.3" strokeLinecap="round" />
+        </g>
+      );
+    case "teia":
+      return (
+        <g>
+          {[52, 76].map((cx) => (
+            <g key={cx}>
+              <circle cx={cx} cy="60" r="8" fill="rgba(255,255,255,0.08)" stroke="#d4d4d8" strokeWidth="1.8" />
+              <path
+                d={`M${cx - 8} 60 L${cx + 8} 60 M${cx} 52 L${cx} 68 M${cx - 5.6} 54.4 L${cx + 5.6} 65.6 M${cx + 5.6} 54.4 L${cx - 5.6} 65.6`}
+                stroke="#e4e4e7"
+                strokeWidth="0.7"
+                opacity="0.85"
+              />
+              <circle cx={cx} cy="60" r="4" fill="none" stroke="#e4e4e7" strokeWidth="0.7" opacity="0.85" />
+            </g>
+          ))}
+          <path d="M60 59 Q64 56 68 59 M44 59 L37 56 M84 59 L91 56" stroke="#d4d4d8" strokeWidth="1.8" fill="none" />
+          {/* aranhinha pendurada na haste */}
+          <path d="M89 57 L89 70" stroke="#d4d4d8" strokeWidth="0.6" />
+          <circle cx="89" cy="72" r="2.2" fill="#18181b" />
+          <path d="M86 70 L84 68 M86 72 L83.5 72 M92 70 L94 68 M92 72 L94.5 72" stroke="#18181b" strokeWidth="0.8" />
+        </g>
+      );
+    // --- Mitologia Grega ---
+    case "olhar-medusa":
+      // olhos verdes brilhando com pupila de cobra
+      return (
+        <g>
+          {[52, 76].map((cx) => (
+            <g key={cx}>
+              <circle cx={cx} cy="60" r="8.5" fill="#22c55e" opacity="0.3" />
+              <ellipse cx={cx} cy="60.5" rx="5.5" ry="6" fill="#4ade80" stroke="#15803d" strokeWidth="1" />
+              <ellipse cx={cx} cy="60.5" rx="1.1" ry="4.6" fill="#052e16" />
+              <circle cx={cx + 1.8} cy="58" r="1" fill="#f0fdf4" />
+            </g>
+          ))}
+        </g>
+      );
+    case "oraculo":
+      // venda dourada com o olho que tudo vê
+      return (
+        <g>
+          <path d="M34 54 C50 51 78 51 94 54 L93 66 C78 68.5 50 68.5 35 66 Z" fill="#eab308" stroke="#a16207" strokeWidth="1.2" />
+          <path d="M36 57 C50 55 78 55 92 57" stroke="#fde68a" strokeWidth="1" fill="none" opacity="0.7" />
+          <path d="M56 60 C60 55 68 55 72 60 C68 65 60 65 56 60 Z" fill="#fef9c3" stroke="#78350f" strokeWidth="1" />
+          <circle cx="64" cy="60" r="2.4" fill="#1e3a8a" />
+          <path d="M35 60 L27 66 M35 63 L29 71" stroke="#eab308" strokeWidth="2.2" strokeLinecap="round" />
+        </g>
+      );
+    // --- Mitologia Egípcia ---
+    case "horus":
+      // delineado de kohl no estilo do Olho de Hórus
+      return (
+        <g stroke="#0f172a" fill="none" strokeLinecap="round">
+          <path d="M45 57 C49 53 56 53 59 56 L61 57 M45 57 L38 58" strokeWidth="2.2" />
+          <path d="M83 57 C79 53 72 53 69 56 L67 57 M83 57 L90 58" strokeWidth="2.2" />
+          <path d="M47 64 C47 68 44 71 42 70 C40 69 41 66 43 67" strokeWidth="1.6" />
+          <path d="M81 64 C81 68 84 71 86 70 C88 69 87 66 85 67" strokeWidth="1.6" />
+          <path d="M46 51 C50 49 56 49 60 51 M82 51 C78 49 72 49 68 51" stroke="#1d4ed8" strokeWidth="1.6" />
+        </g>
+      );
+    case "oculos-farao":
+      return (
+        <g>
+          <ellipse cx="52" cy="60" rx="8.5" ry="6.5" fill="#2dd4bf" fillOpacity="0.5" stroke="#eab308" strokeWidth="2.2" />
+          <ellipse cx="76" cy="60" rx="8.5" ry="6.5" fill="#2dd4bf" fillOpacity="0.5" stroke="#eab308" strokeWidth="2.2" />
+          <path d="M60.5 59 Q64 56.5 67.5 59 M43.5 59 L37 57 M84.5 59 L91 57" stroke="#eab308" strokeWidth="2" fill="none" />
+          <path d="M47 58 L50 56 M71 58 L74 56" stroke="#f0fdfa" strokeWidth="1.3" strokeLinecap="round" />
+          <ellipse cx="64" cy="55.5" rx="2" ry="1.5" fill="#1d4ed8" stroke="#eab308" strokeWidth="0.8" />
+        </g>
+      );
+    // --- Natal ---
+    case "oculos-noel":
+      // óculos pequenos de meia-lua, na ponta do nariz, como os do Papai Noel
+      return (
+        <g stroke="#ca8a04" strokeWidth="1.6" fill="rgba(255,255,255,0.12)">
+          <path d="M45 63 C45 68 59 68 59 63 Z" />
+          <path d="M69 63 C69 68 83 68 83 63 Z" />
+          <path d="M59 63.5 Q64 61 69 63.5 M45 63 L37 58 M83 63 L91 58" fill="none" />
+        </g>
+      );
+    case "flocos":
+      return (
+        <g>
+          {[52, 76].map((cx) => (
+            <g key={cx}>
+              <circle cx={cx} cy="60" r="8" fill="#bfdbfe" fillOpacity="0.4" stroke="#e0f2fe" strokeWidth="1.8" />
+              <g stroke="#fff" strokeWidth="1" strokeLinecap="round">
+                {[0, 60, 120].map((a) => (
+                  <line key={a} x1={cx - 5.5} y1="60" x2={cx + 5.5} y2="60" transform={`rotate(${a} ${cx} 60)`} />
+                ))}
+                <circle cx={cx} cy="60" r="1.2" fill="#fff" />
+              </g>
+            </g>
+          ))}
+          <path d="M60 59 Q64 56 68 59 M44 59 L37 56 M84 59 L91 56" stroke="#e0f2fe" strokeWidth="1.8" fill="none" />
+        </g>
+      );
     default:
       return null;
   }
@@ -417,7 +695,112 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   arcana: ["#c084fc", "#6366f1"],
   gelo: ["#a5f3fc", "#3b82f6"],
   estrelas: ["#fde68a", "#818cf8"],
+  assombrada: ["#bbf7d0", "#15803d"],
+  "lua-sangrenta": ["#fca5a5", "#7f1d1d"],
+  morcegos: ["#c4b5fd", "#3b0764"],
+  abobora: ["#fdba74", "#c2410c"],
+  raios: ["#e0f2fe", "#1e3a8a"],
+  poseidon: ["#67e8f9", "#0c4a6e"],
+  olimpo: ["#fef3c7", "#b45309"],
+  ra: ["#fef08a", "#c2410c"],
+  areia: ["#fde68a", "#92400e"],
+  hieroglifos: ["#fcd34d", "#1e3a8a"],
+  neve: ["#e0f2fe", "#1e3a8a"],
+  luzes: ["#fde68a", "#14532d"],
+  aurora: ["#86efac", "#312e81"],
 };
+
+/** Floco de neve (aura Nevasca), centrado em (x, y), com raio `r`. */
+function Snowflake({ x, y, r = 4 }: { x: number; y: number; r?: number }) {
+  return (
+    <g stroke="#fff" strokeWidth={r / 3.5} strokeLinecap="round" opacity="0.9">
+      {[0, 60, 120].map((a) => (
+        <line key={a} x1={x - r} y1={y} x2={x + r} y2={y} transform={`rotate(${a} ${x} ${y})`} />
+      ))}
+    </g>
+  );
+}
+
+/** Raio em zigue-zague (aura Raios de Zeus), a partir de (x, y), no tamanho `s`. */
+function Bolt({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <path
+      transform={`translate(${x} ${y}) scale(${s})`}
+      d="M0 0 L-5 10 L-1 10 L-4 20 L5 7 L1 7 L4 0 Z"
+      fill="#fde047"
+      stroke="#fef9c3"
+      strokeWidth="0.6"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+/** Nuvem de tempestade (aura Raios de Zeus), centrada em (x, y). */
+function StormCloud({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} fill="#94a3b8" opacity="0.95">
+      <circle cx="-7" cy="1" r="5" />
+      <circle cx="0" cy="-2" r="7" />
+      <circle cx="8" cy="1" r="5" />
+      <rect x="-12" y="1" width="25" height="5" rx="2.5" />
+    </g>
+  );
+}
+
+/** Ankh, a cruz egípcia da vida (aura dos hieróglifos), centrada em (x, y). */
+function Ankh({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} stroke="#fcd34d" strokeWidth="2" fill="none" strokeLinecap="round">
+      <ellipse cx="0" cy="-5" rx="3" ry="4" />
+      <path d="M-6 0 L6 0 M0 -1 L0 11" />
+    </g>
+  );
+}
+
+/** Olho de Hórus pequeno (aura dos hieróglifos), centrado em (x, y). */
+function EyeGlyph({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} stroke="#fcd34d" strokeWidth="1.4" fill="none" strokeLinecap="round">
+      <path d="M-7 0 C-3 -5 3 -5 7 0 C3 4 -3 4 -7 0 Z" />
+      <circle cx="0" cy="0" r="1.8" fill="#fcd34d" />
+      <path d="M-2 3 L-3 8 M1 3 C2 6 5 7 6 5" />
+    </g>
+  );
+}
+
+/** Morceguinho em silhueta, centrado em (x, y), no tamanho `s` (1 = ~14px de envergadura). */
+function Bat({ x, y, s = 1, fill = "#0b0b0f" }: { x: number; y: number; s?: number; fill?: string }) {
+  return (
+    <path
+      transform={`translate(${x} ${y}) scale(${s})`}
+      d="M0 0 C-2 -3 -5 -4 -8 -2 C-6 -1 -5.5 0.5 -6 2 C-4 1 -2.5 1.3 -1.5 2.5 C-0.8 1.6 0.8 1.6 1.5 2.5 C2.5 1.3 4 1 6 2 C5.5 0.5 6 -1 8 -2 C5 -4 2 -3 0 0 Z"
+      fill={fill}
+    />
+  );
+}
+
+/** Fantasminha (aura assombrada), centrado em (x, y). */
+function Ghost({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`} opacity="0.85">
+      <path d="M0 -7 C-5 -7 -6 -2 -6 3 L-6 8 L-3 6 L0 8 L3 6 L6 8 L6 3 C6 -2 5 -7 0 -7 Z" fill="#f0fdf4" />
+      <circle cx="-2" cy="-1" r="1.1" fill="#14532d" />
+      <circle cx="2" cy="-1" r="1.1" fill="#14532d" />
+    </g>
+  );
+}
+
+/** Aboborinha (aura de abóboras), centrada em (x, y). */
+function MiniPumpkin({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <path d="M0 -6 L1 -9" stroke="#15803d" strokeWidth="1.6" strokeLinecap="round" />
+      <ellipse cx="0" cy="0" rx="7" ry="5.5" fill="#f97316" />
+      <path d="M-3 -5 C-4.5 -2 -4.5 2 -3 5 M3 -5 C4.5 -2 4.5 2 3 5" stroke="#c2410c" strokeWidth="0.8" fill="none" />
+      <path d="M-3.5 -1.5 L-2 0.5 L-5 0.5 Z M3.5 -1.5 L5 0.5 L2 0.5 Z M-3 2.5 L3 2.5 L0 4 Z" fill="#fde047" />
+    </g>
+  );
+}
 
 /** Brilho atrás do personagem, desenhado logo depois do fundo. */
 function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
@@ -434,6 +817,185 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
         </radialGradient>
       </defs>
       <circle cx="64" cy="60" r="72" fill={`url(#${gradientId})`} />
+      {aura === "neve" && (
+        <g>
+          {[
+            [18, 22, 4],
+            [36, 10, 3],
+            [102, 14, 4.5],
+            [112, 44, 3],
+            [14, 56, 3.5],
+            [108, 78, 4],
+            [22, 90, 3],
+            [90, 6, 2.5],
+            [8, 38, 2.5],
+            [120, 100, 2.5],
+          ].map(([x, y, r]) => (
+            <Snowflake key={`${x}-${y}`} x={x} y={y} r={r} />
+          ))}
+        </g>
+      )}
+      {aura === "luzes" && (
+        <g>
+          {/* fio com lâmpadas coloridas contornando o personagem */}
+          <path d="M-2 40 C18 52 30 26 44 20 C54 14 74 14 84 20 C98 26 110 52 130 40" stroke="#14532d" strokeWidth="1.4" fill="none" />
+          <path d="M4 92 C14 80 20 70 16 58 M124 92 C114 80 108 70 112 58" stroke="#14532d" strokeWidth="1.4" fill="none" />
+          {[
+            [8, 45, "#ef4444"],
+            [22, 43, "#fbbf24"],
+            [34, 31, "#22c55e"],
+            [48, 19, "#3b82f6"],
+            [64, 16, "#ef4444"],
+            [80, 19, "#fbbf24"],
+            [94, 31, "#22c55e"],
+            [106, 43, "#3b82f6"],
+            [120, 45, "#ef4444"],
+            [16, 64, "#fbbf24"],
+            [12, 80, "#3b82f6"],
+            [112, 64, "#22c55e"],
+            [116, 80, "#ef4444"],
+          ].map(([x, y, color]) => (
+            <g key={`${x}-${y}`}>
+              <circle cx={x} cy={y} r="5.5" fill={color as string} opacity="0.35" />
+              <ellipse cx={x} cy={Number(y) + 1.5} rx="2" ry="3" fill={color as string} />
+              <rect x={Number(x) - 1.3} y={Number(y) - 2.5} width="2.6" height="2" fill="#475569" />
+            </g>
+          ))}
+        </g>
+      )}
+      {aura === "aurora" && (
+        <g fill="none" strokeLinecap="round">
+          <path d="M-6 26 C14 6 34 36 56 18 C78 0 98 30 134 10" stroke="#4ade80" strokeWidth="9" opacity="0.5" />
+          <path d="M-6 38 C18 20 38 48 60 30 C82 12 104 42 134 24" stroke="#22d3ee" strokeWidth="6" opacity="0.45" />
+          <path d="M-6 48 C20 34 40 58 64 42 C88 26 108 52 134 38" stroke="#a78bfa" strokeWidth="5" opacity="0.4" />
+          {[
+            [16, 70],
+            [110, 66],
+            [24, 96],
+            [104, 94],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" fill="#fff" stroke="none" />
+          ))}
+        </g>
+      )}
+      {aura === "raios" && (
+        <g>
+          <StormCloud x={24} y={20} s={1.1} />
+          <StormCloud x={104} y={16} s={1} />
+          <Bolt x={22} y={30} s={1.3} />
+          <Bolt x={106} y={25} s={1.2} />
+          <Bolt x={14} y={70} s={0.9} />
+          <Bolt x={112} y={66} s={1} />
+        </g>
+      )}
+      {aura === "poseidon" && (
+        <g fill="none" strokeLinecap="round">
+          {[
+            [4, 96],
+            [92, 100],
+            [8, 72],
+            [96, 76],
+          ].map(([x, y]) => (
+            <path
+              key={`${x}-${y}`}
+              d={`M${x} ${y} C${x + 5} ${y - 7} ${x + 11} ${y - 7} ${x + 14} ${y - 2} C${x + 11} ${y - 4} ${x + 8} ${y - 2} ${x + 9} ${y + 1} M${x + 14} ${y - 2} C${x + 18} ${y + 3} ${x + 24} ${y + 3} ${x + 28} ${y - 2}`}
+              stroke="#e0f2fe"
+              strokeWidth="2.2"
+            />
+          ))}
+          {[
+            [26, 40, 2.4],
+            [102, 44, 2],
+            [20, 54, 1.6],
+            [108, 30, 1.6],
+            [34, 20, 1.4],
+          ].map(([x, y, r]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} stroke="#a5f3fc" strokeWidth="1" />
+          ))}
+        </g>
+      )}
+      {aura === "olimpo" && (
+        <g stroke="#fde68a" strokeLinecap="round" opacity="0.75">
+          {Array.from({ length: 16 }, (_, i) => {
+            const a = (i / 16) * Math.PI * 2;
+            return <line key={i} x1={64 + Math.cos(a) * 44} y1={58 + Math.sin(a) * 44} x2={64 + Math.cos(a) * 66} y2={58 + Math.sin(a) * 66} strokeWidth={i % 2 ? 2 : 3.5} />;
+          })}
+        </g>
+      )}
+      {aura === "ra" && (
+        <g>
+          <circle cx="64" cy="50" r="40" fill="#f59e0b" opacity="0.45" />
+          <g stroke="#fde047" strokeLinecap="round" opacity="0.8">
+            {Array.from({ length: 20 }, (_, i) => {
+              const a = (i / 20) * Math.PI * 2;
+              return <line key={i} x1={64 + Math.cos(a) * 42} y1={50 + Math.sin(a) * 42} x2={64 + Math.cos(a) * (i % 2 ? 54 : 62)} y2={50 + Math.sin(a) * (i % 2 ? 54 : 62)} strokeWidth="2.5" />;
+            })}
+          </g>
+        </g>
+      )}
+      {aura === "areia" && (
+        <g>
+          <path d="M-4 112 L18 82 L40 112 Z" fill="#b45309" opacity="0.85" />
+          <path d="M18 82 L40 112 L26 112 Z" fill="#78350f" opacity="0.6" />
+          <path d="M92 112 L112 86 L132 112 Z" fill="#b45309" opacity="0.85" />
+          <path d="M112 86 L132 112 L120 112 Z" fill="#78350f" opacity="0.6" />
+          <g stroke="#fef3c7" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7">
+            <path d="M8 40 C20 34 30 38 36 32" />
+            <path d="M92 30 C100 24 112 28 120 22" />
+            <path d="M6 60 C14 56 22 60 28 55" />
+            <path d="M100 58 C108 54 116 58 124 52" />
+          </g>
+        </g>
+      )}
+      {aura === "hieroglifos" && (
+        <g>
+          <Ankh x={20} y={40} s={1.1} />
+          <EyeGlyph x={106} y={34} s={1.1} />
+          <Ankh x={108} y={78} s={0.9} />
+          <EyeGlyph x={20} y={84} s={0.9} />
+          <path d="M34 16 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <path d="M84 12 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+        </g>
+      )}
+      {aura === "assombrada" && (
+        <g>
+          <Ghost x={20} y={46} s={1.1} />
+          <Ghost x={108} y={38} s={0.9} />
+          <Ghost x={24} y={92} s={0.8} />
+          <Ghost x={104} y={86} s={1} />
+          <Ghost x={40} y={14} s={0.7} />
+        </g>
+      )}
+      {aura === "lua-sangrenta" && (
+        <g>
+          <circle cx="98" cy="24" r="17" fill="#dc2626" opacity="0.9" />
+          <circle cx="92" cy="20" r="3" fill="#b91c1c" opacity="0.6" />
+          <circle cx="103" cy="30" r="2.2" fill="#b91c1c" opacity="0.6" />
+          <Bat x={22} y={30} s={1.3} />
+          <Bat x={34} y={16} s={0.9} />
+          <Bat x={110} y={60} s={1} />
+        </g>
+      )}
+      {aura === "morcegos" && (
+        <g>
+          <Bat x={18} y={40} s={1.4} />
+          <Bat x={32} y={18} s={1} />
+          <Bat x={96} y={14} s={1.2} />
+          <Bat x={112} y={44} s={1.1} />
+          <Bat x={20} y={80} s={0.9} />
+          <Bat x={108} y={82} s={1.3} />
+        </g>
+      )}
+      {aura === "abobora" && (
+        <g>
+          <MiniPumpkin x={18} y={44} s={1.2} />
+          <MiniPumpkin x={110} y={40} s={1} />
+          <MiniPumpkin x={22} y={90} s={0.9} />
+          <MiniPumpkin x={106} y={88} s={1.2} />
+          <MiniPumpkin x={34} y={14} s={0.8} />
+          <MiniPumpkin x={94} y={12} s={0.8} />
+        </g>
+      )}
       {aura === "fogo" && (
         <g fill="#f97316" opacity="0.85">
           <path d="M26 92 C18 70 30 60 26 42 C36 54 38 46 40 36 C48 52 40 66 44 80 Z" />
@@ -610,6 +1172,272 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
           <path d="M46 33 L48 3 C58 0 70 0 80 3 L82 33 Z" fill="#1f2937" />
           <path d="M47.3 23 L80.7 23 L81.3 30.5 L46.7 30.5 Z" fill={accent} />
           <path d="M51 6 L52.5 21" stroke="#fff" strokeWidth="3" opacity="0.12" strokeLinecap="round" />
+        </g>
+      );
+    // --- Halloween ---
+    case "bruxa":
+      return (
+        <g>
+          <ellipse cx="64" cy="34" rx="38" ry="7" fill="#18181b" />
+          <path d="M44 33 C50 22 54 10 58 2 C62 -6 76 -8 88 -1 C77 0 72 6 72 14 C76 22 80 28 84 33 Z" fill="#27272a" />
+          <path d="M45 28.5 C58 25.5 70 25.5 83 28.5 L84 33 C70 30 58 30 44 33 Z" fill="#7e22ce" />
+          <rect x="60" y="26.5" width="8" height="6.5" rx="1" fill="none" stroke="#fbbf24" strokeWidth="1.6" />
+          <path d="M54 14 C56 10 60 9 62 12" stroke="#a855f7" strokeWidth="1" fill="none" opacity="0.6" />
+        </g>
+      );
+    case "cabeca-abobora":
+      return (
+        <g>
+          <path d="M62 8 C61 3 63 0 67 -1" stroke="#15803d" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          <path d="M66 6 C72 2 78 4 80 8 C74 9 70 8 66 6 Z" fill="#22c55e" />
+          <ellipse cx="64" cy="22" rx="24" ry="15" fill="#f97316" />
+          <path d="M52 9 C47 15 47 29 52 36 M76 9 C81 15 81 29 76 36 M64 7 L64 37" stroke="#c2410c" strokeWidth="1.8" fill="none" />
+          <path d="M53 17 L57 23 L49 23 Z M75 17 L79 23 L71 23 Z" fill="#fde047" stroke="#431407" strokeWidth="0.8" />
+          <path d="M50 27 L54 30 L58 27 L62 30 L66 27 L70 30 L74 27 L78 27 L74 33 L54 33 Z" fill="#fde047" stroke="#431407" strokeWidth="0.8" />
+        </g>
+      );
+    case "orelhas-lobo":
+      return (
+        <g>
+          <path d="M40 38 L34 8 L58 28 Z" fill="#6b7280" stroke="#4b5563" strokeWidth="1" />
+          <path d="M42 33 L38 16 L53 28 Z" fill="#fda4af" />
+          <path d="M88 38 L94 8 L70 28 Z" fill="#6b7280" stroke="#4b5563" strokeWidth="1" />
+          <path d="M86 33 L90 16 L75 28 Z" fill="#fda4af" />
+          <path d="M36 11 L39 17 M92 11 L89 17" stroke="#9ca3af" strokeWidth="1" />
+        </g>
+      );
+    case "morcego":
+      return (
+        <g>
+          {/* roxo com contorno lilás: aparece até em cima de cabelo preto */}
+          <path d="M36 42 C40 20 88 20 92 42" stroke="#a855f7" strokeWidth="4.5" fill="none" strokeLinecap="round" />
+          <path d="M36 42 C40 20 88 20 92 42" stroke="#3b0764" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+          <path
+            d="M64 22 C60 15 50 11 38 15 C44 17 46 20 46 25 C51 21 56 22 59 25 C61 23 62.5 22 64 23 C65.5 22 67 23 69 25 C72 22 77 21 82 25 C82 20 84 17 90 15 C78 11 68 15 64 22 Z"
+            fill="#3b0764"
+            stroke="#c084fc"
+            strokeWidth="1.3"
+          />
+          <circle cx="62" cy="18.5" r="1" fill="#ef4444" />
+          <circle cx="66" cy="18.5" r="1" fill="#ef4444" />
+        </g>
+      );
+    // --- Mitologia Grega ---
+    case "louros": {
+      // folhas ao longo de dois ramos que se encontram na testa
+      const leaves: [number, number, number][] = [
+        [38, 46, -70],
+        [39, 38, -55],
+        [43, 31, -40],
+        [49, 26, -25],
+        [56, 23, -10],
+      ];
+      return (
+        <g>
+          <path d="M40 50 C38 36 48 24 62 22 M88 50 C90 36 80 24 66 22" stroke="#a16207" strokeWidth="1.8" fill="none" />
+          {leaves.flatMap(([x, y, a]) => [
+            <ellipse key={`l${x}`} cx={x} cy={y} rx="5" ry="2.3" fill="#eab308" stroke="#a16207" strokeWidth="0.6" transform={`rotate(${a} ${x} ${y})`} />,
+            <ellipse key={`r${x}`} cx={128 - x} cy={y} rx="5" ry="2.3" fill="#eab308" stroke="#a16207" strokeWidth="0.6" transform={`rotate(${-a} ${128 - x} ${y})`} />,
+          ])}
+          <circle cx="64" cy="22" r="2.2" fill="#fde047" stroke="#a16207" strokeWidth="0.6" />
+        </g>
+      );
+    }
+    case "elmo-espartano":
+      return (
+        <g>
+          {/* crista de crina vermelha */}
+          <path d="M34 26 C38 -2 90 -2 94 26 C84 14 44 14 34 26 Z" fill="#dc2626" stroke="#991b1b" strokeWidth="1" />
+          <path d="M44 16 L46 6 M54 12 L55 2 M64 11 L64 0 M74 12 L73 2 M84 16 L82 6" stroke="#991b1b" strokeWidth="1" opacity="0.6" />
+          {/* capacete de bronze com proteção de bochecha e de nariz */}
+          <path
+            d="M31 66 C29 30 44 18 64 18 C84 18 99 30 97 66 L87 70 L87 52 C80 49 71 49 67 52 L66 66 L62 66 L61 52 C57 49 48 49 41 52 L41 70 Z"
+            fill="#b45309"
+            stroke="#78350f"
+            strokeWidth="1.2"
+          />
+          <path d="M40 30 C50 22 78 22 88 30" stroke="#fbbf24" strokeWidth="1.6" fill="none" opacity="0.7" />
+          <path d="M41 52 C48 49 57 49 61 52 M67 52 C71 49 80 49 87 52" stroke="#78350f" strokeWidth="1.4" fill="none" />
+        </g>
+      );
+    case "asas-hermes":
+      return (
+        <g>
+          <path d="M38 42 C44 30 84 30 90 42" stroke="#eab308" strokeWidth="3.2" fill="none" strokeLinecap="round" />
+          {[1, -1].map((side) => {
+            // asa esquerda desenhada em volta de x=36; a direita é o espelho em x=92
+            const t = side === 1 ? "" : "translate(128 0) scale(-1 1)";
+            return (
+              <g key={side} transform={t}>
+                <path d="M38 40 C28 36 18 26 14 14 C22 20 28 22 33 24 C27 18 25 11 26 5 C32 14 36 22 41 32 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+                <path d="M36 36 C28 30 22 24 18 17 M38 32 C33 25 30 18 28 10" stroke="#cbd5e1" strokeWidth="0.8" fill="none" />
+              </g>
+            );
+          })}
+        </g>
+      );
+    case "serpentes": {
+      // cobras verdes saindo da cabeça, cada uma com a sua curva
+      const snakes = [
+        "M42 36 C34 30 42 22 34 14",
+        "M52 30 C46 22 56 16 48 6",
+        "M64 28 C60 20 68 12 62 2",
+        "M76 30 C82 22 72 16 80 6",
+        "M86 36 C94 30 86 22 94 14",
+      ];
+      const heads: [number, number][] = [
+        [34, 13],
+        [48, 5],
+        [62, 1],
+        [80, 5],
+        [94, 13],
+      ];
+      return (
+        <g>
+          {snakes.map((d) => (
+            <g key={d}>
+              <path d={d} stroke="#15803d" strokeWidth="5" fill="none" strokeLinecap="round" />
+              <path d={d} stroke="#4ade80" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeDasharray="2 3" />
+            </g>
+          ))}
+          {heads.map(([x, y]) => (
+            <g key={x}>
+              <ellipse cx={x} cy={y} rx="3.8" ry="3" fill="#16a34a" stroke="#14532d" strokeWidth="0.8" />
+              <circle cx={x - 1.2} cy={y - 0.6} r="0.8" fill="#fde047" />
+              <circle cx={x + 1.2} cy={y - 0.6} r="0.8" fill="#fde047" />
+            </g>
+          ))}
+        </g>
+      );
+    }
+    // --- Mitologia Egípcia ---
+    case "nemes":
+      return (
+        <g>
+          {/* pano listrado do faraó: cobre a cabeça e desce atrás das orelhas até os ombros */}
+          <path
+            d="M40 42 C42 24 52 18 64 18 C76 18 86 24 88 42 L102 94 L88 98 L84 62 L81 46 C73 42 55 42 47 46 L44 62 L40 98 L26 94 Z"
+            fill="#eab308"
+            stroke="#a16207"
+            strokeWidth="1"
+          />
+          {[52, 60, 68, 76, 84, 92].map((y) => (
+            <g key={y} stroke="#1e40af" strokeWidth="3.4">
+              <path d={`M${30 + (y - 52) * 0.04} ${y + 2} L${43 - (y - 52) * 0.08} ${y + 4}`} />
+              <path d={`M${98 - (y - 52) * 0.04} ${y + 2} L${85 + (y - 52) * 0.08} ${y + 4}`} />
+            </g>
+          ))}
+          <path d="M46 30 C56 25 72 25 82 30 M42 37 C54 32 74 32 86 37" stroke="#1e40af" strokeWidth="3" fill="none" />
+          <path d="M45 45 C55 41 73 41 83 45" stroke="#1e3a8a" strokeWidth="3" fill="none" />
+          {/* cobra real na testa */}
+          <path d="M64 42 C61 41 60 36 62 33 C63 31 65 31 66 33 C68 36 67 41 64 42 Z" fill="#fde047" stroke="#a16207" strokeWidth="0.8" />
+        </g>
+      );
+    case "anubis":
+      return (
+        <g>
+          <path d="M42 38 L36 -2 L60 26 Z" fill="#111827" stroke="#eab308" strokeWidth="1.2" />
+          <path d="M44 32 L40 8 L55 26 Z" fill="#eab308" opacity="0.85" />
+          <path d="M86 38 L92 -2 L68 26 Z" fill="#111827" stroke="#eab308" strokeWidth="1.2" />
+          <path d="M84 32 L88 8 L73 26 Z" fill="#eab308" opacity="0.85" />
+          <path d="M38 42 C44 30 84 30 90 42" stroke="#eab308" strokeWidth="3" fill="none" strokeLinecap="round" />
+          <path d="M38 42 C44 30 84 30 90 42" stroke="#1e40af" strokeWidth="1" fill="none" strokeDasharray="3 3" />
+        </g>
+      );
+    case "uraeus":
+      return (
+        <g>
+          <path d="M38 40 C45 29 83 29 90 40" stroke="#eab308" strokeWidth="4" fill="none" strokeLinecap="round" />
+          <path d="M38 40 C45 29 83 29 90 40" stroke="#fde68a" strokeWidth="1" fill="none" />
+          {/* cobra dourada erguida na frente */}
+          <path d="M64 34 C57 32 55 23 58 16 C60 11 68 11 70 16 C73 23 71 32 64 34 Z" fill="#eab308" stroke="#a16207" strokeWidth="1" />
+          <path d="M64 30 C61 29 60 24 62 20 C63 18 65 18 66 20 C68 24 67 29 64 30 Z" fill="#1d4ed8" />
+          <circle cx="62.3" cy="17.5" r="0.9" fill="#dc2626" />
+          <circle cx="65.7" cy="17.5" r="0.9" fill="#dc2626" />
+          <circle cx="50" cy="33" r="1.8" fill="#0d9488" />
+          <circle cx="78" cy="33" r="1.8" fill="#0d9488" />
+        </g>
+      );
+    case "disco-ra":
+      return (
+        <g>
+          <circle cx="64" cy="14" r="17" fill="#f97316" opacity="0.25" />
+          {/* chifres em forma de lira segurando o disco do sol */}
+          <path d="M50 32 C38 28 34 16 42 4 C40 14 44 22 54 26 Z" fill="#78350f" />
+          <path d="M78 32 C90 28 94 16 86 4 C88 14 84 22 74 26 Z" fill="#78350f" />
+          <circle cx="64" cy="15" r="12" fill="#dc2626" stroke="#eab308" strokeWidth="2" />
+          <circle cx="60" cy="11" r="3" fill="#fca5a5" opacity="0.6" />
+          <path d="M40 38 C46 28 82 28 88 38" stroke="#eab308" strokeWidth="3.5" fill="none" strokeLinecap="round" />
+          <path d="M64 36 C61 35 60 31 62 28 C63 26.5 65 26.5 66 28 C68 31 67 35 64 36 Z" fill="#eab308" stroke="#a16207" strokeWidth="0.7" />
+        </g>
+      );
+    // --- Natal ---
+    case "gorro-noel":
+      return (
+        <g>
+          {/* gorro vermelho caindo pro lado, com pompom */}
+          <path d="M38 33 C44 14 58 5 70 7 C84 9 96 22 104 46 C97 39 91 34 88 33 Z" fill="#dc2626" />
+          <path d="M70 9 C82 12 92 24 98 38" stroke="#991b1b" strokeWidth="2" fill="none" opacity="0.6" />
+          <path d="M33 38 C33 30 44 27 64 27 C84 27 95 30 95 38 C95 45 84 42 64 42 C44 42 33 45 33 38 Z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="0.8" />
+          <circle cx="104" cy="48" r="6.5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="0.8" />
+        </g>
+      );
+    case "chifres-rena":
+      return (
+        <g>
+          <path d="M38 42 C44 30 84 30 90 42" stroke="#7c2d12" strokeWidth="3" fill="none" strokeLinecap="round" />
+          {[1, -1].map((side) => (
+            <g key={side} transform={side === 1 ? "" : "translate(128 0) scale(-1 1)"} stroke="#92400e" strokeWidth="3.4" fill="none" strokeLinecap="round">
+              <path d="M45 33 C41 23 39 14 41 3" />
+              <path d="M41 19 C35 17 31 12 31 5" />
+              <path d="M41.5 11 C46 9.5 48 6 48 1" />
+            </g>
+          ))}
+          <circle cx="47" cy="37" r="2.4" fill="#fbbf24" stroke="#a16207" strokeWidth="0.6" />
+          <circle cx="81" cy="37" r="2.4" fill="#fbbf24" stroke="#a16207" strokeWidth="0.6" />
+        </g>
+      );
+    case "azevinho": {
+      const leaves: [number, number, number][] = [
+        [40, 40, -65],
+        [42, 32, -45],
+        [48, 26, -25],
+        [56, 23, -8],
+      ];
+      return (
+        <g>
+          {leaves.flatMap(([x, y, a]) => [
+            <g key={`l${x}`} transform={`rotate(${a} ${x} ${y})`}>
+              <ellipse cx={x} cy={y} rx="6" ry="2.8" fill="#15803d" stroke="#14532d" strokeWidth="0.7" />
+              <path d={`M${x - 5} ${y} L${x + 5} ${y}`} stroke="#86efac" strokeWidth="0.5" />
+            </g>,
+            <g key={`r${x}`} transform={`rotate(${-a} ${128 - x} ${y})`}>
+              <ellipse cx={128 - x} cy={y} rx="6" ry="2.8" fill="#15803d" stroke="#14532d" strokeWidth="0.7" />
+              <path d={`M${123 - x} ${y} L${133 - x} ${y}`} stroke="#86efac" strokeWidth="0.5" />
+            </g>,
+          ])}
+          {[
+            [62, 22],
+            [66, 22],
+            [64, 19],
+            [44, 29],
+            [84, 29],
+          ].map(([x, y]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="2.4" fill="#dc2626" stroke="#7f1d1d" strokeWidth="0.5" />
+          ))}
+        </g>
+      );
+    }
+    case "gorro-elfo":
+      return (
+        <g>
+          {/* gorro verde pontudo virado pra trás, com sininho na ponta */}
+          <path d="M40 34 C44 20 56 10 68 5 C78 1 88 3 94 10 C86 9 80 13 78 20 C83 25 86 30 88 34 Z" fill="#16a34a" />
+          <path d="M60 12 C70 8 80 8 88 10" stroke="#15803d" strokeWidth="1.6" fill="none" />
+          <path d="M37 36 C44 30 84 30 91 36 L91 41 C84 35 44 35 37 41 Z" fill="#dc2626" />
+          <path d="M44 33 L46 39 M54 31.5 L55 37.5 M64 31 L64 37 M74 31.5 L73 37.5 M84 33 L82 39" stroke="#f8fafc" strokeWidth="1.6" />
+          <circle cx="95" cy="12" r="3.6" fill="#fbbf24" stroke="#a16207" strokeWidth="0.8" />
+          <path d="M93.5 13.5 L96.5 13.5" stroke="#78350f" strokeWidth="0.8" />
         </g>
       );
     default:

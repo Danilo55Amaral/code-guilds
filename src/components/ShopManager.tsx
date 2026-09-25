@@ -2,21 +2,45 @@
 
 import { useState } from "react";
 import { useShop } from "@/engine/store";
-import { ShopItem, ShopItemData, validateShopItem } from "@/engine/shop";
+import { SHOP_COLLECTIONS, ShopItem, ShopItemData, missingFromCollection, validateShopItem } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
-import { COSMETIC_SLOT_LABELS, DEFAULT_AVATAR, applyCosmetic } from "@/engine/avatar";
+import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, DEFAULT_AVATAR, applyCosmetic } from "@/engine/avatar";
+import { COLLECTION_THEME } from "./collections";
 import Avatar from "./Avatar";
 import { CoinIcon, RarityBadge } from "./GameUI";
 import ShopItemEditor from "./ShopItemEditor";
 
 /** Aba "Loja" do Painel ADM: os itens à venda, quanto já venderam, e o cadastro de novos. */
 export default function ShopManager() {
-  const { items, addItem, editItem, removeItem } = useShop();
+  const { items, addItem, editItem, removeItem, addCollection, removeCollection } = useShop();
   const [target, setTarget] = useState<ShopItem | "new" | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState<CosmeticCollection | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const existing = target && target !== "new" ? target : undefined;
   const totalSold = items.reduce((sum, i) => sum + i.sold, 0);
   const revenue = items.reduce((sum, i) => sum + i.sold * i.price, 0);
+
+  function flash(text: string) {
+    setNotice(text);
+    setTimeout(() => setNotice(null), 4000);
+  }
+
+  function add(collection: CosmeticCollection) {
+    const n = addCollection(collection);
+    const theme = COLLECTION_THEME[collection];
+    flash(`${theme.emoji} ${n} ${n === 1 ? "item entrou" : "itens entraram"} na Loja (${theme.title})!`);
+  }
+
+  function remove(collection: CosmeticCollection) {
+    if (confirmRemove !== collection) {
+      setConfirmRemove(collection);
+      return;
+    }
+    const n = removeCollection(collection);
+    setConfirmRemove(null);
+    flash(`🧹 ${n} ${n === 1 ? "item saiu" : "itens saíram"} da Loja (${COLLECTION_THEME[collection].title}) — quem comprou continua com eles.`);
+  }
 
   function handleSave(data: ShopItemData): string | null {
     const error = validateShopItem(data, existing?.id);
@@ -41,6 +65,55 @@ export default function ShopManager() {
         </button>
       </div>
 
+      {/* ---- coleções temáticas: colocar/tirar tudo de uma vez ---- */}
+      <div className="mb-4 flex flex-col gap-3">
+        {COLLECTIONS.map((collection) => {
+          const theme = COLLECTION_THEME[collection];
+          const onSale = items.filter((i) => i.collection === collection).length;
+          const missing = missingFromCollection(collection, items).length;
+          const confirming = confirmRemove === collection;
+          return (
+            <div
+              key={collection}
+              className={`cg-dark-scope flex flex-wrap items-center justify-between gap-3 rounded-2xl border p-4 ${theme.borderClass}`}
+              style={{ background: theme.background }}
+            >
+              <div>
+                <p className={`text-sm font-bold ${theme.titleClass}`}>
+                  {theme.emoji} Coleção {theme.title.replace(/^Coleção de /, "de ")}
+                </p>
+                <p className={`text-xs ${theme.subtitleClass}`}>
+                  {SHOP_COLLECTIONS[collection].length} itens prontos (mascotes, chapéus, óculos, fantasias, cores, auras e itens de XP) •{" "}
+                  {onSale > 0 ? `${onSale} à venda agora` : "nenhum à venda ainda"}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {missing > 0 && (
+                  <button
+                    onClick={() => add(collection)}
+                    className={`rounded-full bg-gradient-to-r px-4 py-2 text-xs font-bold text-cg-ink shadow-lg transition-transform hover:scale-[1.03] ${theme.buttonClass}`}
+                  >
+                    {theme.emoji} {onSale > 0 ? `Adicionar os ${missing} que faltam` : "Adicionar a coleção"}
+                  </button>
+                )}
+                {onSale > 0 && (
+                  <button
+                    onClick={() => remove(collection)}
+                    onBlur={() => setConfirmRemove(null)}
+                    className={`rounded-full border px-4 py-2 text-xs font-semibold transition-colors ${
+                      confirming ? "border-rose-400 bg-rose-400/20 text-rose-200" : "border-white/30 text-white/85 hover:bg-white/10"
+                    }`}
+                  >
+                    {confirming ? `Tirar os ${onSale} itens?` : "🧹 Tirar a coleção da Loja"}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {notice && <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">{notice}</p>}
+
       {items.length === 0 ? (
         <p className="text-sm text-slate-500">A Loja está vazia — clique em &quot;+ Novo item&quot; pra colocar o primeiro à venda.</p>
       ) : (
@@ -60,6 +133,7 @@ export default function ShopManager() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">
                   {item.featured && <span title="Em destaque">⭐ </span>}
+                  {item.collection && <span title={COLLECTION_THEME[item.collection].title}>{COLLECTION_THEME[item.collection].emoji} </span>}
                   {item.name}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
