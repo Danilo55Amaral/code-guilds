@@ -408,10 +408,11 @@ export function playMagicChime(): () => void {
 }
 
 /**
- * O Mago Danilo lê a fala em voz alta. Emojis saem do texto (a voz leria o
- * nome deles). Devolve a função que interrompe a fala.
+ * Um personagem lê a fala em voz alta, com a altura (`pitch`, 0 a 2) e a
+ * velocidade (`rate`) da voz dele. Emojis saem do texto (a voz leria o nome
+ * deles). Devolve a função que interrompe a fala.
  */
-export function speakWizard(text: string): () => void {
+export function speakCharacter(text: string, { pitch, rate }: { pitch: number; rate: number }): () => void {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return () => {};
   const synth = window.speechSynthesis;
   const ptVoices = synth.getVoices().filter((v) => v.lang.toLowerCase().startsWith("pt"));
@@ -422,9 +423,187 @@ export function speakWizard(text: string): () => void {
   const u = new SpeechSynthesisUtterance(clean);
   u.lang = "pt-BR";
   if (voice) u.voice = voice;
-  u.pitch = 0.8; // um pouco grave: voz de mago sábio
-  u.rate = 1.05;
+  u.pitch = pitch;
+  u.rate = rate;
   u.volume = 1;
   synth.speak(u);
   return () => synth.cancel();
+}
+
+/** O Mago Danilo lê a fala do tutorial: voz um pouco grave, de mago sábio. */
+export function speakWizard(text: string): () => void {
+  return speakCharacter(text, { pitch: 0.8, rate: 1.05 });
+}
+
+// ============================================================================
+// CENAS DE EVENTO (components/EventScene.tsx) — sino da meia-noite, trovão e
+// o fundo sombrio que fica tocando enquanto a história é contada.
+// ============================================================================
+
+/** Sino da meia-noite: badaladas graves e longas, com eco de salão. */
+export function playMidnightBell(strikes = 3): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  for (let i = 0; i < strikes; i++) {
+    playChime(ctx, out, 50, t + i * 1.2, 3.8, 0.22); // Ré3
+    playChime(ctx, out, 62, t + i * 1.2, 2.6, 0.07); // Ré4 (brilho do bronze)
+  }
+  return closeScene(ctx);
+}
+
+/** Trovão: estalo agudo e um ronco grave que vai rolando e sumindo. */
+export function playThunder(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.7);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  const crack = ctx.createBufferSource();
+  crack.buffer = noiseBuffer(ctx, 0.4);
+  const crackFilter = ctx.createBiquadFilter();
+  crackFilter.type = "highpass";
+  crackFilter.frequency.value = 1200;
+  const crackGain = ctx.createGain();
+  crackGain.gain.setValueAtTime(0.0001, t);
+  crackGain.gain.exponentialRampToValueAtTime(0.5, t + 0.01);
+  crackGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
+  crack.connect(crackFilter).connect(crackGain).connect(out);
+  crack.start(t);
+  crack.stop(t + 0.4);
+
+  const rumble = ctx.createBufferSource();
+  rumble.buffer = noiseBuffer(ctx, 3.2);
+  const rumbleFilter = ctx.createBiquadFilter();
+  rumbleFilter.type = "lowpass";
+  rumbleFilter.frequency.setValueAtTime(420, t);
+  rumbleFilter.frequency.exponentialRampToValueAtTime(90, t + 3);
+  const rumbleGain = ctx.createGain();
+  rumbleGain.gain.setValueAtTime(0.0001, t);
+  rumbleGain.gain.exponentialRampToValueAtTime(0.9, t + 0.12);
+  rumbleGain.gain.exponentialRampToValueAtTime(0.35, t + 1);
+  rumbleGain.gain.exponentialRampToValueAtTime(0.0001, t + 3.1);
+  rumble.connect(rumbleFilter).connect(rumbleGain).connect(out);
+  rumble.start(t);
+  rumble.stop(t + 3.2);
+
+  playBoom(ctx, out, t + 0.05);
+  return closeScene(ctx);
+}
+
+/** Sirene de alerta: tom subindo e descendo, duas vezes, com um zumbido de alto-falante velho. */
+export function playSiren(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.3);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const osc = ctx.createOscillator();
+  osc.type = "sawtooth";
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.value = 900;
+  filter.Q.value = 0.8;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.35, t + 0.3);
+  gain.gain.setValueAtTime(0.35, t + 3.4);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 4);
+  for (let i = 0; i < 2; i++) {
+    const s = t + i * 2;
+    osc.frequency.setValueAtTime(420, s);
+    osc.frequency.linearRampToValueAtTime(880, s + 1);
+    osc.frequency.linearRampToValueAtTime(420, s + 2);
+  }
+  osc.connect(filter).connect(gain).connect(out);
+  osc.start(t);
+  osc.stop(t + 4.1);
+  return closeScene(ctx);
+}
+
+/** Gemido de zumbi: voz grave e rouca, tremendo e caindo de tom ("uuuuhhh"). */
+export function playZombieGroan(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.5);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  [
+    [0, 105],
+    [0.9, 88],
+  ].forEach(([delay, pitch]) => {
+    const at = t + delay;
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(pitch, at);
+    osc.frequency.linearRampToValueAtTime(pitch * 0.72, at + 1.8);
+    const wobble = ctx.createOscillator();
+    wobble.frequency.value = 6;
+    const wobbleDepth = ctx.createGain();
+    wobbleDepth.gain.value = 5;
+    wobble.connect(wobbleDepth).connect(osc.frequency);
+    const formant = ctx.createBiquadFilter();
+    formant.type = "bandpass";
+    formant.frequency.setValueAtTime(520, at);
+    formant.frequency.linearRampToValueAtTime(380, at + 1.8);
+    formant.Q.value = 4;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.5, at + 0.25);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 1.9);
+    osc.connect(formant).connect(gain).connect(out);
+    osc.start(at);
+    wobble.start(at);
+    osc.stop(at + 2);
+    wobble.stop(at + 2);
+  });
+  return closeScene(ctx);
+}
+
+/**
+ * Fundo sombrio contínuo: notas graves levemente desafinadas com o filtro
+ * "respirando" devagar. Toca até chamar a função devolvida (que abaixa o volume e fecha).
+ */
+export function playSpookyAmbience(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.5);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 280;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.12;
+  const lfoDepth = ctx.createGain();
+  lfoDepth.gain.value = 140;
+  lfo.connect(lfoDepth).connect(filter.frequency);
+  lfo.start(t);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.13, t + 2.5);
+  filter.connect(gain).connect(out);
+  [49, 49.6, 73.4, 98.1].forEach((freq) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq;
+    osc.connect(filter);
+    osc.start(t);
+  });
+
+  return () => {
+    if (ctx.state === "closed") return;
+    const now = ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    window.setTimeout(() => {
+      if (ctx.state !== "closed") ctx.close();
+    }, 700);
+  };
 }

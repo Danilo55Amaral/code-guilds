@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Mission, matchesSearch } from "@/engine/missions";
 import { Student } from "@/engine/students";
+import { getEvent } from "@/engine/specialEvents";
 import { DifficultyBadge } from "./GameUI";
 import SearchInput from "./SearchInput";
 import { PaginationFooter, usePagination } from "./Pagination";
@@ -65,7 +66,14 @@ export default function MissionList({
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="text-lg">{m.icon}</span>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-white">{m.title}</p>
+                        <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
+                          {m.title}
+                          {m.eventId && (
+                            <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 text-[10px] font-semibold text-orange-300">
+                              {getEvent(m.eventId)?.icon ?? "📅"} Evento
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-slate-500">{m.description}</p>
                       </div>
                     </div>

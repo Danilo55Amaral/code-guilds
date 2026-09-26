@@ -30,6 +30,12 @@ export interface InventoryItem {
 
 export type OnboardingStep = "casa" | "avatar" | "completo";
 
+/** Progresso do aluno num evento especial (engine/specialEvents.ts). */
+export interface EventProgress {
+  introSeenAt?: string; // já viu a cena de abertura
+  finishedAt?: string; // já viu a cena final e ganhou a recompensa
+}
+
 export interface Student {
   id: string;
   name: string;
@@ -48,6 +54,7 @@ export interface Student {
   onboardingStep: OnboardingStep;
   tutorialDone?: boolean; // já viu (ou pulou) o tutorial da Academia
   equipped: Partial<Record<CosmeticSlot, string>>; // espaço do avatar -> id do item de visual equipado
+  events: Record<string, EventProgress>; // id do evento -> progresso
   createdAt: string;
 }
 
@@ -104,6 +111,7 @@ function readAll(): Student[] {
         teacherId: s.teacherId ?? DEFAULT_TEACHER_ID,
         avatar: normalizeAvatar(s.avatar ?? {}),
         equipped: s.equipped ?? {},
+        events: s.events ?? {},
         // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
         // itens de antes do ícone próprio ficam com o ícone da raridade
         inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
@@ -207,6 +215,7 @@ export function createStudent(data: { name: string; email: string; turma: string
     completedMissionIds: [],
     onboardingStep: "casa",
     equipped: {},
+    events: {},
     createdAt: new Date().toISOString(),
   };
   writeAll([...readAll(), student]);

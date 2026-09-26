@@ -11,8 +11,9 @@ import {
   updateStudent,
   reassignStudents,
   login as loginStudent,
+  applyMissionReward,
 } from "./students";
-import { Mission } from "./missions";
+import { Mission, hasPassed } from "./missions";
 import { listMissions, createMission, updateMission, deleteMission, reassignMissions } from "./missionsStore";
 import {
   Teacher,
@@ -37,6 +38,8 @@ import {
   markAsRead,
   markAllAsRead,
   deleteMessagesOf,
+  SYSTEM_SENDER_ID,
+  missionRewardMessage,
 } from "./messages";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
@@ -162,6 +165,35 @@ export function useMissions() {
   const refresh = sync;
 
   return { missions, ready, refresh, addMission, editMission, removeMission };
+}
+
+/**
+ * Termina uma tentativa de missão do aluno logado (tela de Missões e tela de evento):
+ * com 60%+ de acertos numa missão ainda não concluída, aplica XP, moedas e item
+ * e manda a mensagem de recompensa. Revisão de missão já concluída ou nota
+ * abaixo de 60% não dão nada. Devolve o nível antigo e o novo quando o aluno
+ * subiu de nível, pra tela abrir a cena de nível; senão, null.
+ */
+export function useMissionAttempt() {
+  const { activeStudent, patchActive } = useStudents();
+  const { send } = useMessages(activeStudent?.id ?? null);
+
+  return useCallback(
+    (mission: Mission, correctCount: number): { from: number; to: number } | null => {
+      if (!activeStudent || activeStudent.completedMissionIds.includes(mission.id)) return null;
+      if (!hasPassed(correctCount, mission.questions.length)) return null;
+      const result = applyMissionReward(activeStudent, mission);
+      patchActive(result.student);
+      send({
+        studentId: activeStudent.id,
+        senderId: SYSTEM_SENDER_ID,
+        kind: "missao",
+        body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }),
+      });
+      return result.leveledUp ? { from: activeStudent.level, to: result.newLevel } : null;
+    },
+    [activeStudent, patchActive, send],
+  );
 }
 
 /** Mensagens de um aluno. Com studentId null (ninguém logado), devolve lista vazia. */

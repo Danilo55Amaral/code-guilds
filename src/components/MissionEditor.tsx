@@ -136,11 +136,14 @@ export default function MissionEditor({
   teachers,
   defaultTeacherId,
   shopItems,
+  eventLabel,
   onSave,
   onDelete,
   onClose,
 }: {
   existingMission?: Mission;
+  /** Missão de um evento especial: mostra o selo do evento no topo (ex.: "🎃 A Noite do Bug Assombrado"). */
+  eventLabel?: string;
   /** Só o Painel ADM passa: mostra a escolha do professor dono da missão. */
   teachers?: Teacher[];
   defaultTeacherId?: string;
@@ -209,7 +212,10 @@ export default function MissionEditor({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="cg-card flex max-h-[90vh] w-full max-w-2xl flex-col">
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
-          <h2 className="text-lg font-bold text-white">{existingMission ? "Editar Missão" : "Nova Missão"}</h2>
+          <div className="min-w-0">
+            <h2 className="text-lg font-bold text-white">{existingMission ? "Editar Missão" : "Nova Missão"}</h2>
+            {eventLabel && <p className="mt-0.5 text-xs font-semibold text-orange-300">📅 Missão do evento {eventLabel}</p>}
+          </div>
           <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:text-white">
             ✕
           </button>

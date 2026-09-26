@@ -94,6 +94,7 @@ export interface Mission {
   rewardCoins: number;
   rewardItem: RewardItem;
   questions: QuizQuestion[];
+  eventId?: string; // missão exclusiva de um evento (engine/specialEvents.ts): só aparece na tela do evento
 }
 
 /** O que o editor de missão preenche — o id é gerado ao criar e o professor dono vem de quem cria. */

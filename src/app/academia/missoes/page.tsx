@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useStudents, useMissions, useMessages } from "@/engine/store";
-import { SYSTEM_SENDER_ID, missionRewardMessage } from "@/engine/messages";
-import { Mission, RewardItem, hasPassed, matchesSearch, requiredCorrect } from "@/engine/missions";
-import { applyMissionReward } from "@/engine/students";
+import { useStudents, useMissions, useMissionAttempt } from "@/engine/store";
+import { Mission, RewardItem, matchesSearch, requiredCorrect } from "@/engine/missions";
 import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 import QuizModal from "@/components/QuizModal";
 import Pagination from "@/components/Pagination";
@@ -24,9 +22,9 @@ const EMPTY_MESSAGES: Record<StatusFilter, string> = {
 };
 
 export default function MissoesPage() {
-  const { activeStudent, patchActive } = useStudents();
+  const { activeStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady } = useMissions();
-  const { send: sendMessage } = useMessages(activeStudent?.id ?? null);
+  const attemptMission = useMissionAttempt();
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
@@ -36,8 +34,8 @@ export default function MissoesPage() {
 
   if (!activeStudent || !missionsReady) return null;
 
-  // O aluno só vê as missões do professor que escolheu no cadastro.
-  const missions = allMissions.filter((m) => m.teacherId === activeStudent.teacherId);
+  // O aluno só vê as missões do professor que escolheu no cadastro; as de evento ficam na tela do evento.
+  const missions = allMissions.filter((m) => m.teacherId === activeStudent.teacherId && !m.eventId);
   const completedIds = activeStudent.completedMissionIds;
   // A busca vem antes do filtro de status, então os contadores das abas já refletem o que foi digitado.
   const searchedMissions = missions.filter((m) => matchesSearch(m, search));
@@ -70,32 +68,11 @@ export default function MissoesPage() {
   const alreadyCompleted = activeMission ? completedIds.includes(activeMission.id) : false;
 
   function handleComplete(correctCount: number) {
-    if (!activeMission || !activeStudent) return;
-    // Missão já concluída antes: é só revisão, não gera XP/moedas/item de novo.
-    if (activeStudent.completedMissionIds.includes(activeMission.id)) {
-      setActiveMission(null);
-      return;
-    }
-    // Abaixo de 60%: nada de recompensa, e a missão continua ativa pra tentar de novo.
-    if (!hasPassed(correctCount, activeMission.questions.length)) {
-      setActiveMission(null);
-      return;
-    }
-    const result = applyMissionReward(activeStudent, activeMission);
-    patchActive(result.student);
-    sendMessage({
-      studentId: activeStudent.id,
-      senderId: SYSTEM_SENDER_ID,
-      kind: "missao",
-      body: missionRewardMessage({
-        mission: activeMission,
-        item: activeMission.rewardItem,
-        xp: activeMission.rewardXp,
-        coins: activeMission.rewardCoins,
-      }),
-    });
+    if (!activeMission) return;
+    // Revisão ou nota abaixo de 60% não dão nada (a missão continua ativa pra tentar de novo).
     // A cena de nível abre logo depois que a tela de recompensas fecha.
-    if (result.leveledUp) setLevelUp({ from: activeStudent.level, to: result.newLevel });
+    const levelUpResult = attemptMission(activeMission, correctCount);
+    if (levelUpResult) setLevelUp(levelUpResult);
     setActiveMission(null);
   }
 

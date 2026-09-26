@@ -11,11 +11,13 @@ import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
 import StudentList from "@/components/StudentList";
 import MissionList from "@/components/MissionList";
+import EventMissionsManager from "@/components/EventMissionsManager";
 import StudentDetails from "@/components/StudentDetails";
 import BroadcastComposer from "@/components/BroadcastComposer";
 import TutorialModal from "@/components/TutorialModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { teacherTutorial } from "@/engine/tutorial";
+import { EventId, getEvent } from "@/engine/specialEvents";
 
 export default function PainelProfessorPage() {
   const router = useRouter();
@@ -23,6 +25,8 @@ export default function PainelProfessorPage() {
   const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
+  // Evento da missão nova sendo criada (null = missão normal).
+  const [newMissionEventId, setNewMissionEventId] = useState<EventId | null>(null);
   // Guarda só o id: o aluno é relido da lista a cada render, então a ficha
   // aberta já mostra o item dado/excluído na hora.
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
@@ -45,21 +49,48 @@ export default function PainelProfessorPage() {
   // O professor só enxerga (e só altera) os próprios alunos e as próprias missões.
   const students = allStudents.filter((s) => s.teacherId === teacher.id);
   const missions = allMissions.filter((m) => m.teacherId === teacher.id);
+  // As missões de evento ficam no card de Eventos; aqui são só as normais.
+  const regularMissions = missions.filter((m) => !m.eventId);
+
+  function closeEditor() {
+    setEditorTarget(null);
+    setNewMissionEventId(null);
+  }
 
   function handleSave(data: MissionContent) {
     if (editorTarget && editorTarget !== "new") {
       editMission(editorTarget.id, data);
     } else {
-      addMission({ ...data, teacherId: teacher.id });
+      addMission({ ...data, teacherId: teacher.id, ...(newMissionEventId && { eventId: newMissionEventId }) });
     }
-    setEditorTarget(null);
+    closeEditor();
   }
 
   function handleDelete() {
     if (editorTarget && editorTarget !== "new") {
       removeMission(editorTarget.id);
     }
-    setEditorTarget(null);
+    closeEditor();
+  }
+
+  function eventLabelOf(eventId: string | null | undefined): string | undefined {
+    const event = eventId ? getEvent(eventId) : undefined;
+    return event ? `${event.icon} ${event.title}` : undefined;
+  }
+
+  function createEventMission(eventId: EventId) {
+    setNewMissionEventId(eventId);
+    setEditorTarget("new");
+  }
+
+  /** Adiciona ao evento as missões prontas dele que o professor ainda não tem (comparando pelo título). */
+  function addEventPresets(eventId: EventId) {
+    const event = getEvent(eventId);
+    if (!event) return;
+    const current = missions.filter((m) => m.eventId === eventId);
+    event.presetMissions
+      .filter((p) => !current.some((m) => m.title === p.title))
+      .forEach((p) => addMission({ ...p, teacherId: teacher.id, eventId }));
   }
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
@@ -152,7 +183,7 @@ export default function PainelProfessorPage() {
         </div>
         <div className="cg-card p-4">
           <p className="text-[11px] uppercase tracking-wider text-slate-500">Missões</p>
-          <p className="mt-1 text-2xl font-bold text-white">{missions.length}</p>
+          <p className="mt-1 text-2xl font-bold text-white">{regularMissions.length}</p>
         </div>
         {HOUSES.map((h) => (
           <div key={h.id} className="cg-card p-4">
@@ -174,7 +205,7 @@ export default function PainelProfessorPage() {
 
       <MissionList
         title="Missões cadastradas"
-        missions={missions}
+        missions={regularMissions}
         students={students}
         emptyText="Você ainda não criou nenhuma missão — seus alunos só veem as missões criadas por você."
         headerRight={
@@ -183,6 +214,16 @@ export default function PainelProfessorPage() {
           </button>
         }
         onSelect={setEditorTarget}
+      />
+
+      <EventMissionsManager
+        missions={missions}
+        students={students}
+        onEdit={setEditorTarget}
+        onCreate={createEventMission}
+        onAssign={(missionId, eventId) => editMission(missionId, { eventId })}
+        onUnassign={(missionId) => editMission(missionId, { eventId: undefined })}
+        onAddPresets={addEventPresets}
       />
 
       {selectedStudent && (
@@ -204,9 +245,10 @@ export default function PainelProfessorPage() {
       {editorTarget && (
         <MissionEditor
           existingMission={editorTarget === "new" ? undefined : editorTarget}
+          eventLabel={eventLabelOf(editorTarget === "new" ? newMissionEventId : editorTarget.eventId)}
           onSave={handleSave}
           onDelete={editorTarget !== "new" ? handleDelete : undefined}
-          onClose={() => setEditorTarget(null)}
+          onClose={closeEditor}
         />
       )}
 

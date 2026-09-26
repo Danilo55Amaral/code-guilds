@@ -45,6 +45,15 @@ export function missionRewardMessage(data: { mission: { title: string; icon: str
   );
 }
 
+/** Aluno finalizou um evento especial: a recompensa final do evento. */
+export function eventRewardMessage(data: { event: { title: string; icon: string }; item: ItemSummary; xp: number; coins: number }): string {
+  return (
+    `🏆 Evento finalizado: ${data.event.icon} ${data.event.title}!\n\n` +
+    `Você salvou a Academia! Como recompensa final você ganhou o item ${describeItem(data.item)}, +${data.xp} XP e ${data.coins} moedas. ` +
+    `O item já está no seu Inventário.`
+  );
+}
+
 /** Comprador: a compra de um colega deu certo. */
 export function purchaseMessage(data: { item: ItemSummary; sellerName: string; price: number }): string {
   return (

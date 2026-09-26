@@ -40,6 +40,11 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
     body: "Ahh, o Mercado Arcano, meu lugar favorito! Lá você troca moedas por poções de XP e visuais exclusivos: chapéus, óculos, auras e até mascotes! Use o botão Provar pra ver como fica em você antes de comprar, e depois equipe no Inventário.",
   },
   {
+    icon: "📅",
+    title: "Eventos",
+    body: "De vez em quando a Academia recebe eventos especiais, como a Noite do Bug Assombrado no Halloween e o Surto do Vírus Z no Apocalipse Zumbi! Cada evento tem uma história animada, missões exclusivas e uma recompensa lendária pra quem chegar até o final. Fique de olho no Salão dos Eventos!",
+  },
+  {
     icon: "🏰",
     title: "Minha Casa",
     body: "Em Minha Casa você vê os pontos de cada casa e o ranking dos seus colegas. Cada XP que você ganha soma pontos pra sua casa! Clique num colega pra ver o avatar e os itens dele.",
@@ -81,6 +86,11 @@ const TEACHER_STEPS: TutorialStep[] = [
     icon: "⚔️",
     title: "Missões",
     body: "Aqui nasce a magia! Crie missões com perguntas, explicações, nível mínimo, dificuldade e recompensas: XP, moedas e um item com ícone e descrição. Seus alunos precisam acertar 60% pra ganhar a recompensa.",
+  },
+  {
+    icon: "📅",
+    title: "Eventos",
+    body: "Nos eventos especiais, como o de Halloween e o Apocalipse Zumbi, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quem concluir todas ganha o final da história e uma recompensa lendária!",
   },
 ];
 
