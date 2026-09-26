@@ -43,6 +43,7 @@ src/
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
     market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
     eventSchedule.ts  -> agenda dos eventos: cada professor inicia/encerra cada evento pra turma dele (cg-event-runs); só evento "acontecendo" aparece pros alunos
+    houseLore.ts      -> a Lenda da Fundação e a história de cada casa (fundador, lema, salão comunal, especialidade, traços)
     specialEvents.ts  -> eventos especiais (Halloween, Apocalipse Zumbi e Invasão Alienígena): história em cenas (abertura e final), vilão, missões prontas, recompensa final e o progresso do aluno (Student.events)
     sfx.ts            -> sons das cenas gerados no navegador (Web Audio + voz sintetizada): risada da Morte, fanfarra de vitória, jingle de nível, sino da meia-noite, trovão, fundo sombrio e a voz de cada personagem (speakCharacter); e a preferência de som/mudo
     music.ts          -> música de fundo medieval da Academia, composta e tocada via Web Audio (loop de ~30s)
@@ -79,6 +80,7 @@ src/
     MusicToggle.tsx     -> botão 🎶 ao lado do sino que liga/desliga a música de fundo
     EventScene.tsx      -> player em tela cheia da história de um evento (vinheta de título, faixas de cinema, balão estilo visual novel, voz e sons)
     EventMissionsManager.tsx -> card "Eventos da Academia" do painel do professor (criar/atribuir/tirar missões do evento, missões prontas)
+    guilds/HouseAnimals.tsx -> os animais das casas em SVG animado (Leão, Serpente, Águia, Corvo), o cenário de cada um e o brasão recortado no formato do escudo
     events/registry.ts  -> visual de cada evento (desenho das cenas, ícone de progresso, cores, balão do vilão)
     events/common.tsx   -> peças de arte comuns aos eventos: castelo da CodeGuilds, céu estrelado, névoa, relâmpagos, confete, raios, vitrine da recompensa
     events/HalloweenArt.tsx -> as cenas do Halloween em SVG/CSS: lua de sangue, morcegos, Rei Abóbora, fantasmas, Lanternas Sagradas
@@ -88,7 +90,8 @@ src/
     entrar/, casa-selecao/, avatar/  -> onboarding
     academia/missoes|inventario|casa -> as 3 telas principais (layout compartilhado)
     academia/eventos, eventos/[eventId] -> Salão dos Eventos e a tela de cada evento
-    academia/guildas|lore            -> placeholders "em breve" (mesmo layout)
+    academia/guildas                 -> Guildas: a lenda da fundação e a apresentação das quatro casas
+    academia/lore                    -> placeholder "em breve" (mesmo layout)
     professor/, professor/painel/    -> área do professor
     admin/, admin/painel/            -> Painel ADM
 public/
@@ -124,6 +127,12 @@ public/
   - **Painel ADM → aba 📅 Eventos**: as mesmas ferramentas (iniciar/encerrar, criar/editar/atribuir/tirar missões do evento, missões prontas) pra turma de qualquer professor, escolhida no seletor "Turma do professor". O contador da aba mostra quantos eventos estão acontecendo na plataforma
   - Mudança de comportamento: antes, todo evento aparecia pra todos os alunos; agora ele começa escondido até o professor clicar em Iniciar
 - 📋 Menu da Academia: Eventos agora é o primeiro item e Missões o segundo
+- ⚜️ Guildas (menu Guildas) — a tela pra conhecer as quatro casas, sempre escura:
+  - **Banner** "As Quatro Guildas" com os 4 brasões flutuando e brilhando na cor de cada casa (clique leva pra seção da casa) e o selo "✦ Sua casa"
+  - **A Lenda da Fundação**: o Código-Fonte, o Grande Bug e os quatro fundadores (Aurélia Brasa, Silas Umbra, Heitor Solaris e Minerva Corvina) que o aprisionaram e fundaram as guildas
+  - **Uma seção por casa**, alternando os lados: o animal em SVG animado no cenário dele — o Leão coroado que "respira" a juba e ruge na forja em chamas com brasas subindo; a Serpente balançando com as escamas correndo pelo corpo e a língua saindo, no pântano ao luar com vaga-lumes; a Águia batendo as asas no céu dourado com nuvens passando; o Corvo de olhos azuis inclinando a cabeça sobre um livro aberto, com símbolos de código flutuando —, o brasão, lema, fundador, história, salão comunal, especialidade na programação, "Quem é da casa..." e dados reais (membros, pontos e aluno destaque). As seções aparecem subindo quando entram na tela
+  - **A Taça das Guildas**: a disputa de pontos das casas, com link pro ranking completo em Minha Casa
+  - Os brasões originais são quadrados com fundo (azul/magenta): na tela eles são recortados no formato do escudo (`CREST_CLIP`). As casas agora usam versões web de 512px (`public/crests/web/`, ~150 KB cada, contra 0,7–1,2 MB dos originais, que continuam em `public/crests/`) — carregam mais rápido. O projeto usa o pacote `sharp` (dependência), que o Next usa pra otimizar as imagens: sem ele a conversão pra WebP era tão lenta que os originais grandes chegavam a travar o carregamento (mais de 2 minutos; com o sharp, cerca de 2 s na primeira vez e depois fica em cache). O sharp 0.35 pede Node 20.9 ou mais novo
 - 🏆 Ranking dos eventos — pontuação só do evento, separada do XP geral: o XP de recompensa de cada missão do evento que o aluno concluiu + o XP da recompensa final se ele finalizou. A casa soma os pontos dos seus alunos. Entra quem participou (viu a abertura ou pontuou). Empates: entre alunos, quem finalizou primeiro (depois o nome); entre casas, a do aluno mais bem colocado. Funções em `specialEvents.ts` (`eventStanding`, `eventStandings`, `houseEventStandings`) e o componente `EventRanking.tsx`:
   - faixa da **👑 Casa campeã** (evento encerrado) ou **Casa liderando** (acontecendo), com o brasão; placar das 4 casas com barras, pontos e participantes; pódio 🥇🥈🥉 dos alunos; lista de todas as casas com missões feitas, "🏆 finalizou" e pontos; busca; 10 por página; "Você está em #N de M"
   - **Aluno**: na tela do evento (embaixo das missões) e no **Salão dos Eventos**, na seção "🏆 Rankings dos eventos", com uma aba por evento que o professor já iniciou — inclusive os encerrados, pra sempre saber a casa campeã de cada evento. Clicar num aluno abre o perfil público dele

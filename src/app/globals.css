@@ -296,6 +296,46 @@
   from { opacity: 1; }
   to { opacity: 0; }
 }
+/* ---- animais das casas (tela Guildas, components/guilds/) ---- */
+@keyframes cg-mane {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(3deg); }
+}
+@keyframes cg-roar {
+  0%, 62%, 100% { transform: scaleY(0); }
+  68%, 82% { transform: scaleY(1); }
+}
+@keyframes cg-slither {
+  to { stroke-dashoffset: -56; }
+}
+@keyframes cg-sway {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+@keyframes cg-tongue {
+  0%, 55%, 100% { transform: scaleX(0); }
+  62%, 70% { transform: scaleX(1); }
+  66% { transform: scaleX(0.6); }
+}
+@keyframes cg-wing-l {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(16deg); }
+}
+@keyframes cg-wing-r {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-16deg); }
+}
+@keyframes cg-tilt {
+  0%, 40%, 100% { transform: rotate(0deg); }
+  50%, 65% { transform: rotate(-14deg); }
+  75%, 90% { transform: rotate(8deg); }
+}
+@keyframes cg-flutter {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  85% { transform: rotate(-10deg); }
+  90% { transform: rotate(4deg); }
+  95% { transform: rotate(-6deg); }
+}
 /* evento Invasão Alienígena */
 @keyframes cg-hover {
   0%, 100% { transform: translateY(0) rotate(-3deg); }
@@ -381,6 +421,16 @@
   .cg-anim-fade-out { animation: cg-fade-out 0.9s ease-in var(--cg-delay, 1.5s) both; }
   .cg-anim-siren { animation: cg-spin 1.8s linear infinite; transform-box: fill-box; transform-origin: center; }
   .cg-anim-hover { animation: cg-hover 3s ease-in-out infinite; }
+  /* animais das casas */
+  .cg-anim-mane { animation: cg-mane 4s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-roar { animation: cg-roar 5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 0%; }
+  .cg-anim-slither { animation: cg-slither 1.6s linear infinite; }
+  .cg-anim-sway { animation: cg-sway 4.5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+  .cg-anim-tongue { animation: cg-tongue 2.6s ease-in-out infinite; transform-box: fill-box; transform-origin: 0% 50%; }
+  .cg-anim-wing-l { animation: cg-wing-l 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 100% 30%; }
+  .cg-anim-wing-r { animation: cg-wing-r 1.4s ease-in-out infinite; transform-box: fill-box; transform-origin: 0% 30%; }
+  .cg-anim-tilt { animation: cg-tilt 5s ease-in-out infinite; transform-box: fill-box; transform-origin: 30% 100%; }
+  .cg-anim-flutter { animation: cg-flutter 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 15% 20%; }
   .cg-anim-beam { animation: cg-beam 1.2s ease-in-out infinite; }
   .cg-anim-fly-in { animation: cg-fly-in 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--cg-delay, 0s) both; }
   .cg-anim-descend { animation: cg-descend 2.6s ease-out var(--cg-delay, 0s) both; }

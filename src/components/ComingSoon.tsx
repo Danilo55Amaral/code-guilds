@@ -1,4 +1,4 @@
-// Placeholder das telas que ainda não foram construídas (Lore, Guildas).
+// Placeholder das telas que ainda não foram construídas (Lore).
 export default function ComingSoon({ title, icon, description }: { title: string; icon: string; description: string }) {
   return (
     <div>

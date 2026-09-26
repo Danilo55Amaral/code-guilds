@@ -10,7 +10,7 @@ export interface House {
   animal: string;
   virtue: string;
   description: string;
-  crest: string; // caminho em /public
+  crest: string; // caminho em /public (versão web de 512px; os originais grandes ficam em /public/crests)
   // tokens de cor (usados via className dinâmica nas telas)
   colorClass: string; // texto/acento
   borderClass: string;
@@ -26,7 +26,7 @@ export const HOUSES: House[] = [
     animal: "Leão",
     virtue: "Coragem",
     description: "Forjados no fogo da determinação",
-    crest: "/crests/ignis.png",
+    crest: "/crests/web/ignis.png",
     colorClass: "text-red-400",
     borderClass: "border-red-500/40",
     bgClass: "bg-red-500/10",
@@ -39,7 +39,7 @@ export const HOUSES: House[] = [
     animal: "Serpente",
     virtue: "Astúcia",
     description: "Silenciosos como a sombra, letais como o veneno",
-    crest: "/crests/noctis.png",
+    crest: "/crests/web/noctis.png",
     colorClass: "text-emerald-400",
     borderClass: "border-emerald-500/40",
     bgClass: "bg-emerald-500/10",
@@ -52,7 +52,7 @@ export const HOUSES: House[] = [
     animal: "Águia",
     virtue: "Lealdade",
     description: "Visão além das nuvens, honra inquebrável",
-    crest: "/crests/flavus.png",
+    crest: "/crests/web/flavus.png",
     colorClass: "text-amber-400",
     borderClass: "border-amber-500/40",
     bgClass: "bg-amber-500/10",
@@ -65,7 +65,7 @@ export const HOUSES: House[] = [
     animal: "Corvo",
     virtue: "Lógica",
     description: "A mente é a arma mais afiada",
-    crest: "/crests/sapientia.png",
+    crest: "/crests/web/sapientia.png",
     colorClass: "text-blue-400",
     borderClass: "border-blue-500/40",
     bgClass: "bg-blue-500/10",
