@@ -471,8 +471,8 @@ export default function ZombieArt({ art, speaker, mouthOpen = false, student }: 
               <div className="cg-anim-shrink-away h-full">
                 <DrNecrose talking={talkingVillain} className="h-full w-auto drop-shadow-[0_0_40px_rgba(163,230,53,0.55)]" />
               </div>
-              <div className="cg-anim-poof pointer-events-none absolute bottom-[10%] left-1/2 aspect-square w-[60%] -translate-x-1/2 rounded-full bg-lime-300/70 blur-2xl" />
-              <div className="cg-anim-pop absolute bottom-[4%] left-1/2 w-[22%] min-w-[70px] max-w-[120px] -translate-x-1/2" style={{ animationDelay: "3s" }}>
+              <div className="cg-anim-poof pointer-events-none absolute bottom-[10%] inset-x-0 mx-auto aspect-square w-[60%] rounded-full bg-lime-300/70 blur-2xl" />
+              <div className="cg-anim-pop absolute bottom-[4%] inset-x-0 mx-auto w-[22%] min-w-[70px] max-w-[120px]" style={{ animationDelay: "3s" }}>
                 <div className="cg-anim-float">
                   <MiniNecrose className="w-full drop-shadow-[0_0_18px_rgba(163,230,53,0.7)]" />
                 </div>

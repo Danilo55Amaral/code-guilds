@@ -524,6 +524,73 @@ export function playSiren(): () => void {
   return closeScene(ctx);
 }
 
+/** Disco voador: zumbido de teremim subindo e descendo, com vibrato, e um "uuuooo" que passa. */
+export function playUfoHum(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.35);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(420, t);
+  osc.frequency.exponentialRampToValueAtTime(980, t + 1.1);
+  osc.frequency.exponentialRampToValueAtTime(520, t + 2.2);
+  osc.frequency.exponentialRampToValueAtTime(760, t + 3.2);
+  const vibrato = ctx.createOscillator();
+  vibrato.frequency.value = 7;
+  const vibratoDepth = ctx.createGain();
+  vibratoDepth.gain.value = 22;
+  vibrato.connect(vibratoDepth).connect(osc.frequency);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.3, t + 0.4);
+  gain.gain.setValueAtTime(0.3, t + 2.8);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 3.6);
+  osc.connect(gain).connect(out);
+  // zumbido grave do motor da nave por baixo
+  const hum = ctx.createOscillator();
+  hum.type = "sawtooth";
+  hum.frequency.value = 58;
+  const humFilter = ctx.createBiquadFilter();
+  humFilter.type = "lowpass";
+  humFilter.frequency.value = 200;
+  const humGain = ctx.createGain();
+  humGain.gain.setValueAtTime(0.0001, t);
+  humGain.gain.exponentialRampToValueAtTime(0.18, t + 0.6);
+  humGain.gain.exponentialRampToValueAtTime(0.0001, t + 3.6);
+  hum.connect(humFilter).connect(humGain).connect(out);
+  [osc, vibrato, hum].forEach((o) => {
+    o.start(t);
+    o.stop(t + 3.7);
+  });
+  return closeScene(ctx);
+}
+
+/** Tiros de laser: "pew pew pew", notas quadradas caindo rápido de tom. */
+export function playLaser(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.3);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  [0, 0.22, 0.44, 0.9, 1.05].forEach((d) => {
+    const at = t + d;
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(1800, at);
+    osc.frequency.exponentialRampToValueAtTime(180, at + 0.18);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.25, at + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.2);
+    osc.connect(gain).connect(out);
+    osc.start(at);
+    osc.stop(at + 0.22);
+  });
+  return closeScene(ctx);
+}
+
 /** Gemido de zumbi: voz grave e rouca, tremendo e caindo de tom ("uuuuhhh"). */
 export function playZombieGroan(): () => void {
   if (typeof window === "undefined") return () => {};

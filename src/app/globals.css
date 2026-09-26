@@ -296,6 +296,23 @@
   from { opacity: 1; }
   to { opacity: 0; }
 }
+/* evento Invasão Alienígena */
+@keyframes cg-hover {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+@keyframes cg-beam {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 0.95; }
+}
+@keyframes cg-fly-in {
+  from { transform: translateY(-60vh) scale(0.4); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes cg-descend {
+  from { transform: translateY(-40vh); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 
 @layer components {
   .cg-anim-pop { animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -363,6 +380,10 @@
   .cg-anim-fizz { animation: cg-fizz 1.6s ease-in var(--cg-delay, 0s) infinite both; transform-box: fill-box; }
   .cg-anim-fade-out { animation: cg-fade-out 0.9s ease-in var(--cg-delay, 1.5s) both; }
   .cg-anim-siren { animation: cg-spin 1.8s linear infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-hover { animation: cg-hover 3s ease-in-out infinite; }
+  .cg-anim-beam { animation: cg-beam 1.2s ease-in-out infinite; }
+  .cg-anim-fly-in { animation: cg-fly-in 2.2s cubic-bezier(0.2, 0.8, 0.2, 1) var(--cg-delay, 0s) both; }
+  .cg-anim-descend { animation: cg-descend 2.6s ease-out var(--cg-delay, 0s) both; }
   .cg-anim-shimmer-violet {
     background: linear-gradient(90deg, #c4b5fd, #8b5cf6, #f5f3ff, #8b5cf6, #c4b5fd);
     background-size: 200% auto;

@@ -3,11 +3,12 @@ import type { EventId, SceneSpeaker } from "@/engine/specialEvents";
 import type { Student } from "@/engine/students";
 import HalloweenArt, { Lantern } from "./HalloweenArt";
 import ZombieArt, { AntidoteVial } from "./ZombieArt";
+import AlienArt, { EnergyCrystal } from "./AlienArt";
 
 // ============================================================================
 // VISUAL DOS EVENTOS — pra cada evento: o desenho das cenas, o ícone de
 // progresso (no Halloween, uma Lanterna Sagrada por missão; no Apocalipse
-// Zumbi, um frasco do antídoto) e as cores do card, do banner, dos botões e
+// Zumbi, um frasco do antídoto; na Invasão Alienígena, um Cristal de Energia) e as cores do card, do banner, dos botões e
 // do balão do vilão. Os textos da história ficam em engine/specialEvents.ts.
 // ============================================================================
 
@@ -83,6 +84,29 @@ export const EVENT_VISUALS: Record<EventId, EventVisual> = {
       plate: "border-lime-400/80 bg-lime-950/95 text-lime-300",
       border: "border-lime-400/60",
       glow: "0 12px 50px -10px rgba(163,230,53,0.75)",
+    },
+  },
+  alien: {
+    Art: AlienArt,
+    ProgressIcon: EnergyCrystal,
+    progressNoun: { one: "cristal", many: "cristais", doneOne: "carregado", doneMany: "carregados" },
+    missionsTitle: "🛸 Missões do evento",
+    titleClass: "text-cyan-300",
+    titleGlow: "0 0 24px rgba(34,211,238,0.8), 0 0 60px rgba(192,38,211,0.45)",
+    accentClass: "text-cyan-200",
+    accentDot: "bg-cyan-400",
+    accentDotSoft: "bg-cyan-200/70",
+    chipClass: "border-cyan-300/50 text-cyan-100 hover:border-cyan-200",
+    borderClass: "border-cyan-400/40",
+    buttonClass: "bg-gradient-to-r from-cyan-400 via-emerald-300 to-cyan-400 text-cg-ink shadow-lg shadow-cyan-500/40",
+    progressBar: "from-cyan-500 to-emerald-300",
+    glow: "#22d3ee",
+    panelBackground:
+      "radial-gradient(45% 60% at 90% 0%, rgba(34,211,238,0.28), transparent 70%), radial-gradient(40% 60% at 0% 100%, rgba(192,38,211,0.3), transparent 70%), linear-gradient(160deg, #020617 0%, #1e1b4b 55%, #042f2e 100%)",
+    villainStyle: {
+      plate: "border-fuchsia-400/80 bg-fuchsia-950/95 text-fuchsia-300",
+      border: "border-fuchsia-400/60",
+      glow: "0 12px 50px -10px rgba(232,121,249,0.75)",
     },
   },
 };

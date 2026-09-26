@@ -42,7 +42,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "De vez em quando a Academia recebe eventos especiais, como a Noite do Bug Assombrado no Halloween e o Surto do Vírus Z no Apocalipse Zumbi! Cada evento tem uma história animada, missões exclusivas e uma recompensa lendária pra quem chegar até o final. Fique de olho no Salão dos Eventos!",
+    body: "De vez em quando a Academia recebe eventos especiais, como a Noite do Bug Assombrado no Halloween, o Surto do Vírus Z no Apocalipse Zumbi e a Invasão de Bugzar! Cada evento tem uma história animada, missões exclusivas e uma recompensa lendária pra quem chegar até o final. Fique de olho no Salão dos Eventos!",
   },
   {
     icon: "🏰",
@@ -90,7 +90,7 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "Nos eventos especiais, como o de Halloween e o Apocalipse Zumbi, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quem concluir todas ganha o final da história e uma recompensa lendária!",
+    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quem concluir todas ganha o final da história e uma recompensa lendária!",
   },
 ];
 

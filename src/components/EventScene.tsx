@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AcademyEvent, SceneSound, SceneSpeaker } from "@/engine/specialEvents";
 import { Student } from "@/engine/students";
-import { isSoundMuted, playMagicChime, playMidnightBell, playSiren, playSpookyAmbience, playThunder, playVictoryFanfare, playZombieGroan, setSoundMuted, speakCharacter } from "@/engine/sfx";
+import { isSoundMuted, playLaser, playMagicChime, playMidnightBell, playSiren, playSpookyAmbience, playThunder, playUfoHum, playVictoryFanfare, playZombieGroan, setSoundMuted, speakCharacter } from "@/engine/sfx";
 import { pauseMusic, resumeMusic } from "@/engine/music";
 import { EVENT_VISUALS, EventVisual } from "./events/registry";
 
@@ -62,6 +62,8 @@ const SOUNDS: Record<SceneSound, () => () => void> = {
   fanfarra: playVictoryFanfare,
   alarme: playSiren,
   gemido: playZombieGroan,
+  ovni: playUfoHum,
+  laser: playLaser,
 };
 
 function prefersReducedMotion(): boolean {
@@ -133,8 +135,8 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
     if (!soundOn || titleCard) return;
     const stopSound = step.sound ? SOUNDS[step.sound]() : () => {};
     const { voice } = speakerStyle(step.speaker, event, visual);
-    // Sons longos (trovão, sirene, gemido) tocam um pouco antes de a voz começar.
-    const voiceDelay = step.sound === "trovao" || step.sound === "alarme" || step.sound === "gemido" ? 900 : 400;
+    // Sons longos (trovão, sirene, gemido, disco voador) tocam um pouco antes de a voz começar.
+    const voiceDelay = step.sound === "trovao" || step.sound === "alarme" || step.sound === "gemido" || step.sound === "ovni" ? 900 : 400;
     const voiceTimer = window.setTimeout(() => {
       stopVoiceRef.current = speakCharacter(step.text, voice);
     }, voiceDelay);

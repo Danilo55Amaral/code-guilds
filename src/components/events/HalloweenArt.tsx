@@ -397,8 +397,8 @@ export default function HalloweenArt({ art, speaker, mouthOpen = false, student 
               <div className="cg-anim-shrink-away h-full">
                 <PumpkinKing talking={talkingKing} className="h-full w-auto drop-shadow-[0_0_40px_rgba(249,115,22,0.6)]" />
               </div>
-              <div className="cg-anim-poof pointer-events-none absolute bottom-[10%] left-1/2 aspect-square w-[60%] -translate-x-1/2 rounded-full bg-slate-200/70 blur-2xl" />
-              <div className="cg-anim-pop absolute bottom-[4%] left-1/2 w-[24%] min-w-[70px] max-w-[130px] -translate-x-1/2" style={{ animationDelay: "3s" }}>
+              <div className="cg-anim-poof pointer-events-none absolute bottom-[10%] inset-x-0 mx-auto aspect-square w-[60%] rounded-full bg-slate-200/70 blur-2xl" />
+              <div className="cg-anim-pop absolute bottom-[4%] inset-x-0 mx-auto w-[24%] min-w-[70px] max-w-[130px]" style={{ animationDelay: "3s" }}>
                 <div className="cg-anim-float">
                   <Jack evil={false} crown className="w-full drop-shadow-[0_0_18px_rgba(251,191,36,0.7)]" />
                 </div>

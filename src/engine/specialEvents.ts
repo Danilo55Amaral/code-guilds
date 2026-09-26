@@ -10,13 +10,13 @@
 import { Mission, MissionContent, RewardItem } from "./missions";
 import { Student, addXp, grantItem } from "./students";
 
-export type EventId = "halloween" | "zumbi";
+export type EventId = "halloween" | "zumbi" | "alien";
 
 /** Quem fala na cena — define o nome no balão, a cor e a voz. */
 export type SceneSpeaker = "narrador" | "mago" | "vilao";
 
 /** Efeito sonoro que toca quando a cena começa. */
-export type SceneSound = "sino" | "trovao" | "plim" | "fanfarra" | "alarme" | "gemido";
+export type SceneSound = "sino" | "trovao" | "plim" | "fanfarra" | "alarme" | "gemido" | "ovni" | "laser";
 
 export interface EventSceneStep {
   art: string; // qual desenho aparece (cada evento tem os seus, em components/events/)
@@ -708,8 +708,342 @@ const ZOMBIE: AcademyEvent = {
   presetMissions: ZOMBIE_MISSIONS,
 };
 
+// ============================================================================
+// 🛸 INVASÃO ALIENÍGENA — A Invasão de Bugzar
+// ============================================================================
+
+const ALIEN_MISSIONS: MissionContent[] = [
+  {
+    title: "Decifrando o Sinal",
+    icon: "📡",
+    difficulty: "iniciante",
+    minLevel: 1,
+    description: "Traduza as mensagens de texto que a frota de Bugzar está transmitindo",
+    rewardXp: 150,
+    rewardCoins: 60,
+    rewardItem: {
+      name: "Rádio de Ondas Curtas",
+      icon: "📻",
+      description: "Capta as transmissões da frota inimiga. Chiado de estática, bips e... XP! Usar dá um pouco de XP.",
+      rarity: "comum",
+      value: 15,
+      xp: 60,
+    },
+    questions: [
+      {
+        id: "q1",
+        prompt: "O que é impresso?",
+        code: "const sinal = 'bip';\nconsole.log(sinal.toUpperCase());",
+        options: [
+          { id: "a", text: "BIP" },
+          { id: "b", text: "bip" },
+          { id: "c", text: "Bip" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "toUpperCase devolve o texto todo em maiúsculas: BIP.",
+      },
+      {
+        id: "q2",
+        prompt: "Quantas letras tem a mensagem?",
+        code: "const msg = 'ZORG';\nconsole.log(msg.length);",
+        options: [
+          { id: "a", text: "4" },
+          { id: "b", text: "3" },
+          { id: "c", text: "5" },
+          { id: "d", text: "undefined" },
+        ],
+        correctOptionId: "a",
+        explanation: "length conta os caracteres do texto: Z, O, R, G = 4.",
+      },
+      {
+        id: "q3",
+        prompt: "O que a template string imprime?",
+        code: "const planeta = 'Bugzar';\nconsole.log(`Vim de ${planeta}!`);",
+        options: [
+          { id: "a", text: "Vim de Bugzar!" },
+          { id: "b", text: "Vim de ${planeta}!" },
+          { id: "c", text: "Vim de planeta!" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "Com crases (`), o ${...} é trocado pelo valor da variável: Vim de Bugzar!.",
+      },
+    ],
+  },
+  {
+    title: "O Idioma dos Números",
+    icon: "👾",
+    difficulty: "iniciante",
+    minLevel: 1,
+    description: "Os invasores falam em números e operadores: descubra o que eles estão calculando",
+    rewardXp: 180,
+    rewardCoins: 70,
+    rewardItem: {
+      name: "Pedaço de Meteorito",
+      icon: "☄️",
+      description: "Caiu do céu durante a invasão, ainda quentinho. Usar libera a energia do espaço em XP.",
+      rarity: "raro",
+      value: 30,
+      xp: 120,
+    },
+    questions: [
+      {
+        id: "q1",
+        prompt: "Qual é o resultado?",
+        code: "console.log(7 % 2);",
+        options: [
+          { id: "a", text: "1" },
+          { id: "b", text: "3.5" },
+          { id: "c", text: "3" },
+          { id: "d", text: "0" },
+        ],
+        correctOptionId: "a",
+        explanation: "% é o resto da divisão: 7 dividido por 2 dá 3 e sobra 1.",
+      },
+      {
+        id: "q2",
+        prompt: "O que Math.max devolve?",
+        code: "console.log(Math.max(3, 9, 4));",
+        options: [
+          { id: "a", text: "9" },
+          { id: "b", text: "3" },
+          { id: "c", text: "16" },
+          { id: "d", text: "[3, 9, 4]" },
+        ],
+        correctOptionId: "a",
+        explanation: "Math.max devolve o maior dos números recebidos: 9.",
+      },
+      {
+        id: "q3",
+        prompt: "E essa mistura de texto com número?",
+        code: "console.log('2' + 2);",
+        options: [
+          { id: "a", text: "'22'" },
+          { id: "b", text: "4" },
+          { id: "c", text: "NaN" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "Quando um dos lados do + é texto, o JavaScript junta os dois como texto: '22'.",
+      },
+    ],
+  },
+  {
+    title: "A Cabine de Comando",
+    icon: "🛸",
+    difficulty: "medio",
+    minLevel: 1,
+    description: "Invada a nave inimiga e decida o caminho certo com ternário, switch e ??",
+    rewardXp: 220,
+    rewardCoins: 90,
+    rewardItem: {
+      name: "Telescópio de Bolso",
+      icon: "🔭",
+      description: "Enxerga discos voadores a anos-luz de distância, e também bugs escondidos no seu código.",
+      rarity: "epico",
+      value: 80,
+      xp: 0,
+    },
+    questions: [
+      {
+        id: "q1",
+        prompt: "O que é impresso?",
+        code: "const energia = 80;\nconst status = energia > 50 ? 'escudo ativo' : 'perigo';\nconsole.log(status);",
+        options: [
+          { id: "a", text: "escudo ativo" },
+          { id: "b", text: "perigo" },
+          { id: "c", text: "true" },
+          { id: "d", text: "80" },
+        ],
+        correctOptionId: "a",
+        explanation: "O ternário condição ? a : b escolhe a quando a condição é verdadeira: 80 > 50, então 'escudo ativo'.",
+      },
+      {
+        id: "q2",
+        prompt: "O que o switch imprime?",
+        code: "const cor = 'verde';\nswitch (cor) {\n  case 'verde':\n    console.log('alien');\n    break;\n  default:\n    console.log('humano');\n}",
+        options: [
+          { id: "a", text: "alien" },
+          { id: "b", text: "humano" },
+          { id: "c", text: "alien e humano" },
+          { id: "d", text: "Nada" },
+        ],
+        correctOptionId: "a",
+        explanation: "O case 'verde' bate com a cor, imprime alien e o break sai do switch antes do default.",
+      },
+      {
+        id: "q3",
+        prompt: "O que é impresso?",
+        code: "const nome = null;\nconsole.log(nome ?? 'visitante');",
+        options: [
+          { id: "a", text: "visitante" },
+          { id: "b", text: "null" },
+          { id: "c", text: "undefined" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "O ?? usa o valor da direita quando o da esquerda é null ou undefined: 'visitante'.",
+      },
+    ],
+  },
+  {
+    title: "O Protocolo do Escudo",
+    icon: "🛡️",
+    difficulty: "avancado",
+    minLevel: 1,
+    description: "A última defesa: classes, JSON e desestruturação pra erguer o Escudo Arcano",
+    rewardXp: 300,
+    rewardCoins: 120,
+    rewardItem: {
+      name: "Núcleo do Escudo Arcano",
+      icon: "💠",
+      description: "O coração do escudo que salvou a Terra. Ainda vibra com energia azul quando alguém escreve código bom por perto.",
+      rarity: "lendario",
+      value: 200,
+      xp: 0,
+    },
+    questions: [
+      {
+        id: "q1",
+        prompt: "O que é impresso?",
+        code: "class Nave {\n  constructor(nome) {\n    this.nome = nome;\n  }\n}\nconst n = new Nave('Zorg-1');\nconsole.log(n.nome);",
+        options: [
+          { id: "a", text: "Zorg-1" },
+          { id: "b", text: "Nave" },
+          { id: "c", text: "undefined" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "new Nave('Zorg-1') chama o constructor, que guarda o nome em this.nome: Zorg-1.",
+      },
+      {
+        id: "q2",
+        prompt: "Qual é o tipo de txt?",
+        code: "const txt = JSON.stringify({ planeta: 'Terra' });\nconsole.log(typeof txt);",
+        options: [
+          { id: "a", text: '"string"' },
+          { id: "b", text: '"object"' },
+          { id: "c", text: '"json"' },
+          { id: "d", text: '"undefined"' },
+        ],
+        correctOptionId: "a",
+        explanation: "JSON.stringify transforma o objeto em texto (string) pra ser enviado ou guardado. JSON.parse faz o caminho de volta.",
+      },
+      {
+        id: "q3",
+        prompt: "O que é impresso?",
+        code: "const { escudo, energia } = { escudo: 'on', energia: 100 };\nconsole.log(energia);",
+        options: [
+          { id: "a", text: "100" },
+          { id: "b", text: "'on'" },
+          { id: "c", text: "undefined" },
+          { id: "d", text: "Erro" },
+        ],
+        correctOptionId: "a",
+        explanation: "A desestruturação cria variáveis com os mesmos nomes das propriedades: energia recebe 100.",
+      },
+    ],
+  },
+];
+
+const ALIEN: AcademyEvent = {
+  id: "alien",
+  icon: "🛸",
+  title: "A Invasão de Bugzar",
+  tagline: "🛸 Evento Invasão Alienígena",
+  summary:
+    "Uma frota de discos voadores do planeta Bugzar cercou a CodeGuilds! O Imperador Zorg quer roubar o Código-Fonte do Universo e está abduzindo os alunos com o raio trator.",
+  goal: "Vença as missões de defesa, carregue os Cristais de Energia e erga o Escudo Arcano pra expulsar a frota invasora.",
+  villain: { name: "Imperador Zorg", icon: "👾", voice: { pitch: 1.9, rate: 0.9 } },
+  missionHint: "Missões exclusivas: só existem durante o evento. Cada uma que você vencer carrega um Cristal de Energia do escudo.",
+  finishCall: {
+    title: "Todos os cristais de energia estão carregados!",
+    text: "O Escudo Arcano está pronto pra subir... Só falta ativá-lo pra expulsar a frota e ganhar a recompensa final.",
+  },
+  intro: [
+    {
+      art: "ceu",
+      speaker: "narrador",
+      sound: "ovni",
+      text: "Era uma noite tranquila de estudos na CodeGuilds, até que o céu se encheu de luzes coloridas. Dezenas de discos voadores surgiram entre as estrelas, piscando e zumbindo sobre as torres do castelo.",
+    },
+    {
+      art: "observatorio",
+      speaker: "mago",
+      sound: "plim",
+      text: "Pelas barbas do compilador! Aprendiz, olhe pela janela do observatório! Isso não é chuva de meteoros... é uma frota inteira vindo de outra galáxia!",
+    },
+    {
+      art: "imperador",
+      speaker: "vilao",
+      sound: "laser",
+      text: "Saudações, terráqueos! Eu sou o Imperador Zorg, do planeta Bugzar. Viemos buscar o Código-Fonte do Universo, que vocês escondem neste castelo. Entreguem, ou abduziremos todos!",
+    },
+    {
+      art: "abducao",
+      speaker: "vilao",
+      sound: "ovni",
+      text: "Meus discos já estão abduzindo os seus alunos com o raio trator! E o meu feitiço de Ctrl+X está recortando tudo o que eles aprenderam. Logo este planeta não vai saber escrever nem um Hello World!",
+    },
+    {
+      art: "escudo",
+      speaker: "mago",
+      sound: "plim",
+      text: "Ainda há esperança: o Escudo Arcano da academia! Ele é alimentado por Cristais de Energia, e cada cristal só se acende quando alguém resolve um desafio de programação. Cada missão que você vencer carrega um cristal.",
+    },
+    {
+      art: "chamado",
+      speaker: "mago",
+      sound: "plim",
+      text: "Com todos os cristais carregados, o escudo se ergue e manda os invasores de volta pra casa. Vista o traje espacial, aprendiz: a Terra conta com você. Defenda a CodeGuilds da invasão!",
+    },
+  ],
+  outro: [
+    {
+      art: "cristais",
+      speaker: "narrador",
+      sound: "plim",
+      text: "O último cristal brilhou. Uma cúpula de energia azul subiu do castelo e cobriu o céu inteiro, e os raios tratores se apagaram de uma vez.",
+    },
+    {
+      art: "imperador-derrotado",
+      speaker: "vilao",
+      sound: "laser",
+      text: "Impossível! O escudo refletiu o meu Ctrl+X de volta pra minha nave! Estou sendo recortado... encolhendo... Ativar retirada! Retiradaaa!",
+    },
+    {
+      art: "partida",
+      speaker: "narrador",
+      sound: "ovni",
+      text: "A frota fugiu em disparada pro fundo do espaço, e os alunos abduzidos desceram devagarinho, sãos e salvos, lembrando de tudo o que tinham aprendido. Mas um pequeno disco ficou pra trás...",
+    },
+    {
+      art: "recompensa",
+      speaker: "mago",
+      sound: "fanfarra",
+      text: "Você salvou a Terra, aprendiz! E olha só quem a frota esqueceu: o Imperador Zorg, pequenininho depois do próprio feitiço. Ele disse bip-bop, que quer dizer que agora quer ser o seu mascote. Leve também este tesouro, direto de Bugzar!",
+    },
+  ],
+  reward: {
+    xp: 500,
+    coins: 300,
+    item: {
+      name: "Alienzinho de Bugzar",
+      icon: "👽",
+      description:
+        "O Imperador Zorg, recortado pelo próprio Ctrl+X até ficar do tamanho de uma mão. Esqueceu o plano de invasão e agora só quer aprender a programar com você. Equipe no Inventário e ele vira o mascote no seu ombro.",
+      rarity: "lendario",
+      value: 200,
+      xp: 0,
+      cosmetic: { slot: "pet", value: "alien" },
+    },
+  },
+  presetMissions: ALIEN_MISSIONS,
+};
+
 /** Todos os eventos, na ordem em que aparecem na tela de Eventos. */
-export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, ZOMBIE];
+export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, ZOMBIE, ALIEN];
 
 export function getEvent(id: string): AcademyEvent | undefined {
   return ACADEMY_EVENTS.find((e) => e.id === id);

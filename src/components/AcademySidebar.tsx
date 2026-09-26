@@ -12,6 +12,7 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
+  { href: "/academia/eventos", label: "Eventos", icon: "📅" },
   { href: "/academia/missoes", label: "Missões", icon: "⚔️" },
   { href: "/academia/inventario", label: "Inventário", icon: "🛡️" },
   { href: "/academia/loja", label: "Loja", icon: "🛍️" },
@@ -23,7 +24,6 @@ const NAV_ITEMS: NavItem[] = [
   },
   { href: "/academia/guildas", label: "Guildas", icon: "⚜️" },
   { href: "/academia/lore", label: "Lore", icon: "📜" },
-  { href: "/academia/eventos", label: "Eventos", icon: "📅" },
 ];
 
 const MESSAGES_HREF = "/academia/casa/mensagens";
