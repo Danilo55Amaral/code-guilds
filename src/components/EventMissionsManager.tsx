@@ -4,21 +4,32 @@ import { useState } from "react";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
 import { ACADEMY_EVENTS, AcademyEvent, EventId, eventProgress } from "@/engine/specialEvents";
+import { EVENT_STATUS_META, EventRun } from "@/engine/eventSchedule";
+import EventRanking from "./EventRanking";
 import { EVENT_VISUALS } from "./events/registry";
 import { DifficultyBadge } from "./GameUI";
 
 // ============================================================================
-// EVENTOS NO PAINEL DO PROFESSOR — pra cada evento da Academia: criar uma
-// missão só do evento, atribuir uma missão que já existe (ela sai da lista
-// normal e passa a aparecer só na tela do evento), tirar do evento e usar as
-// missões prontas do evento com um clique. Os alunos só veem as missões do
-// próprio professor.
+// EVENTOS NO PAINEL DO PROFESSOR (e na aba Eventos do Painel ADM) — pra cada
+// evento da Academia: iniciar/encerrar o evento pra turma (só aparece pros
+// alunos enquanto está acontecendo), criar uma missão só do evento, atribuir
+// uma missão que já existe (ela sai da lista normal e passa a aparecer só na
+// tela do evento), tirar do evento e usar as missões prontas com um clique.
+// Os alunos só veem os eventos e as missões do próprio professor.
 // ============================================================================
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("pt-BR");
+}
 
 function EventPanel({
   event,
+  run,
   missions,
   students,
+  ranking,
+  onStart,
+  onEnd,
   onEdit,
   onCreate,
   onAssign,
@@ -26,8 +37,12 @@ function EventPanel({
   onAddPresets,
 }: {
   event: AcademyEvent;
+  run: EventRun | undefined;
   missions: Mission[];
   students: Student[];
+  ranking: { students: Student[]; missions: Mission[] };
+  onStart: (eventId: EventId) => void;
+  onEnd: (eventId: EventId) => void;
   onEdit: (mission: Mission) => void;
   onCreate: (eventId: EventId) => void;
   onAssign: (missionId: string, eventId: EventId) => void;
@@ -38,6 +53,10 @@ function EventPanel({
   const { Art } = visual;
   const [assignId, setAssignId] = useState("");
   const [addedPresets, setAddedPresets] = useState<number | null>(null);
+  const [confirmEnd, setConfirmEnd] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+  const status = run?.status ?? "nao-iniciado";
+  const statusMeta = EVENT_STATUS_META[status];
 
   const eventList = missions.filter((m) => m.eventId === event.id);
   const regular = missions.filter((m) => !m.eventId);
@@ -49,6 +68,15 @@ function EventPanel({
     if (!assignId) return;
     onAssign(assignId, event.id);
     setAssignId("");
+  }
+
+  function endEvent() {
+    if (!confirmEnd) {
+      setConfirmEnd(true);
+      return;
+    }
+    onEnd(event.id);
+    setConfirmEnd(false);
   }
 
   function addPresets() {
@@ -68,9 +96,39 @@ function EventPanel({
             {event.title}
           </p>
         </div>
+        <span className={`absolute right-3 top-3 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur ${statusMeta.className}`}>{statusMeta.label}</span>
       </div>
 
       <div className="p-5" style={{ background: visual.panelBackground }}>
+        {/* ---- iniciar / encerrar ---- */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-700/60 bg-black/40 p-3">
+          <p className="min-w-0 flex-1 text-xs text-slate-300">
+            {status === "ativo" && run
+              ? `Visível pros alunos desde ${formatDate(run.startedAt)}. Encerrar esconde o evento de novo (o progresso de cada aluno fica guardado).`
+              : status === "encerrado" && run?.endedAt
+                ? `Encerrado em ${formatDate(run.endedAt)}: escondido dos alunos. Reabrir devolve o evento com o progresso de cada um.`
+                : "Escondido dos alunos. Prepare as missões e clique em Iniciar pra ele aparecer no Salão dos Eventos."}
+            {status !== "ativo" && eventList.length === 0 && (
+              <span className="mt-1 block text-amber-300">⚠ Ainda não há missões neste evento: os alunos veriam só a história, sem conseguir finalizar.</span>
+            )}
+          </p>
+          {status === "ativo" ? (
+            <button
+              onClick={endEvent}
+              onBlur={() => setConfirmEnd(false)}
+              className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition-colors ${
+                confirmEnd ? "border-rose-300 bg-rose-500/30 text-rose-100" : "border-rose-400/60 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+              }`}
+            >
+              {confirmEnd ? "Confirmar: encerrar agora?" : "⏹ Encerrar evento"}
+            </button>
+          ) : (
+            <button onClick={() => onStart(event.id)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] ${visual.buttonClass}`}>
+              {status === "encerrado" ? "▶ Reabrir evento" : "▶ Iniciar evento"}
+            </button>
+          )}
+        </div>
+
         <p className="max-w-3xl text-sm text-slate-300">{event.summary}</p>
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -97,7 +155,7 @@ function EventPanel({
             onClick={addPresets}
             disabled={missingPresets.length === 0}
             title={missingPresets.length === 0 ? "Todas as missões prontas já estão no evento" : event.presetMissions.map((p) => `${p.icon} ${p.title}`).join("\n")}
-            className="rounded-full border border-orange-400/50 bg-black/40 px-4 py-2 text-xs font-semibold text-orange-100 transition-colors hover:border-orange-300 disabled:cursor-not-allowed disabled:opacity-40"
+            className={`rounded-full border bg-black/40 px-4 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${visual.chipClass}`}
           >
             ✨ {missingPresets.length === 0 ? "Missões prontas já adicionadas" : `Usar ${missingPresets.length} ${missingPresets.length === 1 ? "missão pronta" : "missões prontas"} do evento`}
           </button>
@@ -110,7 +168,7 @@ function EventPanel({
 
         <div className="mt-3 flex flex-col gap-2 sm:flex-row">
           <select value={assignId} onChange={(e) => setAssignId(e.target.value)} className="cg-input !py-2 text-xs sm:max-w-sm" aria-label="Missão existente pra atribuir ao evento">
-            <option value="">{regular.length === 0 ? "Nenhuma missão normal pra atribuir" : "Atribuir uma missão que você já criou…"}</option>
+            <option value="">{regular.length === 0 ? "Nenhuma missão normal pra atribuir" : "Atribuir uma missão que já existe…"}</option>
             {regular.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.icon} {m.title}
@@ -125,7 +183,7 @@ function EventPanel({
         {/* ---- missões do evento ---- */}
         {eventList.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-slate-700 bg-black/20 p-4 text-sm text-slate-400">
-            Nenhuma missão neste evento ainda. Crie uma, atribua uma missão que já existe ou use as missões prontas: seus alunos veem a história, mas só conseguem finalizar o evento depois de concluir todas as missões dele.
+            Nenhuma missão neste evento ainda. Crie uma, atribua uma missão que já existe ou use as missões prontas: os alunos só conseguem finalizar o evento depois de concluir todas as missões dele.
           </p>
         ) : (
           <div className="mt-4 flex flex-col gap-2">
@@ -156,8 +214,21 @@ function EventPanel({
           </div>
         )}
 
+        {/* ---- ranking do evento ---- */}
+        <button
+          onClick={() => setShowRanking((v) => !v)}
+          className={`mt-4 w-full rounded-xl border bg-black/40 px-4 py-2.5 text-sm font-bold transition-colors ${visual.chipClass}`}
+        >
+          {showRanking ? "▲ Esconder o ranking do evento" : "🏆 Ver ranking do evento (casas e alunos)"}
+        </button>
+        {showRanking && (
+          <div className="mt-3">
+            <EventRanking event={event} students={ranking.students} missions={ranking.missions} status={status} />
+          </div>
+        )}
+
         <p className="mt-4 text-[11px] text-slate-500">
-          Os alunos encontram o evento em Eventos → Entrar. Quem conclui todas as missões ganha o botão &quot;Finalizar evento&quot;, assiste ao final da história e recebe {event.reward.item.icon}{" "}
+          Com o evento acontecendo, os alunos encontram ele em Eventos → Entrar. Quem conclui todas as missões ganha o botão &quot;Finalizar evento&quot;, assiste ao final da história e recebe {event.reward.item.icon}{" "}
           {event.reward.item.name}, +{event.reward.xp} XP e {event.reward.coins} moedas.
         </p>
       </div>
@@ -165,23 +236,42 @@ function EventPanel({
   );
 }
 
-export default function EventMissionsManager(props: {
+export default function EventMissionsManager({
+  runs,
+  headerRight,
+  ...panelProps
+}: {
+  /** Situação de cada evento pra turma desse professor (iniciado, encerrado...). */
+  runs: Partial<Record<EventId, EventRun>>;
   /** Todas as missões do professor (as normais aparecem na opção de atribuir). */
   missions: Mission[];
   students: Student[];
+  /** Quem entra no ranking de cada evento (professor: a turma dele; ADM: a plataforma toda). */
+  ranking: { students: Student[]; missions: Mission[] };
+  onStart: (eventId: EventId) => void;
+  onEnd: (eventId: EventId) => void;
   onEdit: (mission: Mission) => void;
   onCreate: (eventId: EventId) => void;
   onAssign: (missionId: string, eventId: EventId) => void;
   onUnassign: (missionId: string) => void;
   onAddPresets: (eventId: EventId) => void;
+  /** Só o Painel ADM passa: a escolha do professor. */
+  headerRight?: React.ReactNode;
 }) {
   return (
     <div className="cg-card mb-6 p-5">
-      <p className="mb-1 text-sm font-semibold text-slate-300">📅 Eventos da Academia</p>
-      <p className="mb-4 text-xs text-slate-500">Missões de evento aparecem só na tela do evento, com história animada e recompensa final.</p>
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <p className="mb-1 text-sm font-semibold text-slate-300">📅 Eventos da Academia</p>
+          <p className="text-xs text-slate-500">
+            Os alunos só veem um evento enquanto ele está acontecendo. Missões de evento aparecem só na tela do evento, com história animada e recompensa final.
+          </p>
+        </div>
+        {headerRight}
+      </div>
       <div className="flex flex-col gap-4">
         {ACADEMY_EVENTS.map((event) => (
-          <EventPanel key={event.id} event={event} {...props} />
+          <EventPanel key={event.id} event={event} run={runs[event.id]} {...panelProps} />
         ))}
       </div>
     </div>

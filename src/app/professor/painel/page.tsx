@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useEventRuns } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { MessageKind, itemGiftMessage } from "@/engine/messages";
@@ -24,6 +24,7 @@ export default function PainelProfessorPage() {
   const { currentTeacher, ready: teachersReady, logout: teacherLogout, finishTutorial } = useTeachers();
   const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
+  const { runs: eventRuns, start: startEvent, end: endEvent } = useEventRuns();
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
   // Evento da missão nova sendo criada (null = missão normal).
   const [newMissionEventId, setNewMissionEventId] = useState<EventId | null>(null);
@@ -217,8 +218,12 @@ export default function PainelProfessorPage() {
       />
 
       <EventMissionsManager
+        runs={eventRuns[teacher.id] ?? {}}
         missions={missions}
         students={students}
+        ranking={{ students, missions }}
+        onStart={(eventId) => startEvent(teacher.id, eventId)}
+        onEnd={(eventId) => endEvent(teacher.id, eventId)}
         onEdit={setEditorTarget}
         onCreate={createEventMission}
         onAssign={(missionId, eventId) => editMission(missionId, { eventId })}

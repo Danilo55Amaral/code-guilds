@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useShop } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns } from "@/engine/store";
 import { Mission, MissionContent, Rarity } from "@/engine/missions";
 import { Cosmetic } from "@/engine/avatar";
 import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
@@ -18,10 +18,12 @@ import StudentDetails from "@/components/StudentDetails";
 import TeacherEditor from "@/components/TeacherEditor";
 import ThemeToggle from "@/components/ThemeToggle";
 import ShopManager from "@/components/ShopManager";
+import EventMissionsManager from "@/components/EventMissionsManager";
+import { EventId, getEvent } from "@/engine/specialEvents";
 
-type Tab = "professores" | "alunos" | "missoes" | "loja";
+type Tab = "professores" | "alunos" | "missoes" | "eventos" | "loja";
 
-const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões", loja: "🛍️ Loja" };
+const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões", eventos: "📅 Eventos", loja: "🛍️ Loja" };
 
 const ALL_TEACHERS = "todos";
 
@@ -31,11 +33,15 @@ export default function PainelAdminPage() {
   const { students, ready, patchStudent, deleteStudent } = useStudents();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { items: shopItems } = useShop();
+  const { runs: eventRuns, start: startEvent, end: endEvent } = useEventRuns();
   const [tab, setTab] = useState<Tab>("professores");
   // Filtro de professor das abas Alunos e Missões.
   const [teacherFilter, setTeacherFilter] = useState<string>(ALL_TEACHERS);
   const [teacherTarget, setTeacherTarget] = useState<Teacher | "new" | null>(null);
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
+  // Aba Eventos: de qual professor são os eventos mostrados ("" = o próprio ADM) e o evento da missão nova.
+  const [eventTeacherId, setEventTeacherId] = useState("");
+  const [newMissionEventId, setNewMissionEventId] = useState<EventId | null>(null);
   // Guarda só o id, como no painel do professor: a ficha acompanha as mudanças.
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const { messages: selectedMessages, send: sendMessage } = useMessages(selectedStudentId);
@@ -55,7 +61,15 @@ export default function PainelAdminPage() {
   const visibleStudents = teacherFilter === ALL_TEACHERS ? students : studentsOf(teacherFilter);
   const visibleMissions = teacherFilter === ALL_TEACHERS ? missions : missionsOf(teacherFilter);
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
-  const counts: Record<Tab, number> = { professores: teachers.length, alunos: students.length, missoes: missions.length, loja: shopItems.length };
+  const eventTeacher = eventTeacherId || admin.id;
+  const activeEventCount = Object.values(eventRuns).reduce((n, byEvent) => n + Object.values(byEvent).filter((r) => r?.status === "ativo").length, 0);
+  const counts: Record<Tab, number> = {
+    professores: teachers.length,
+    alunos: students.length,
+    missoes: missions.length,
+    eventos: activeEventCount,
+    loja: shopItems.length,
+  };
 
   // ---- professores ----
 
@@ -78,19 +92,46 @@ export default function PainelAdminPage() {
 
   // ---- missões ----
 
+  function closeEditor() {
+    setEditorTarget(null);
+    setNewMissionEventId(null);
+  }
+
   function handleSaveMission(data: MissionContent, teacherId?: string) {
     const owner = teacherId ?? admin.id;
     if (editorTarget && editorTarget !== "new") {
       editMission(editorTarget.id, { ...data, teacherId: owner });
     } else {
-      addMission({ ...data, teacherId: owner });
+      addMission({ ...data, teacherId: owner, ...(newMissionEventId && { eventId: newMissionEventId }) });
     }
-    setEditorTarget(null);
+    closeEditor();
   }
 
   function handleDeleteMission() {
     if (editorTarget && editorTarget !== "new") removeMission(editorTarget.id);
-    setEditorTarget(null);
+    closeEditor();
+  }
+
+  // ---- eventos (do professor escolhido na aba Eventos) ----
+
+  function eventLabelOf(eventId: string | null | undefined): string | undefined {
+    const event = eventId ? getEvent(eventId) : undefined;
+    return event ? `${event.icon} ${event.title}` : undefined;
+  }
+
+  function createEventMission(eventId: EventId) {
+    setNewMissionEventId(eventId);
+    setEditorTarget("new");
+  }
+
+  /** Adiciona ao evento as missões prontas dele que o professor escolhido ainda não tem (comparando pelo título). */
+  function addEventPresets(eventId: EventId) {
+    const event = getEvent(eventId);
+    if (!event) return;
+    const current = missionsOf(eventTeacher).filter((m) => m.eventId === eventId);
+    event.presetMissions
+      .filter((p) => !current.some((m) => m.title === p.title))
+      .forEach((p) => addMission({ ...p, teacherId: eventTeacher, eventId }));
   }
 
   // ---- alunos ----
@@ -271,6 +312,40 @@ export default function PainelAdminPage() {
         />
       )}
 
+      {tab === "eventos" && (
+        <EventMissionsManager
+          key={eventTeacher}
+          runs={eventRuns[eventTeacher] ?? {}}
+          missions={missionsOf(eventTeacher)}
+          students={studentsOf(eventTeacher)}
+          ranking={{ students, missions }}
+          onStart={(eventId) => startEvent(eventTeacher, eventId)}
+          onEnd={(eventId) => endEvent(eventTeacher, eventId)}
+          onEdit={setEditorTarget}
+          onCreate={createEventMission}
+          onAssign={(missionId, eventId) => editMission(missionId, { eventId })}
+          onUnassign={(missionId) => editMission(missionId, { eventId: undefined })}
+          onAddPresets={addEventPresets}
+          headerRight={
+            <label className="flex items-center gap-2 text-xs text-slate-400">
+              Turma do professor
+              <select
+                value={eventTeacher}
+                onChange={(e) => setEventTeacherId(e.target.value)}
+                className="rounded-lg border border-slate-700 bg-cg-sunken px-3 py-1.5 text-xs text-slate-100 focus:border-slate-400 focus:outline-none"
+              >
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                    {t.isAdmin ? " (você)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          }
+        />
+      )}
+
       {teacherTarget && (
         <TeacherEditor
           existingTeacher={teacherTarget === "new" ? undefined : teacherTarget}
@@ -307,11 +382,12 @@ export default function PainelAdminPage() {
         <MissionEditor
           existingMission={editorTarget === "new" ? undefined : editorTarget}
           teachers={teachers}
-          defaultTeacherId={teacherFilter === ALL_TEACHERS ? admin.id : teacherFilter}
+          defaultTeacherId={newMissionEventId ? eventTeacher : teacherFilter === ALL_TEACHERS ? admin.id : teacherFilter}
           shopItems={shopItems}
+          eventLabel={eventLabelOf(editorTarget === "new" ? newMissionEventId : editorTarget.eventId)}
           onSave={handleSaveMission}
           onDelete={editorTarget !== "new" ? handleDeleteMission : undefined}
-          onClose={() => setEditorTarget(null)}
+          onClose={closeEditor}
         />
       )}
     </div>

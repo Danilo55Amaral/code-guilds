@@ -46,6 +46,8 @@ import { subscribe, emitChange } from "./events";
 import { Theme, getTheme, setTheme, applyTheme } from "./theme";
 import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem, addCollection, removeCollection } from "./shop";
 import { CosmeticCollection } from "./avatar";
+import type { EventId } from "./specialEvents";
+import { EventRuns, EventStatus, listEventRuns, statusIn, startEvent, endEvent, deleteEventRunsOf } from "./eventSchedule";
 
 /**
  * Inscreve um "sync" nos avisos de mudança: tanto os avisos internos
@@ -294,6 +296,7 @@ export function useTeachers() {
     if (id === heirId) return;
     reassignStudents(id, heirId);
     reassignMissions(id, heirId);
+    deleteEventRunsOf(id);
     removeTeacher(id);
     emitChange();
   }, []);
@@ -355,6 +358,33 @@ export function useShop() {
   }, []);
 
   return { items, ready, addItem, editItem, removeItem, buy, addCollection: addItemsOfCollection, removeCollection: removeItemsOfCollection };
+}
+
+/** Agenda dos eventos: qual evento está acontecendo pra turma de cada professor, e o iniciar/encerrar. */
+export function useEventRuns() {
+  const [runs, setRuns] = useState<EventRuns>({});
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setRuns(listEventRuns());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const statusOf = useCallback((teacherId: string, eventId: EventId): EventStatus => statusIn(runs, teacherId, eventId), [runs]);
+
+  const start = useCallback((teacherId: string, eventId: EventId) => {
+    startEvent(teacherId, eventId);
+    emitChange();
+  }, []);
+
+  const end = useCallback((teacherId: string, eventId: EventId) => {
+    endEvent(teacherId, eventId);
+    emitChange();
+  }, []);
+
+  return { runs, ready, statusOf, start, end };
 }
 
 /** Tema escuro/claro. Também acompanha a troca feita em outra aba (evento "storage"). */

@@ -9,6 +9,7 @@ import { HAIR_STYLE_LABELS, outfitLabel } from "@/engine/avatar";
 import Avatar from "@/components/Avatar";
 import { CoinIcon } from "@/components/GameUI";
 import HousemateSheet from "@/components/HousemateSheet";
+import GeneralRanking from "@/components/GeneralRanking";
 
 export default function CasaPage() {
   const { activeStudent, students } = useStudents();
@@ -27,7 +28,8 @@ export default function CasaPage() {
   const housemates = students
     .filter((s) => s.houseId === activeStudent.houseId)
     .sort((a, b) => totalXp(b.level, b.xp) - totalXp(a.level, a.xp));
-  const viewingStudent = housemates.find((s) => s.id === viewingId) ?? null;
+  // O perfil pode ser aberto pelo ranking da casa ou pelo ranking geral (qualquer casa).
+  const viewingStudent = students.find((s) => s.id === viewingId) ?? null;
 
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -106,7 +108,16 @@ export default function CasaPage() {
         )}
       </div>
 
-      {viewingStudent && <HousemateSheet student={viewingStudent} isYou={viewingStudent.id === activeStudent.id} onClose={() => setViewingId(null)} />}
+      <GeneralRanking students={students} meId={activeStudent.id} onSelect={setViewingId} />
+
+      {viewingStudent && (
+        <HousemateSheet
+          student={viewingStudent}
+          isYou={viewingStudent.id === activeStudent.id}
+          sameHouse={viewingStudent.houseId === activeStudent.houseId}
+          onClose={() => setViewingId(null)}
+        />
+      )}
     </div>
   );
 }

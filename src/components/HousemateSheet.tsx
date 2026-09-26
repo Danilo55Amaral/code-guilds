@@ -8,12 +8,23 @@ import ItemDetailsModal from "./ItemDetailsModal";
 import { CoinCount, HousePill, ItemStats, LevelPill, RarityBadge } from "./GameUI";
 
 // ============================================================================
-// HOUSEMATE SHEET — o perfil de um colega da mesma casa, aberto pelo ranking
-// de Minha Casa. Mostra só o que é público entre colegas: avatar, nome, nível,
-// moedas e itens (nada de e-mail, login ou senha).
+// HOUSEMATE SHEET — o perfil público de um aluno, aberto pelo ranking da casa
+// ou pelo ranking geral de Minha Casa. Mostra só o que é público entre
+// colegas: avatar, nome, nível, casa, moedas e itens (nada de e-mail, login ou senha).
 // ============================================================================
 
-export default function HousemateSheet({ student, isYou, onClose }: { student: Student; isYou: boolean; onClose: () => void }) {
+export default function HousemateSheet({
+  student,
+  isYou,
+  sameHouse = true,
+  onClose,
+}: {
+  student: Student;
+  isYou: boolean;
+  /** false = aluno de outra casa (aberto pelo ranking geral). */
+  sameHouse?: boolean;
+  onClose: () => void;
+}) {
   const house = student.houseId ? getHouse(student.houseId) : null;
   // Mais recentes primeiro
   const inventory = [...student.inventory].sort((a, b) => b.obtainedAt.localeCompare(a.obtainedAt));
@@ -32,7 +43,7 @@ export default function HousemateSheet({ student, isYou, onClose }: { student: S
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={onClose}>
       <div className="cg-card cg-anim-pop flex max-h-[90vh] w-full max-w-lg flex-col" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
-          <h2 className="text-lg font-bold text-white">{isYou ? "Seu perfil na casa" : "Colega de casa"}</h2>
+          <h2 className="text-lg font-bold text-white">{isYou ? "Seu perfil na casa" : sameHouse ? "Colega de casa" : "Aluno da Academia"}</h2>
           <button onClick={onClose} className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-700 text-slate-400 hover:text-white">
             ✕
           </button>

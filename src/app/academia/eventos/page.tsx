@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStudents, useMissions } from "@/engine/store";
+import { useStudents, useMissions, useEventRuns } from "@/engine/store";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
-import { ACADEMY_EVENTS, AcademyEvent, eventMissionsFor, eventProgress, introSeenPatch } from "@/engine/specialEvents";
+import { ACADEMY_EVENTS, AcademyEvent, EventId, eventMissionsFor, eventProgress, introSeenPatch } from "@/engine/specialEvents";
 import { EVENT_VISUALS } from "@/components/events/registry";
 import EventScene from "@/components/EventScene";
+import EventRanking from "@/components/EventRanking";
+import HousemateSheet from "@/components/HousemateSheet";
 import { CoinIcon, RarityBadge } from "@/components/GameUI";
 
 // ============================================================================
@@ -116,12 +118,22 @@ function EventCard({ event, student, missions, onEnter }: { event: AcademyEvent;
 
 export default function EventosPage() {
   const router = useRouter();
-  const { activeStudent, patchActive } = useStudents();
+  const { activeStudent, students, patchActive } = useStudents();
   const { missions, ready } = useMissions();
+  const { statusOf, ready: runsReady } = useEventRuns();
   const [introOf, setIntroOf] = useState<AcademyEvent | null>(null);
+  const [rankingEventId, setRankingEventId] = useState<EventId | null>(null);
+  // Perfil aberto pelo ranking (guarda só o id: o aluno é relido da lista).
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
-  if (!activeStudent || !ready) return null;
+  if (!activeStudent || !ready || !runsReady) return null;
   const me = activeStudent;
+  // Só aparecem os eventos que o professor do aluno iniciou (e ainda não encerrou).
+  const liveEvents = ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) === "ativo");
+  // Rankings: todo evento que o professor já iniciou, inclusive os encerrados (é aí que fica a casa campeã).
+  const rankedEvents = ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) !== "nao-iniciado");
+  const rankingEvent = rankedEvents.find((e) => e.id === rankingEventId) ?? rankedEvents[0];
+  const viewingStudent = students.find((s) => s.id === viewingId) ?? null;
 
   function enter(event: AcademyEvent) {
     if (eventProgress(me, event.id).introSeenAt) router.push(`/academia/eventos/${event.id}`);
@@ -164,7 +176,7 @@ export default function EventosPage() {
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2 sm:justify-start">
             <span className="rounded-full border border-orange-400/40 bg-black/30 px-3 py-1.5 text-xs font-semibold text-orange-100 backdrop-blur">
-              🔥 {ACADEMY_EVENTS.length} {ACADEMY_EVENTS.length === 1 ? "evento acontecendo" : "eventos acontecendo"}
+              🔥 {liveEvents.length === 0 ? "Nenhum evento agora" : `${liveEvents.length} ${liveEvents.length === 1 ? "evento acontecendo" : "eventos acontecendo"}`}
             </span>
             <span className="rounded-full border border-amber-400/40 bg-black/30 px-3 py-1.5 text-xs font-semibold text-amber-100 backdrop-blur">🏆 Recompensas lendárias</span>
             <span className="rounded-full border border-violet-400/40 bg-black/30 px-3 py-1.5 text-xs font-semibold text-violet-100 backdrop-blur">🎬 Com história animada</span>
@@ -172,11 +184,62 @@ export default function EventosPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-6">
-        {ACADEMY_EVENTS.map((event) => (
-          <EventCard key={event.id} event={event} student={me} missions={missions} onEnter={() => enter(event)} />
-        ))}
-      </div>
+      {liveEvents.length === 0 ? (
+        <div className="cg-card flex flex-col items-center gap-2 px-6 py-14 text-center">
+          <p className="text-4xl">🌙</p>
+          <p className="text-lg font-semibold text-white">Nenhum evento acontecendo agora</p>
+          <p className="max-w-md text-sm text-slate-400">Quando o seu professor iniciar um evento, ele aparece aqui com uma história nova, missões exclusivas e uma recompensa lendária. Fique de olho!</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-6">
+          {liveEvents.map((event) => (
+            <EventCard key={event.id} event={event} student={me} missions={missions} onEnter={() => enter(event)} />
+          ))}
+        </div>
+      )}
+
+      {/* ===== RANKINGS DOS EVENTOS ===== */}
+      {rankingEvent && (
+        <div className="mt-8">
+          <p className="mb-1 flex items-center gap-2 text-sm font-bold text-white">
+            <span className="text-lg">🏆</span> Rankings dos eventos
+          </p>
+          <p className="mb-3 text-xs text-slate-500">A casa campeã e os melhores alunos de cada evento, contando só os pontos do evento.</p>
+          {rankedEvents.length > 1 && (
+            <div className="mb-3 flex flex-wrap gap-2">
+              {rankedEvents.map((e) => {
+                const active = e.id === rankingEvent.id;
+                const live = statusOf(me.teacherId, e.id) === "ativo";
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => setRankingEventId(e.id)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      active ? "border-white bg-white text-cg-ink" : "border-slate-700 bg-cg-card text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    {e.icon} {e.title}
+                    <span className="ml-1.5 opacity-60">{live ? "• acontecendo" : "• encerrado"}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <EventRanking
+            key={rankingEvent.id}
+            event={rankingEvent}
+            students={students}
+            missions={missions}
+            status={statusOf(me.teacherId, rankingEvent.id)}
+            meId={me.id}
+            onSelect={setViewingId}
+          />
+        </div>
+      )}
+
+      {viewingStudent && (
+        <HousemateSheet student={viewingStudent} isYou={viewingStudent.id === me.id} sameHouse={viewingStudent.houseId === me.houseId} onClose={() => setViewingId(null)} />
+      )}
 
       {introOf && <EventScene event={introOf} kind="intro" student={me} onClose={closeIntro} />}
     </div>

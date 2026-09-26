@@ -9,6 +9,7 @@
 
 import { Mission, MissionContent, RewardItem } from "./missions";
 import { Student, addXp, grantItem } from "./students";
+import { HOUSES, HouseId } from "./houses";
 
 export type EventId = "halloween" | "zumbi" | "alien";
 
@@ -1093,4 +1094,68 @@ export function finishEvent(student: Student, event: AcademyEvent): FinishEventR
     leveledUp: level > student.level,
     newLevel: level,
   };
+}
+
+// ============================================================================
+// RANKING DOS EVENTOS — pontuação só do evento, separada do XP geral: o XP de
+// recompensa de cada missão do evento que o aluno concluiu, mais o XP da
+// recompensa final se ele finalizou o evento. A casa soma os pontos dos seus
+// alunos. Entra no ranking quem participou (viu a abertura ou fez pontos).
+// ============================================================================
+
+export interface EventStanding {
+  student: Student;
+  points: number;
+  missionsDone: number;
+  finished: boolean;
+}
+
+export interface HouseEventStanding {
+  houseId: HouseId;
+  points: number;
+  participants: number;
+}
+
+/** Pontos de um aluno num evento (missões do evento concluídas + recompensa final, se finalizou). */
+export function eventStanding(student: Student, missions: Mission[], event: AcademyEvent): EventStanding {
+  const done = missions.filter((m) => m.eventId === event.id && student.completedMissionIds.includes(m.id));
+  const finished = !!eventProgress(student, event.id).finishedAt;
+  return {
+    student,
+    points: done.reduce((sum, m) => sum + m.rewardXp, 0) + (finished ? event.reward.xp : 0),
+    missionsDone: done.length,
+    finished,
+  };
+}
+
+/**
+ * Ranking dos alunos num evento: todas as casas juntas, maior pontuação primeiro.
+ * Empate: quem finalizou antes, depois o nome.
+ */
+export function eventStandings(students: Student[], missions: Mission[], event: AcademyEvent): EventStanding[] {
+  return students
+    .filter((s) => s.houseId)
+    .map((s) => eventStanding(s, missions, event))
+    .filter((st) => st.points > 0 || eventProgress(st.student, event.id).introSeenAt)
+    .sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      const fa = eventProgress(a.student, event.id).finishedAt ?? "9999";
+      const fb = eventProgress(b.student, event.id).finishedAt ?? "9999";
+      return fa.localeCompare(fb) || a.student.name.localeCompare(b.student.name, "pt-BR");
+    });
+}
+
+/**
+ * Ranking das casas num evento: a soma dos pontos de evento dos alunos de cada casa.
+ * Empate: fica na frente a casa do aluno mais bem colocado (`standings` já vem ordenado).
+ */
+export function houseEventStandings(standings: EventStanding[]): HouseEventStanding[] {
+  const bestPlace = (houseId: HouseId) => {
+    const i = standings.findIndex((st) => st.student.houseId === houseId);
+    return i === -1 ? Infinity : i;
+  };
+  return HOUSES.map((h) => {
+    const members = standings.filter((st) => st.student.houseId === h.id);
+    return { houseId: h.id, points: members.reduce((sum, st) => sum + st.points, 0), participants: members.length };
+  }).sort((a, b) => b.points - a.points || bestPlace(a.houseId) - bestPlace(b.houseId));
 }

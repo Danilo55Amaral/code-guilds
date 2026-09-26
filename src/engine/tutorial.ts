@@ -47,7 +47,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "🏰",
     title: "Minha Casa",
-    body: "Em Minha Casa você vê os pontos de cada casa e o ranking dos seus colegas. Cada XP que você ganha soma pontos pra sua casa! Clique num colega pra ver o avatar e os itens dele.",
+    body: "Em Minha Casa você vê os pontos de cada casa, o ranking dos seus colegas e o Ranking Geral com todos os alunos da Academia. Cada XP que você ganha soma pontos pra sua casa! Clique em qualquer aluno pra ver o avatar e os itens dele.",
   },
   {
     icon: "🔔",
@@ -90,14 +90,14 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quem concluir todas ganha o final da história e uma recompensa lendária!",
+    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quando estiver tudo pronto, clique em Iniciar: só então o evento aparece pros seus alunos, e Encerrar esconde ele de novo. Quem concluir todas as missões ganha o final da história e uma recompensa lendária!",
   },
 ];
 
 const ADMIN_STEP: TutorialStep = {
   icon: "🛡",
   title: "Painel ADM",
-  body: "E como você é o administrador, tem acesso ao Painel ADM: cadastra professores, vê todos os alunos e missões da plataforma, troca o professor de um aluno e cuida da Loja da Academia. Grande poder, grande responsabilidade!",
+  body: "E como você é o administrador, tem acesso ao Painel ADM: cadastra professores, vê todos os alunos e missões da plataforma, troca o professor de um aluno, cuida da Loja da Academia e, na aba Eventos, prepara, inicia e encerra os eventos de qualquer turma. Grande poder, grande responsabilidade!",
 };
 
 const TEACHER_LAST_STEP: TutorialStep = {

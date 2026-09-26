@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudents, useMissions, useMessages, useMissionAttempt } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns } from "@/engine/store";
 import { Mission, RewardItem, requiredCorrect } from "@/engine/missions";
 import { SYSTEM_SENDER_ID, eventRewardMessage } from "@/engine/messages";
 import { canFinishEvent, eventMissionsFor, eventProgress, finishEvent, getEvent, introSeenPatch } from "@/engine/specialEvents";
@@ -12,6 +12,8 @@ import EventScene from "@/components/EventScene";
 import QuizModal from "@/components/QuizModal";
 import LevelUpScreen from "@/components/LevelUpScreen";
 import ItemDetailsModal from "@/components/ItemDetailsModal";
+import EventRanking from "@/components/EventRanking";
+import HousemateSheet from "@/components/HousemateSheet";
 import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 
 // ============================================================================
@@ -25,25 +27,30 @@ import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 export default function EventoPage() {
   const params = useParams<{ eventId: string }>();
   const event = getEvent(params.eventId);
-  const { activeStudent, patchActive } = useStudents();
+  const { activeStudent, students, patchActive } = useStudents();
   const { missions: allMissions, ready } = useMissions();
   const { send } = useMessages(activeStudent?.id ?? null);
   const attemptMission = useMissionAttempt();
+  const { statusOf, ready: runsReady } = useEventRuns();
   const [scene, setScene] = useState<"intro" | "outro" | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
 
-  const needsIntro = !!event && !!activeStudent && !eventProgress(activeStudent, event.id).introSeenAt;
+  // O evento só existe pro aluno enquanto o professor dele deixar ele acontecendo.
+  const live = !!event && !!activeStudent && runsReady && statusOf(activeStudent.teacherId, event.id) === "ativo";
+  const needsIntro = live && !!event && !!activeStudent && !eventProgress(activeStudent, event.id).introSeenAt;
   useEffect(() => {
     if (needsIntro) setScene("intro");
   }, [needsIntro]);
 
-  if (!event) {
+  if (!event || (activeStudent && runsReady && !live)) {
     return (
       <div className="cg-card flex flex-col items-center gap-3 px-6 py-12 text-center">
-        <p className="text-4xl">🔍</p>
-        <p className="text-lg font-semibold text-white">Evento não encontrado</p>
+        <p className="text-4xl">{event ? "🌙" : "🔍"}</p>
+        <p className="text-lg font-semibold text-white">{event ? "Este evento não está acontecendo agora" : "Evento não encontrado"}</p>
+        {event && <p className="max-w-md text-sm text-slate-400">Seu professor ainda não iniciou este evento ou já encerrou. O seu progresso fica guardado pra quando ele voltar.</p>}
         <Link href="/academia/eventos" className="cg-btn-secondary !px-4 !py-2 text-xs">
           ← Voltar ao Salão dos Eventos
         </Link>
@@ -62,6 +69,7 @@ export default function EventoPage() {
   const progress = eventProgress(me, ev.id);
   const canFinish = canFinishEvent(me, missions, ev.id);
   const percent = missions.length ? Math.round((done / missions.length) * 100) : 0;
+  const viewingProfile = students.find((s) => s.id === viewingProfileId) ?? null;
 
   function handleComplete(correctCount: number) {
     if (!activeMission) return;
@@ -244,6 +252,15 @@ export default function EventoPage() {
           </div>
         )}
       </div>
+
+      {/* ===== RANKING DO EVENTO ===== */}
+      <div className="mt-6">
+        <EventRanking event={ev} students={students} missions={allMissions} status="ativo" meId={me.id} onSelect={setViewingProfileId} />
+      </div>
+
+      {viewingProfile && (
+        <HousemateSheet student={viewingProfile} isYou={viewingProfile.id === me.id} sameHouse={viewingProfile.houseId === me.houseId} onClose={() => setViewingProfileId(null)} />
+      )}
 
       {viewingReward && <ItemDetailsModal item={viewingReward} onClose={() => setViewingReward(null)} />}
 
