@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useStudents, useMessages, useOffers } from "@/engine/store";
+import { useStudents, useMessages, useOffers, useFriends } from "@/engine/store";
 
 interface NavItem {
   href: string;
@@ -22,23 +22,34 @@ const NAV_ITEMS: NavItem[] = [
     icon: "🏰",
     children: [{ href: "/academia/casa/mensagens", label: "Mensagens", icon: "📨" }],
   },
+  { href: "/academia/amigos", label: "Amigos", icon: "🤝" },
   { href: "/academia/guildas", label: "Guildas", icon: "⚜️" },
   { href: "/academia/lore", label: "Lore", icon: "📜" },
 ];
 
 const MESSAGES_HREF = "/academia/casa/mensagens";
 const INVENTORY_HREF = "/academia/inventario";
+const FRIENDS_HREF = "/academia/amigos";
 
 export default function AcademySidebar() {
   const pathname = usePathname();
   const { activeStudent } = useStudents();
   const { unreadCount } = useMessages(activeStudent?.id ?? null);
   const { received: offersReceived } = useOffers(activeStudent?.id ?? null);
+  const { incoming: friendRequests, unreadTotal: unreadChats } = useFriends(activeStudent?.id ?? null);
 
   function renderLink(item: NavItem, isChild: boolean) {
     const active = pathname === item.href;
-    // mensagens não lidas no "Mensagens"; ofertas de compra esperando resposta no "Inventário"
-    const count = item.href === MESSAGES_HREF ? unreadCount : item.href === INVENTORY_HREF ? offersReceived.length : 0;
+    // mensagens não lidas no "Mensagens"; ofertas de compra esperando resposta no "Inventário";
+    // pedidos de amizade + balões não lidos no "Amigos"
+    const count =
+      item.href === MESSAGES_HREF
+        ? unreadCount
+        : item.href === INVENTORY_HREF
+          ? offersReceived.length
+          : item.href === FRIENDS_HREF
+            ? friendRequests.length + unreadChats
+            : 0;
     const badge = count > 0 ? count : null;
     return (
       <Link

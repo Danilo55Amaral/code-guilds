@@ -10,7 +10,7 @@ import { HouseId, getHouse } from "./houses";
 import { DEFAULT_TEACHER_ID } from "./teachers";
 import { Rarity, RARITY_META } from "./missions";
 
-export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda";
+export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda" | "amizade";
 
 export const MESSAGE_KIND_META: Record<MessageKind, { label: string; plural: string; icon: string; colorClass: string; borderClass: string; bgClass: string }> = {
   aviso: { label: "Aviso", plural: "Avisos", icon: "⚠️", colorClass: "text-amber-300", borderClass: "border-amber-500/40", bgClass: "bg-amber-500/10" },
@@ -19,6 +19,7 @@ export const MESSAGE_KIND_META: Record<MessageKind, { label: string; plural: str
   missao: { label: "Missão", plural: "Missões", icon: "⚔️", colorClass: "text-violet-300", borderClass: "border-violet-500/40", bgClass: "bg-violet-500/10" },
   compra: { label: "Compra", plural: "Compras", icon: "🛒", colorClass: "text-cyan-300", borderClass: "border-cyan-500/40", bgClass: "bg-cyan-500/10" },
   venda: { label: "Venda", plural: "Vendas", icon: "💰", colorClass: "text-lime-300", borderClass: "border-lime-500/40", bgClass: "bg-lime-500/10" },
+  amizade: { label: "Amizade", plural: "Amizades", icon: "🤝", colorClass: "text-pink-300", borderClass: "border-pink-500/40", bgClass: "bg-pink-500/10" },
 };
 
 /** Ordem dos tipos nos filtros da caixa de mensagens. */
@@ -52,6 +53,16 @@ export function eventRewardMessage(data: { event: { title: string; icon: string 
     `Você salvou a Academia! Como recompensa final você ganhou o item ${describeItem(data.item)}, +${data.xp} XP e ${data.coins} moedas. ` +
     `O item já está no seu Inventário.`
   );
+}
+
+/** Aluno recebeu um pedido de amizade. */
+export function friendRequestMessage(fromName: string): string {
+  return `🤝 ${fromName} te mandou um pedido de amizade!\n\nVá em Amigos pra aceitar ou recusar. Amigos podem conversar com balões de fala.`;
+}
+
+/** O pedido de amizade que o aluno mandou foi aceito. */
+export function friendAcceptedMessage(friendName: string): string {
+  return `🤝 ${friendName} aceitou o seu pedido de amizade!\n\nAgora vocês são amigos e já podem conversar em Amigos.`;
 }
 
 /** Comprador: a compra de um colega deu certo. */

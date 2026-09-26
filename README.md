@@ -42,6 +42,7 @@ src/
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
     market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
+    friends.ts        -> amizades entre alunos (pedido, aceitar, recusar/cancelar, desfazer) e a conversa por balões: catálogo fixo de frases (7 categorias) e as mensagens, que guardam só o id da frase (cg-friends, cg-chats)
     eventSchedule.ts  -> agenda dos eventos: cada professor inicia/encerra cada evento pra turma dele (cg-event-runs); só evento "acontecendo" aparece pros alunos
     houseLore.ts      -> a Lenda da Fundação e a história de cada casa (fundador, lema, salão comunal, especialidade, traços)
     specialEvents.ts  -> eventos especiais (Halloween, Apocalipse Zumbi e Invasão Alienígena): história em cenas (abertura e final), vilão, missões prontas, recompensa final e o progresso do aluno (Student.events)
@@ -61,7 +62,9 @@ src/
     SearchInput.tsx     -> campo de busca com lupa
     ItemDetailsModal.tsx -> card grande de um item (ícone, raridade, valor/XP, descrição), aberto ao clicar no item
     StudentList.tsx, MissionList.tsx, TeacherList.tsx -> listas com busca e paginação dos painéis do professor e do ADM
-    HousemateSheet.tsx  -> perfil de um colega da mesma casa (avatar, nome, nível, moedas e itens — sem dados pessoais)
+    HousemateSheet.tsx  -> perfil público de um aluno (avatar, nome, nível, moedas e itens — sem dados pessoais) + a caixa de amizade
+    FriendActions.tsx   -> caixa de amizade do perfil de um aluno (enviar pedido, cancelar, aceitar/recusar, conversar, desfazer amizade)
+    FriendChat.tsx      -> conversa entre amigos: os dois avatares frente a frente com o último balão de cada um, histórico e escolha dos balões prontos
     SellItemModal.tsx   -> janela de venda de um item (pro sistema ou oferta pra um colega)
     ItemEconomyFields.tsx -> campos de valor em moedas e XP ao usar (professor: editor de missão e "Dar item")
     CharacterSheet.tsx  -> Ficha do Personagem do próprio aluno (avatar animado, nível, XP adquirido, moedas, missões, itens por raridade)
@@ -91,6 +94,7 @@ src/
     academia/missoes|inventario|casa -> as 3 telas principais (layout compartilhado)
     academia/eventos, eventos/[eventId] -> Salão dos Eventos e a tela de cada evento
     academia/guildas                 -> Guildas: a lenda da fundação e a apresentação das quatro casas
+    academia/amigos                  -> Amigos: lista de amigos, pedidos recebidos/enviados e a conversa com balões (?com=<id> abre direto a conversa)
     academia/lore                    -> placeholder "em breve" (mesmo layout)
     professor/, professor/painel/    -> área do professor
     admin/, admin/painel/            -> Painel ADM
@@ -138,6 +142,12 @@ public/
   - **Aluno**: na tela do evento (embaixo das missões) e no **Salão dos Eventos**, na seção "🏆 Rankings dos eventos", com uma aba por evento que o professor já iniciou — inclusive os encerrados, pra sempre saber a casa campeã de cada evento. Clicar num aluno abre o perfil público dele
   - **Professor e ADM**: botão "🏆 Ver ranking do evento" no card de cada evento (professor: a turma dele; ADM: a plataforma toda)
 - 🏆 Ranking Geral da Academia (em Minha Casa, abaixo dos pontos das casas e do ranking da casa): todos os alunos de todas as casas por XP total (empate: moedas, depois nome), com pódio dos 3 primeiros (🥇🥈🥉), "Você está em #N de M", filtro por casa com a contagem de cada uma, busca por nome, nível ou casa e 10 por página. A posição mostrada é sempre a do ranking geral, mesmo filtrando. Clicar num aluno abre o mesmo perfil público do ranking da casa (avatar, nível, casa, moedas e itens; o título vira "Aluno da Academia" quando é de outra casa). Componente: `GeneralRanking.tsx`
+- 🤝 Amigos — amizade e conversa entre alunos, feita pra ser segura pra crianças:
+  - **Pedido de amizade pelo perfil**: ao clicar em outro aluno (ranking da casa, Ranking Geral, rankings de evento) o perfil mostra **🤝 Enviar pedido de amizade**. Depois: "⏳ Pedido enviado" (com Cancelar), ou Aceitar/Recusar quando o pedido veio do colega, ou "🌟 Vocês são amigos!" com **💬 Conversar** e **Desfazer amizade** (pede confirmação e apaga a conversa). Se os dois mandarem pedido um pro outro, a amizade já fica aceita
+  - **Notificações 🤝 Amizade** no sino e em Mensagens: quando alguém manda um pedido e quando o pedido é aceito
+  - **Menu Amigos** (`/academia/amigos`), com contador de pedidos recebidos + balões não lidos: abas 🤝 Amigos (quem mandou mensagem nova aparece primeiro, com "N novas") e 📨 Pedidos (recebidos com Aceitar/Recusar, enviados com Cancelar)
+  - **Conversa com balões**: os dois alunos frente a frente, cada um com o último balão que mandou por cima do avatar, e o histórico embaixo. **Não existe campo de texto**: o aluno escolhe um balão pronto (clique e Enviar, ou dois cliques) entre 7 categorias — 👋 Saudações (Oi, Bom dia, Boa tarde...), 💬 Respostas (Sim, Não, Talvez, Entendi...), ⚔️ Missões (Vamos fazer uma missão?, Vamos!, Me ajuda...), 🌟 Incentivo (Parabéns, Você consegue, Não desista...), 🏰 Academia (evento, loja, casa, ranking...), 😄 Reações e 🌙 Despedidas. Todas as frases foram escritas pra serem gentis e adequadas a menores
+  - Segurança: a mensagem guarda só o id da frase, e a tela mostra apenas frases do catálogo — texto que não seja do catálogo nunca aparece, mesmo se alguém mexer no navegador. Só amigos conversam; intervalo mínimo de 1,5 s entre balões; no máximo 200 mensagens por conversa (as mais antigas saem). Excluir um aluno apaga as amizades e conversas dele
 - 🛸 Evento Invasão Alienígena "A Invasão de Bugzar" (terceiro card do Salão dos Eventos):
   - **História**: uma frota de discos voadores do planeta Bugzar cerca a CodeGuilds; o Imperador Zorg quer roubar o Código-Fonte do Universo, abduz os alunos com o raio trator e o feitiço de Ctrl+X dele vai "recortando" o que eles aprenderam. A defesa é o Escudo Arcano: cada missão vencida carrega um Cristal de Energia
   - **Abertura** (6 cenas): a frota chegando sobre o castelo, o Mago no observatório com a frota na janela, o Imperador Zorg (cabeça verde enorme, olhos pretos gigantes, coroa flutuando, capa e cetro) entre tiros de laser, a abdução (raios tratores levando alunos e palavras de código — for, if/else, function — subindo junto), os Cristais de Energia nos pedestais (o primeiro carrega) e o chamado com o avatar do aluno de traje e capacete espacial. Sons novos: zumbido de disco voador (teremim) e tiros de laser; a voz do Imperador é aguda e robótica

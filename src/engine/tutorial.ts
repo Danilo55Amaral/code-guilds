@@ -55,6 +55,11 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
     body: "Recados do professor, presentes, missões concluídas, compras e vendas chegam no sino lá no topo e em Minha Casa, Mensagens. O numerozinho vermelho mostra quantas você ainda não leu.",
   },
   {
+    icon: "🤝",
+    title: "Amigos",
+    body: "Viu um colega legal no ranking? Clique nele e envie um pedido de amizade! Quando ele aceitar, vocês podem conversar em Amigos usando balões de fala prontos, como \"Bom dia!\", \"Vamos fazer uma missão?\" e \"Parabéns!\". Não dá pra digitar: assim a conversa é sempre gentil e segura.",
+  },
+  {
     icon: "🚀",
     title: "Sua jornada começa agora!",
     body: "É isso, aprendiz! O botão de música liga e desliga a trilha do castelo, e o botão Tutorial me chama de volta sempre que precisar. Agora vá, e que seu código compile de primeira!",

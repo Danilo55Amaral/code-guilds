@@ -5,24 +5,29 @@ import { InventoryItem, Student, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "./Avatar";
 import ItemDetailsModal from "./ItemDetailsModal";
+import FriendActions from "./FriendActions";
 import { CoinCount, HousePill, ItemStats, LevelPill, RarityBadge } from "./GameUI";
 
 // ============================================================================
 // HOUSEMATE SHEET — o perfil público de um aluno, aberto pelo ranking da casa
 // ou pelo ranking geral de Minha Casa. Mostra só o que é público entre
 // colegas: avatar, nome, nível, casa, moedas e itens (nada de e-mail, login ou senha).
+// Embaixo do nome ficam as ações de amizade (FriendActions).
 // ============================================================================
 
 export default function HousemateSheet({
   student,
   isYou,
   sameHouse = true,
+  onChat,
   onClose,
 }: {
   student: Student;
   isYou: boolean;
   /** false = aluno de outra casa (aberto pelo ranking geral). */
   sameHouse?: boolean;
+  /** Abrir a conversa sem mudar de página (usado na própria tela de Amigos). */
+  onChat?: () => void;
   onClose: () => void;
 }) {
   const house = student.houseId ? getHouse(student.houseId) : null;
@@ -68,6 +73,11 @@ export default function HousemateSheet({
                 <CoinCount coins={student.coins} />
               </div>
             </div>
+            {!isYou && (
+              <div className="relative w-full max-w-sm">
+                <FriendActions other={student} onChat={onChat} />
+              </div>
+            )}
           </div>
 
           <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-slate-500">

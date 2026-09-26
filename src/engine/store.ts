@@ -6,6 +6,7 @@ import {
   listStudents,
   getActiveStudentId,
   setActiveStudentId,
+  getStudent,
   createStudent,
   removeStudent,
   updateStudent,
@@ -40,7 +41,25 @@ import {
   deleteMessagesOf,
   SYSTEM_SENDER_ID,
   missionRewardMessage,
+  friendRequestMessage,
+  friendAcceptedMessage,
 } from "./messages";
+import {
+  FriendLink,
+  ChatMessage,
+  listFriendLinks,
+  listChatMessages,
+  friendStatusIn,
+  sendFriendRequest,
+  acceptFriendRequest,
+  deleteFriendRequest,
+  removeFriend,
+  deleteFriendsOf,
+  conversationIn,
+  sendChatPhrase,
+  markConversationRead,
+  unreadByFriendIn,
+} from "./friends";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { subscribe, emitChange } from "./events";
 import { Theme, getTheme, setTheme, applyTheme } from "./theme";
@@ -120,6 +139,7 @@ export function useStudents() {
   // a abrir a Academia cairia na conta de outra pessoa.
   const deleteStudent = useCallback((id: string) => {
     deleteOffersOf(id);
+    deleteFriendsOf(id);
     removeStudent(id);
     deleteMessagesOf(id);
     emitChange();
@@ -358,6 +378,99 @@ export function useShop() {
   }, []);
 
   return { items, ready, addItem, editItem, removeItem, buy, addCollection: addItemsOfCollection, removeCollection: removeItemsOfCollection };
+}
+
+/**
+ * Amigos do aluno logado: pedidos recebidos e enviados, a lista de amigos e a
+ * conversa com balões. Pedido novo e pedido aceito também chegam como
+ * mensagem "🤝 Amizade" no sino do outro aluno.
+ */
+export function useFriends(meId: string | null) {
+  const [links, setLinks] = useState<FriendLink[]>([]);
+  const [chats, setChats] = useState<ChatMessage[]>([]);
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setLinks(listFriendLinks());
+    setChats(listChatMessages());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const notify = useCallback((studentId: string, body: string) => {
+    sendMessage({ studentId, senderId: SYSTEM_SENDER_ID, kind: "amizade", body });
+  }, []);
+
+  const request = useCallback(
+    (otherId: string) => {
+      if (!meId) return { ok: false as const, error: "Entre na sua conta primeiro." };
+      const result = sendFriendRequest(meId, otherId);
+      if (result.ok) {
+        const myName = getStudent(meId)?.name ?? "Um colega";
+        notify(otherId, result.accepted ? friendAcceptedMessage(myName) : friendRequestMessage(myName));
+        emitChange();
+      }
+      return result;
+    },
+    [meId, notify],
+  );
+
+  const accept = useCallback(
+    (link: FriendLink) => {
+      acceptFriendRequest(link.id);
+      notify(link.fromId, friendAcceptedMessage(getStudent(link.toId)?.name ?? "Um colega"));
+      emitChange();
+    },
+    [notify],
+  );
+
+  /** Recusar um pedido recebido ou cancelar um enviado. */
+  const dismiss = useCallback((link: FriendLink) => {
+    deleteFriendRequest(link.id);
+    emitChange();
+  }, []);
+
+  const unfriend = useCallback(
+    (otherId: string) => {
+      if (!meId) return;
+      removeFriend(meId, otherId);
+      emitChange();
+    },
+    [meId],
+  );
+
+  const sendPhrase = useCallback(
+    (friendId: string, phraseId: string) => {
+      if (!meId) return { ok: false as const, error: "Entre na sua conta primeiro." };
+      const result = sendChatPhrase(meId, friendId, phraseId);
+      if (result.ok) emitChange();
+      return result;
+    },
+    [meId],
+  );
+
+  const markRead = useCallback(
+    (friendId: string) => {
+      if (!meId) return;
+      markConversationRead(meId, friendId);
+      emitChange();
+    },
+    [meId],
+  );
+
+  const mine = meId ? links.filter((l) => l.fromId === meId || l.toId === meId) : [];
+  const friendIds = mine.filter((l) => l.status === "aceito").map((l) => (l.fromId === meId ? l.toId : l.fromId));
+  const incoming = mine.filter((l) => l.status === "pendente" && l.toId === meId);
+  const outgoing = mine.filter((l) => l.status === "pendente" && l.fromId === meId);
+  const unreadByFriend = meId ? unreadByFriendIn(chats, meId) : {};
+  const unreadTotal = friendIds.reduce((n, id) => n + (unreadByFriend[id] ?? 0), 0);
+
+  const statusWith = useCallback((otherId: string) => (meId ? friendStatusIn(links, meId, otherId) : "nenhum"), [links, meId]);
+  const linkWith = useCallback((otherId: string) => mine.find((l) => l.fromId === otherId || l.toId === otherId), [mine]);
+  const conversationWith = useCallback((friendId: string) => (meId ? conversationIn(chats, meId, friendId) : []), [chats, meId]);
+
+  return { ready, friendIds, incoming, outgoing, unreadByFriend, unreadTotal, statusWith, linkWith, conversationWith, request, accept, dismiss, unfriend, sendPhrase, markRead };
 }
 
 /** Agenda dos eventos: qual evento está acontecendo pra turma de cada professor, e o iniciar/encerrar. */
