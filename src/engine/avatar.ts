@@ -38,7 +38,8 @@ export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola"
   | "orelhas-coelho" | "coroa-flores" | "casca-ovo" | "chapeu-pascoa"
   | "capacete-tatico" | "cerebro-exposto" | "bandana-sobrevivente" | "chapeu-xerife"
   | "antenas" | "chapeu-aluminio" | "capacete-espacial" | "chapeu-radar"
-  | "capacete-cyber" | "coroa-holografica" | "implante-neural" | "antena-robo";
+  | "capacete-cyber" | "coroa-holografica" | "implante-neural" | "antena-robo"
+  | "gorro-lendario"; // exclusivo do evento de Natal (recompensa da Fase 3), não vai pra Loja
 export type Outfit = BaseOutfit | ShopOutfit;
 export type Eyewear = BaseEyewear | ShopEyewear;
 export type Hat = BaseHat | ShopHat;
@@ -50,7 +51,8 @@ export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
   | "ovos" | "flores" | "arco-iris"
   | "radioativa" | "maos-zumbi" | "cidade-ruinas"
   | "raio-trator" | "planetas" | "invasao"
-  | "circuito" | "codigo-matrix" | "grade-neon";
+  | "circuito" | "codigo-matrix" | "grade-neon"
+  | "estrela-polar"; // exclusiva do evento de Natal (recompensa da Fase 2), não vai pra Loja
 export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
   | "abobora" | "lobo" | "morcego" | "aranha" | "caveira"
   | "aguia" | "serpente" | "minotauro" | "golfinho"
@@ -59,7 +61,8 @@ export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
   | "coelho" | "pintinho" | "ovelha" | "borboleta"
   | "zumbi" | "cerebro" | "rato" | "virus"
   | "alien" | "ovni" | "invasor" | "polvo"
-  | "ia-orbe" | "drone" | "gato-robo" | "satelite";
+  | "ia-orbe" | "drone" | "gato-robo" | "satelite"
+  | "cometa"; // exclusivo do evento de Natal (recompensa da Fase 1), não vai pra Loja
 
 export interface AvatarConfig {
   skinTone: number; // índice em SKIN_TONES
@@ -235,6 +238,7 @@ export const SHOP_HAT_LABELS: Record<ShopHat, string> = {
   uraeus: "Coroa da cobra real",
   "disco-ra": "Disco solar de Rá",
   "gorro-noel": "Gorro do Papai Noel",
+  "gorro-lendario": "Gorro Lendário do Papai Noel",
   "chifres-rena": "Chifres de rena",
   azevinho: "Coroa de azevinho",
   "gorro-elfo": "Gorro de elfo",
@@ -274,6 +278,7 @@ export const AURA_LABELS: Record<Aura, string> = {
   neve: "Nevasca",
   luzes: "Luzinhas de Natal",
   aurora: "Aurora boreal",
+  "estrela-polar": "Aura da Estrela Polar",
   ovos: "Aura de ovinhos",
   flores: "Jardim florido",
   "arco-iris": "Arco-íris de primavera",
@@ -327,6 +332,7 @@ export const PET_LABELS: Record<Pet, string> = {
   drone: "Drone de estimação",
   "gato-robo": "Gato-robô",
   satelite: "Satélite de bolso",
+  cometa: "Cometa, a renazinha estelar",
 };
 /** Emoji do mascote: ícone na Loja e desenho no canto do avatar (alguns mascotes têm desenho próprio em components/Avatar.tsx). */
 export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
@@ -368,6 +374,7 @@ export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
   drone: "🚁",
   "gato-robo": "⚙️",
   satelite: "🛰️",
+  cometa: "🦌",
 };
 /** Cores de roupa que só a Loja vende. */
 export const SHOP_OUTFIT_COLORS: { hex: string; label: string; collection?: CosmeticCollection }[] = [

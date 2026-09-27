@@ -22,7 +22,7 @@ function shade(hex: string, amount: number): string {
 
 /** Chapéus que cobrem o topo da cabeça — cabelos altos ficam "por baixo" deles. */
 const COVERING_HATS: Hat[] = [
-  "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
+  "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-lendario", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
   "capacete-tatico", "cerebro-exposto", "chapeu-xerife",
   "chapeu-aluminio", "capacete-espacial", "capacete-cyber",
 ];
@@ -1091,6 +1091,7 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   circuito: ["#67e8f9", "#082f49"],
   "codigo-matrix": ["#86efac", "#022c22"],
   "grade-neon": ["#f0abfc", "#1e1b4b"],
+  "estrela-polar": ["#fef9c3", "#0c4a6e"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -1655,6 +1656,32 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           ))}
         </g>
       )}
+      {aura === "estrela-polar" && (
+        // Evento de Natal (Fase 2): a Estrela Polar dourada no alto, com a aurora dançando atrás.
+        <g>
+          <g fill="none" strokeLinecap="round">
+            <path d="M-6 44 C14 22 36 50 58 30 C80 10 102 40 134 18" stroke="#4ade80" strokeWidth="8" opacity="0.45" />
+            <path d="M-6 56 C18 38 40 64 62 46 C84 28 106 56 134 34" stroke="#f472b6" strokeWidth="5" opacity="0.4" />
+            <path d="M-6 66 C20 52 42 74 66 58 C90 42 110 66 134 50" stroke="#38bdf8" strokeWidth="4" opacity="0.35" />
+          </g>
+          <circle cx="64" cy="13" r="14" fill="#fde68a" opacity="0.35" />
+          <path d={starPath(64, 13, 11, 4)} fill="#fde047" stroke="#f59e0b" strokeWidth="1" strokeLinejoin="round" />
+          <path d={starPath(64, 13, 6, 2.2)} fill="#fffbeb" transform="rotate(36 64 13)" />
+          <path d="M64 -2 L64 28 M49 13 L79 13" stroke="#fffbeb" strokeWidth="0.7" opacity="0.8" />
+          <Snowflake x={14} y={80} r={4} />
+          <Snowflake x={114} y={76} r={3.5} />
+          <Snowflake x={22} y={106} r={3} />
+          {[
+            [34, 20],
+            [96, 22],
+            [10, 60],
+            [118, 58],
+            [108, 104],
+          ].map(([x, y]) => (
+            <Sparkle key={`${x}-${y}`} x={x} y={y} r={1.6} />
+          ))}
+        </g>
+      )}
       {aura === "raios" && (
         <g>
           <StormCloud x={24} y={20} s={1.1} />
@@ -1853,6 +1880,30 @@ function drawnPet(pet: Pet) {
           <path d="M92 101 L84 100 M92 102.5 L84 103.5 M102 101 L110 100 M102 102.5 L110 103.5" stroke="#64748b" strokeWidth="0.7" />
           <circle cx="87.5" cy="105" r="0.9" fill="#64748b" />
           <circle cx="106.5" cy="105" r="0.9" fill="#64748b" />
+        </g>
+      );
+    case "cometa":
+      // Evento de Natal (Fase 1): a renazinha Cometa, com a estrela brilhando entre os chifres.
+      return (
+        <g>
+          <g stroke="#92400e" strokeWidth="1.6" fill="none" strokeLinecap="round">
+            <path d="M91 92 C88 86 87 82 88 77 M88.5 83 C85.5 82 84 80 84 77" />
+            <path d="M103 92 C106 86 107 82 106 77 M105.5 83 C108.5 82 110 80 110 77" />
+          </g>
+          <circle cx="97" cy="80" r="5" fill="#fde68a" opacity="0.45" />
+          <path d={starPath(97, 80, 3.6, 1.5)} fill="#fde047" stroke="#f59e0b" strokeWidth="0.5" />
+          <ellipse cx="88" cy="94" rx="3.2" ry="1.8" fill="#a16207" transform="rotate(-30 88 94)" />
+          <ellipse cx="106" cy="94" rx="3.2" ry="1.8" fill="#a16207" transform="rotate(30 106 94)" />
+          <path d="M88 96 C88 88 106 88 106 96 C106 102 103 107 97 108.5 C91 107 88 102 88 96 Z" fill="#b45309" />
+          <ellipse cx="97" cy="104" rx="5.5" ry="4.2" fill="#fcd9b6" />
+          <circle cx="97" cy="101.5" r="2.2" fill="#7f1d1d" />
+          <circle cx="96.3" cy="100.9" r="0.7" fill="#fff" opacity="0.8" />
+          <circle cx="92.8" cy="96" r="1.5" fill="#1c1917" />
+          <circle cx="101.2" cy="96" r="1.5" fill="#1c1917" />
+          <circle cx="93.2" cy="95.5" r="0.5" fill="#fff" />
+          <circle cx="101.6" cy="95.5" r="0.5" fill="#fff" />
+          <path d="M90 108.5 C94 110.5 100 110.5 104 108.5" stroke="#dc2626" strokeWidth="1.8" fill="none" />
+          <circle cx="97" cy="111" r="1.6" fill="#fbbf24" stroke="#a16207" strokeWidth="0.4" />
         </g>
       );
     case "ia-orbe":
@@ -2219,6 +2270,24 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
           <path d="M70 9 C82 12 92 24 98 38" stroke="#991b1b" strokeWidth="2" fill="none" opacity="0.6" />
           <path d="M33 38 C33 30 44 27 64 27 C84 27 95 30 95 38 C95 45 84 42 64 42 C44 42 33 45 33 38 Z" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="0.8" />
           <circle cx="104" cy="48" r="6.5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="0.8" />
+        </g>
+      );
+    case "gorro-lendario":
+      // Evento de Natal (Fase 3): o gorro do próprio Papai Noel, de veludo com barra dourada e estrela no pompom.
+      return (
+        <g>
+          <path d="M38 33 C44 12 58 3 71 5 C86 8 98 22 106 48 C98 40 92 35 89 33 Z" fill="#b91c1c" />
+          <path d="M44 30 C50 16 60 9 70 9" stroke="#ef4444" strokeWidth="3" fill="none" opacity="0.7" strokeLinecap="round" />
+          <path d="M71 7 C84 11 94 24 100 40" stroke="#7f1d1d" strokeWidth="2" fill="none" opacity="0.6" />
+          <path d="M62 16 L66 22 M76 14 L78 20 M86 24 L86 30" stroke="#fde047" strokeWidth="1.4" strokeLinecap="round" opacity="0.9" />
+          <path d="M33 38 C33 30 44 27 64 27 C84 27 95 30 95 38 C95 45 84 42 64 42 C44 42 33 45 33 38 Z" fill="#f8fafc" stroke="#fbbf24" strokeWidth="1.6" />
+          <path d="M36 35.5 C48 33 80 33 92 35.5" stroke="#fbbf24" strokeWidth="1" fill="none" />
+          {[46, 64, 82].map((x) => (
+            <path key={x} d={starPath(x, 37, 3, 1.2)} fill="#fbbf24" stroke="#a16207" strokeWidth="0.4" />
+          ))}
+          <circle cx="106" cy="50" r="10" fill="#fde68a" opacity="0.35" />
+          <circle cx="106" cy="50" r="6.5" fill="#fbbf24" stroke="#a16207" strokeWidth="0.8" />
+          <path d={starPath(106, 50, 4.2, 1.7)} fill="#fffbeb" />
         </g>
       );
     case "chifres-rena":

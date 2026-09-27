@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AvatarConfig } from "@/engine/avatar";
-import { AcademyEvent } from "@/engine/specialEvents";
+import { EventReward } from "@/engine/specialEvents";
 import Avatar from "../Avatar";
 import { CoinIcon } from "../GameUI";
 
@@ -56,6 +56,9 @@ const WINDOWS = [
  * caber inteiro em caixas baixas (card, fundo das cenas). Nas cenas em que ele
  * é o protagonista, scale 1 e uma caixa alta. `children` desenha por cima do
  * castelo (no mesmo viewBox), ex.: a sirene no topo da torre.
+ * `wide` = área de desenho bem mais larga e mais alta (chão até as bordas):
+ * em telas largas o "slice" só corta as laterais, nunca o alto das torres
+ * nem o que estiver acima delas (ex.: a estrela de Natal).
  */
 export function Castle({
   lit = true,
@@ -63,6 +66,7 @@ export function Castle({
   fill = "#07030d",
   scale = 0.64,
   windowColor = "#fbbf24",
+  wide = false,
   children,
 }: {
   lit?: boolean;
@@ -70,11 +74,24 @@ export function Castle({
   fill?: string;
   scale?: number;
   windowColor?: string;
+  wide?: boolean;
   children?: React.ReactNode;
 }) {
   return (
-    <svg viewBox="0 -20 1200 360" preserveAspectRatio="xMidYMax slice" className={`absolute bottom-0 left-0 w-full ${className}`} aria-hidden="true">
-      <path d="M0 340 L0 300 C200 280 400 292 600 286 C800 280 1000 292 1200 300 L1200 340 Z" fill={fill} />
+    <svg
+      viewBox={wide ? "-1500 -70 4200 410" : "0 -20 1200 360"}
+      preserveAspectRatio="xMidYMax slice"
+      className={`absolute bottom-0 left-0 w-full ${className}`}
+      aria-hidden="true"
+    >
+      <path
+        d={
+          wide
+            ? "M-1500 340 L-1500 298 C-900 290 -300 304 0 300 C200 280 400 292 600 286 C800 280 1000 292 1200 300 C1600 306 2200 290 2700 298 L2700 340 Z"
+            : "M0 340 L0 300 C200 280 400 292 600 286 C800 280 1000 292 1200 300 L1200 340 Z"
+        }
+        fill={fill}
+      />
       <g transform={`translate(600 300) scale(${scale}) translate(-600 -300)`}>
         <g fill={fill}>
           <rect x="250" y="200" width="50" height="110" />
@@ -186,9 +203,8 @@ export function Rays({ color = "rgba(253,230,138,0.5)" }: { color?: string }) {
   );
 }
 
-/** Última cena do final: as recompensas do evento aparecendo e o aluno com o visual novo. */
-export function RewardShowcase({ event, avatar, ringColor = "#fbbf24" }: { event: AcademyEvent; avatar: AvatarConfig | null; ringColor?: string }) {
-  const { reward } = event;
+/** Última cena do final (ou de uma fase): as recompensas aparecendo e o aluno com o visual novo. */
+export function RewardShowcase({ reward, avatar, ringColor = "#fbbf24" }: { reward: EventReward; avatar: AvatarConfig | null; ringColor?: string }) {
   return (
     <Stage className="!justify-start !items-center flex-col gap-4 pt-[2%]">
       <div className="flex flex-wrap justify-center gap-2 px-4">

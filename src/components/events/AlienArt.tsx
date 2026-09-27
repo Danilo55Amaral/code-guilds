@@ -1,7 +1,7 @@
 "use client";
 
 import { wornAvatar } from "@/engine/students";
-import { getEvent } from "@/engine/specialEvents";
+import { getEvent, getPhase } from "@/engine/specialEvents";
 import Avatar from "../Avatar";
 import WizardDanilo from "../WizardDanilo";
 import { Castle, Confetti, Fog, Lightning, Rays, RewardShowcase, Stage, Stars } from "./common";
@@ -469,7 +469,7 @@ export default function AlienArt({ art, speaker, mouthOpen = false, student }: E
           <div className="absolute inset-0" style={{ background: "radial-gradient(60% 55% at 50% 45%, rgba(165,243,252,0.55), transparent 70%), linear-gradient(180deg, #312e81 0%, #22d3ee 55%, #f0abfc 100%)" }} />
           <Rays color="rgba(236,254,255,0.55)" />
           <Confetti colors={["#22d3ee", "#a3e635", "#f0abfc", "#fde047", "#f8fafc"]} />
-          <RewardShowcase event={getEvent("alien")!} avatar={student ? { ...wornAvatar(student), pet: "alien" } : null} ringColor="#22d3ee" />
+          <RewardShowcase reward={getPhase(getEvent("alien")!, 1).reward} avatar={student ? { ...wornAvatar(student), pet: "alien" } : null} ringColor="#22d3ee" />
         </div>
       );
 

@@ -55,6 +55,22 @@ export function eventRewardMessage(data: { event: { title: string; icon: string 
   );
 }
 
+/** Aluno concluiu uma fase de um evento em fases (que não é a última): o item lendário da fase. */
+export function eventPhaseRewardMessage(data: {
+  event: { title: string; icon: string };
+  phase: { number: number; title: string };
+  totalPhases: number;
+  item: ItemSummary;
+  xp: number;
+  coins: number;
+}): string {
+  return (
+    `🎁 Fase ${data.phase.number} de ${data.totalPhases} concluída: ${data.event.icon} ${data.event.title}, ${data.phase.title}!\n\n` +
+    `Como recompensa da fase você ganhou o item ${describeItem(data.item)}, +${data.xp} XP e ${data.coins} moedas. ` +
+    `O item já está no seu Inventário. A próxima fase chega quando o seu professor liberar!`
+  );
+}
+
 /** Aluno recebeu um pedido de amizade. */
 export function friendRequestMessage(fromName: string): string {
   return `🤝 ${fromName} te mandou um pedido de amizade!\n\nVá em Amigos pra aceitar ou recusar. Amigos podem conversar com balões de fala.`;

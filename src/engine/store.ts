@@ -66,7 +66,7 @@ import { Theme, getTheme, setTheme, applyTheme } from "./theme";
 import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem, addCollection, removeCollection } from "./shop";
 import { CosmeticCollection } from "./avatar";
 import type { EventId } from "./specialEvents";
-import { EventRuns, EventStatus, listEventRuns, statusIn, startEvent, endEvent, deleteEventRunsOf } from "./eventSchedule";
+import { EventRuns, EventStatus, listEventRuns, statusIn, startEvent, endEvent, deleteEventRunsOf, releasedPhasesIn, releaseNextPhase } from "./eventSchedule";
 
 /**
  * Inscreve um "sync" nos avisos de mudança: tanto os avisos internos
@@ -497,7 +497,15 @@ export function useEventRuns() {
     emitChange();
   }, []);
 
-  return { runs, ready, statusOf, start, end };
+  /** Quantas fases do evento o professor liberou (evento comum: 1 se já foi iniciado). */
+  const releasedOf = useCallback((teacherId: string, eventId: EventId): number => releasedPhasesIn(runs, teacherId, eventId), [runs]);
+
+  const releasePhase = useCallback((teacherId: string, eventId: EventId, totalPhases: number) => {
+    releaseNextPhase(teacherId, eventId, totalPhases);
+    emitChange();
+  }, []);
+
+  return { runs, ready, statusOf, releasedOf, start, end, releasePhase };
 }
 
 /** Tema escuro/claro. Também acompanha a troca feita em outra aba (evento "storage"). */

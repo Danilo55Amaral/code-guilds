@@ -4,12 +4,14 @@ import type { Student } from "@/engine/students";
 import HalloweenArt, { Lantern } from "./HalloweenArt";
 import ZombieArt, { AntidoteVial } from "./ZombieArt";
 import AlienArt, { EnergyCrystal } from "./AlienArt";
+import ChristmasArt, { ChristmasProgress } from "./ChristmasArt";
 
 // ============================================================================
 // VISUAL DOS EVENTOS — pra cada evento: o desenho das cenas, o ícone de
 // progresso (no Halloween, uma Lanterna Sagrada por missão; no Apocalipse
-// Zumbi, um frasco do antídoto; na Invasão Alienígena, um Cristal de Energia) e as cores do card, do banner, dos botões e
-// do balão do vilão. Os textos da história ficam em engine/specialEvents.ts.
+// Zumbi, um frasco do antídoto; na Invasão Alienígena, um Cristal de Energia; no Natal,
+// um por fase: presente, Estrela da Aurora e Selo de Gelo) e as cores do card, do banner,
+// dos botões e do balão do vilão. Os textos da história ficam em engine/specialEvents.ts.
 // ============================================================================
 
 export interface EventArtProps {
@@ -19,11 +21,23 @@ export interface EventArtProps {
   student?: Student | null;
 }
 
+export interface ProgressNoun {
+  one: string;
+  many: string;
+  doneOne: string;
+  doneMany: string;
+}
+
 export interface EventVisual {
   Art: ComponentType<EventArtProps>;
-  ProgressIcon: ComponentType<{ lit: boolean; delay?: number; className?: string }>;
+  /** Ícone de progresso de cada missão; `phase` = a fase (evento em fases muda o ícone por fase). */
+  ProgressIcon: ComponentType<{ lit: boolean; delay?: number; className?: string; phase?: number }>;
   /** Como o progresso se chama: "2 de 4 lanternas acesas", "✓ lanterna acesa". */
-  progressNoun: { one: string; many: string; doneOne: string; doneMany: string };
+  progressNoun: ProgressNoun;
+  /** Evento em fases: o nome do progresso de cada fase (1, 2, 3...), se mudar. */
+  phaseNouns?: Record<number, ProgressNoun>;
+  /** Fundo sonoro das cenas: sombrio (padrão) ou de inverno. */
+  ambience?: "sombrio" | "inverno";
   missionsTitle: string; // título da lista de missões na tela do evento
   titleClass: string;
   titleGlow: string; // text-shadow do título
@@ -86,6 +100,35 @@ export const EVENT_VISUALS: Record<EventId, EventVisual> = {
       glow: "0 12px 50px -10px rgba(163,230,53,0.75)",
     },
   },
+  natal: {
+    Art: ChristmasArt,
+    ProgressIcon: ChristmasProgress,
+    progressNoun: { one: "presente", many: "presentes", doneOne: "descongelado", doneMany: "descongelados" },
+    phaseNouns: {
+      1: { one: "presente", many: "presentes", doneOne: "descongelado", doneMany: "descongelados" },
+      2: { one: "estrela da aurora", many: "estrelas da aurora", doneOne: "acesa", doneMany: "acesas" },
+      3: { one: "selo de gelo", many: "selos de gelo", doneOne: "quebrado", doneMany: "quebrados" },
+    },
+    ambience: "inverno",
+    missionsTitle: "🎄 Missões da fase",
+    titleClass: "text-red-400",
+    titleGlow: "0 0 24px rgba(248,113,113,0.8), 0 0 60px rgba(34,197,94,0.45)",
+    accentClass: "text-emerald-200",
+    accentDot: "bg-red-400",
+    accentDotSoft: "bg-emerald-200/70",
+    chipClass: "border-emerald-300/50 text-emerald-100 hover:border-emerald-200",
+    borderClass: "border-red-500/40",
+    buttonClass: "bg-gradient-to-r from-red-500 via-amber-300 to-emerald-400 text-cg-ink shadow-lg shadow-red-500/40",
+    progressBar: "from-red-500 via-amber-300 to-emerald-400",
+    glow: "#ef4444",
+    panelBackground:
+      "radial-gradient(45% 60% at 90% 0%, rgba(239,68,68,0.28), transparent 70%), radial-gradient(40% 60% at 0% 100%, rgba(34,197,94,0.28), transparent 70%), linear-gradient(160deg, #020617 0%, #0f1f4a 50%, #14532d 100%)",
+    villainStyle: {
+      plate: "border-sky-300/80 bg-sky-950/95 text-sky-200",
+      border: "border-sky-300/60",
+      glow: "0 12px 50px -10px rgba(125,211,252,0.8)",
+    },
+  },
   alien: {
     Art: AlienArt,
     ProgressIcon: EnergyCrystal,
@@ -110,3 +153,8 @@ export const EVENT_VISUALS: Record<EventId, EventVisual> = {
     },
   },
 };
+
+/** O nome do progresso numa fase ("presentes descongelados", "selos de gelo quebrados"...). */
+export function progressNounFor(visual: EventVisual, phase: number): ProgressNoun {
+  return visual.phaseNouns?.[phase] ?? visual.progressNoun;
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { wornAvatar } from "@/engine/students";
-import { getEvent } from "@/engine/specialEvents";
+import { getEvent, getPhase } from "@/engine/specialEvents";
 import Avatar from "../Avatar";
 import WizardDanilo from "../WizardDanilo";
 import { Castle, Confetti, Fog, Lightning, Rays, RewardShowcase, Stage, Stars } from "./common";
@@ -441,7 +441,7 @@ export default function HalloweenArt({ art, speaker, mouthOpen = false, student 
           <div className="absolute inset-0" style={{ background: "radial-gradient(60% 55% at 50% 45%, rgba(253,224,71,0.5), transparent 70%), linear-gradient(180deg, #7c3aed 0%, #f472b6 50%, #fdba74 100%)" }} />
           <Rays />
           <Confetti colors={["#f97316", "#fbbf24", "#a78bfa", "#4ade80", "#f8fafc"]} />
-          <RewardShowcase event={getEvent("halloween")!} avatar={student ? { ...wornAvatar(student), pet: "abobora" } : null} />
+          <RewardShowcase reward={getPhase(getEvent("halloween")!, 1).reward} avatar={student ? { ...wornAvatar(student), pet: "abobora" } : null} />
         </div>
       );
 

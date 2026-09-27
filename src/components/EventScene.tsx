@@ -1,9 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AcademyEvent, SceneSound, SceneSpeaker } from "@/engine/specialEvents";
+import { AcademyEvent, EventPhase, SceneSound, SceneSpeaker, eventPhases } from "@/engine/specialEvents";
 import { Student } from "@/engine/students";
-import { isSoundMuted, playLaser, playMagicChime, playMidnightBell, playSiren, playSpookyAmbience, playThunder, playUfoHum, playVictoryFanfare, playZombieGroan, setSoundMuted, speakCharacter } from "@/engine/sfx";
+import {
+  isSoundMuted,
+  playLaser,
+  playMagicChime,
+  playMidnightBell,
+  playSiren,
+  playSleighBells,
+  playSpookyAmbience,
+  playThunder,
+  playUfoHum,
+  playVictoryFanfare,
+  playWindHowl,
+  playWinterAmbience,
+  playZombieGroan,
+  setSoundMuted,
+  speakCharacter,
+} from "@/engine/sfx";
 import { pauseMusic, resumeMusic } from "@/engine/music";
 import { EVENT_VISUALS, EventVisual } from "./events/registry";
 
@@ -14,6 +30,8 @@ import { EVENT_VISUALS, EventVisual } from "./events/registry";
 // "digitado", nome e cor de quem fala). Com o som ligado: fundo sombrio,
 // efeito de cada cena (sino, trovão, plim, fanfarra) e a voz do personagem.
 // Abertura (`kind="intro"`) e final (`kind="outro"`) usam o mesmo player.
+// Evento em fases (Natal): cada fase tem a própria abertura e o próprio final
+// (`phase`); o final da última fase é o final do evento.
 // Fechar de qualquer jeito (terminar, "Pular" ou Esc) chama onClose.
 // ============================================================================
 
@@ -30,7 +48,7 @@ interface SpeakerStyle {
   voice: { pitch: number; rate: number };
 }
 
-// Narrador e Mago são iguais em todo evento; o vilão (nome, voz e cores) vem de cada evento.
+// Narrador, Mago e Papai Noel são iguais em todo evento; o vilão (nome, voz e cores) vem de cada evento.
 const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
   narrador: {
     name: "Narrador",
@@ -48,6 +66,14 @@ const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
     glow: "0 12px 50px -10px rgba(139,92,246,0.75)",
     voice: { pitch: 0.8, rate: 1.05 },
   },
+  noel: {
+    name: "Papai Noel",
+    icon: "🎅",
+    plate: "border-red-400/80 bg-red-950/95 text-amber-100",
+    border: "border-red-400/60",
+    glow: "0 12px 50px -10px rgba(248,113,113,0.8)",
+    voice: { pitch: 0.55, rate: 0.9 },
+  },
 };
 
 function speakerStyle(speaker: SceneSpeaker, event: AcademyEvent, visual: EventVisual): SpeakerStyle {
@@ -64,14 +90,32 @@ const SOUNDS: Record<SceneSound, () => () => void> = {
   gemido: playZombieGroan,
   ovni: playUfoHum,
   laser: playLaser,
+  guizos: playSleighBells,
+  vento: playWindHowl,
 };
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export default function EventScene({ event, kind, student, onClose }: { event: AcademyEvent; kind: "intro" | "outro"; student: Student; onClose: () => void }) {
-  const steps = kind === "intro" ? event.intro : event.outro;
+export default function EventScene({
+  event,
+  phase,
+  kind,
+  student,
+  onClose,
+}: {
+  event: AcademyEvent;
+  /** A fase cuja história toca (evento comum: a única, o próprio evento). */
+  phase: EventPhase;
+  kind: "intro" | "outro";
+  student: Student;
+  onClose: () => void;
+}) {
+  const steps = kind === "intro" ? phase.intro : phase.outro;
+  const totalPhases = eventPhases(event).length;
+  const phased = totalPhases > 1;
+  const lastPhase = phase.number === totalPhases;
   const visual = EVENT_VISUALS[event.id];
   const Art = visual.Art;
   const [index, setIndex] = useState(0);
@@ -107,10 +151,11 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
     return () => window.clearTimeout(timer);
   }, []);
 
+  const winter = visual.ambience === "inverno";
   useEffect(() => {
     if (!soundOn || !spooky) return;
-    return playSpookyAmbience();
-  }, [soundOn, spooky]);
+    return winter ? playWinterAmbience() : playSpookyAmbience();
+  }, [soundOn, spooky, winter]);
 
   // Nova cena: o texto recomeça a ser "digitado".
   useEffect(() => {
@@ -136,7 +181,7 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
     const stopSound = step.sound ? SOUNDS[step.sound]() : () => {};
     const { voice } = speakerStyle(step.speaker, event, visual);
     // Sons longos (trovão, sirene, gemido, disco voador) tocam um pouco antes de a voz começar.
-    const voiceDelay = step.sound === "trovao" || step.sound === "alarme" || step.sound === "gemido" || step.sound === "ovni" ? 900 : 400;
+    const voiceDelay = step.sound === "trovao" || step.sound === "alarme" || step.sound === "gemido" || step.sound === "ovni" || step.sound === "vento" ? 900 : 400;
     const voiceTimer = window.setTimeout(() => {
       stopVoiceRef.current = speakCharacter(step.text, voice);
     }, voiceDelay);
@@ -190,10 +235,24 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
     if (!next) stopVoiceRef.current();
   }
 
-  const finalLabel = kind === "intro" ? `Aceitar o desafio ${event.icon}` : "Finalizar evento 🏆";
+  const finalLabel = kind === "intro" ? `Aceitar o desafio ${event.icon}` : phased && !lastPhase ? `Concluir a Fase ${phase.number} 🎁` : "Finalizar evento 🏆";
+  const partLabel = kind === "intro" ? "Abertura" : "Final";
+  const vignetteTop =
+    kind === "intro"
+      ? phased
+        ? `A CodeGuilds apresenta • Fase ${phase.number} de ${totalPhases}`
+        : "A CodeGuilds apresenta"
+      : phased && !lastPhase
+        ? `✦ Fim da Fase ${phase.number} ✦`
+        : "✦ Capítulo final ✦";
 
   return (
-    <div className="cg-dark-scope fixed inset-0 z-[70] overflow-hidden bg-black" role="dialog" aria-modal="true" aria-label={`${event.title}: ${kind === "intro" ? "abertura" : "final"}`}>
+    <div
+      className="cg-dark-scope fixed inset-0 z-[70] overflow-hidden bg-black"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${event.title}${phased ? `, Fase ${phase.number}` : ""}: ${kind === "intro" ? "abertura" : "final"}`}
+    >
       {/* ---- a cena ---- */}
       <div key={index} className="cg-anim-scene-in absolute inset-0">
         <Art art={step.art} speaker={step.speaker} mouthOpen={mouthOpen} student={student} />
@@ -207,7 +266,8 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
       {/* ---- topo ---- */}
       <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between gap-2 p-3 sm:p-4">
         <p className={`truncate text-[10px] font-semibold uppercase tracking-wider sm:text-[11px] sm:tracking-[0.2em] ${visual.accentClass}`}>
-          {event.icon} {event.title} • {kind === "intro" ? "Abertura" : "Final"} • {index + 1} de {steps.length}
+          {event.icon} {event.title} • {phased && `Fase ${phase.number} • `}
+          {partLabel} • {index + 1} de {steps.length}
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <button
@@ -227,12 +287,12 @@ export default function EventScene({ event, kind, student, onClose }: { event: A
       {titleCard ? (
         // ---- vinheta de abertura com o título ----
         <button type="button" onClick={advance} className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/60 px-6 text-center">
-          <span className="cg-anim-fade text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-300">{kind === "intro" ? "A CodeGuilds apresenta" : "✦ Capítulo final ✦"}</span>
+          <span className="cg-anim-fade text-[11px] font-semibold uppercase tracking-[0.4em] text-slate-300">{vignetteTop}</span>
           <span className={`cg-anim-title-flicker mt-4 block text-4xl font-black uppercase sm:text-6xl ${visual.titleClass}`} style={{ textShadow: visual.titleGlow }}>
             {event.title}
           </span>
           <span className={`cg-anim-fade mt-4 text-sm font-semibold ${visual.accentClass}`} style={{ animationDelay: "1.5s" }}>
-            {event.tagline}
+            {phased ? `${phase.icon} ${phase.title}` : event.tagline}
           </span>
           <span className="cg-anim-fade mt-10 text-[11px] text-slate-500" style={{ animationDelay: "2.2s" }}>
             clique pra começar

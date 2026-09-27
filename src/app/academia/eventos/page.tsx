@@ -5,8 +5,22 @@ import { useRouter } from "next/navigation";
 import { useStudents, useMissions, useEventRuns } from "@/engine/store";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
-import { ACADEMY_EVENTS, AcademyEvent, EventId, eventMissionsFor, eventProgress, introSeenPatch } from "@/engine/specialEvents";
+import {
+  ACADEMY_EVENTS,
+  AcademyEvent,
+  EventId,
+  currentPhase,
+  eventFinishedAt,
+  eventMissionsFor,
+  eventPhases,
+  eventStarted,
+  getPhase,
+  introSeenPatch,
+  phaseLock,
+  phaseProgress,
+} from "@/engine/specialEvents";
 import { EVENT_VISUALS } from "@/components/events/registry";
+import PhaseTrail from "@/components/events/PhaseTrail";
 import EventScene from "@/components/EventScene";
 import EventRanking from "@/components/EventRanking";
 import HousemateSheet from "@/components/HousemateSheet";
@@ -16,6 +30,8 @@ import { CoinIcon, RarityBadge } from "@/components/GameUI";
 // SALÃO DOS EVENTOS — o banner e um card grande por evento. "Entrar" na
 // primeira vez abre a cena de abertura em tela cheia; depois de ver (ou pular),
 // vai direto pra tela do evento (/academia/eventos/[id]).
+// Evento em fases (Natal): o card mostra a trilha das fases, e "Entrar" abre a
+// abertura da fase nova quando o professor libera uma.
 // ============================================================================
 
 // Enfeites flutuando no banner: [emoji, esquerda %, topo %, tamanho, atraso].
@@ -27,22 +43,39 @@ const BANNER_DECOR: [string, number, number, number, number][] = [
   ["🛸", 74, 20, 18, 2.2],
   ["🦇", 90, 12, 22, 1.3],
   ["🧪", 95, 68, 16, 2.8],
+  ["🎅", 55, 44, 20, 1.1],
+  ["❄️", 14, 46, 16, 2.5],
 ];
 
-function EventCard({ event, student, missions, onEnter }: { event: AcademyEvent; student: Student; missions: Mission[]; onEnter: () => void }) {
+function EventCard({ event, student, missions, released, onEnter }: { event: AcademyEvent; student: Student; missions: Mission[]; released: number; onEnter: () => void }) {
   const visual = EVENT_VISUALS[event.id];
   const { Art, ProgressIcon } = visual;
+  const phases = eventPhases(event);
+  const phased = phases.length > 1;
+  const reward = phases[phases.length - 1].reward;
   const list = eventMissionsFor(missions, event.id, student.teacherId);
   const done = list.filter((m) => student.completedMissionIds.includes(m.id)).length;
-  const progress = eventProgress(student, event.id);
+  const finished = !!eventFinishedAt(student, event);
+  const started = eventStarted(student, event);
+  // Evento em fases: a fase em que o aluno está e se ela é nova (abertura ainda não vista).
+  const phaseNow = currentPhase(student, event, released);
+  const newPhase = phased && phaseNow > 1 && !phaseLock(student, event, phaseNow, released) && !phaseProgress(student, event, phaseNow).introSeenAt;
 
-  const status = progress.finishedAt
+  const status = finished
     ? { label: "🏆 Concluído", className: "border-emerald-400/60 bg-emerald-500/20 text-emerald-200" }
-    : progress.introSeenAt
-      ? { label: `🔥 Em andamento • ${done}/${list.length}`, className: "border-orange-400/60 bg-orange-500/20 text-orange-200" }
-      : { label: "✨ Novo evento", className: "border-amber-300/60 bg-amber-400/20 text-amber-100" };
+    : newPhase
+      ? { label: `✨ Fase ${phaseNow} liberada!`, className: "border-amber-300/60 bg-amber-400/20 text-amber-100" }
+      : started
+        ? { label: phased ? `🔥 Fase ${phaseNow} de ${phases.length}` : `🔥 Em andamento • ${done}/${list.length}`, className: "border-orange-400/60 bg-orange-500/20 text-orange-200" }
+        : { label: "✨ Novo evento", className: "border-amber-300/60 bg-amber-400/20 text-amber-100" };
 
-  const buttonLabel = progress.finishedAt ? `Ver o evento ${event.icon}` : progress.introSeenAt ? "Continuar o evento →" : `${event.icon} Entrar no evento`;
+  const buttonLabel = finished
+    ? `Ver o evento ${event.icon}`
+    : newPhase
+      ? `${getPhase(event, phaseNow).icon} Começar a Fase ${phaseNow}`
+      : started
+        ? "Continuar o evento →"
+        : `${event.icon} Entrar no evento`;
 
   return (
     <div className={`cg-dark-scope group relative overflow-hidden rounded-3xl border ${visual.borderClass}`} style={{ boxShadow: `0 24px 70px -30px ${visual.glow}` }}>
@@ -65,8 +98,14 @@ function EventCard({ event, student, missions, onEnter }: { event: AcademyEvent;
       {/* ---- história, progresso e recompensa ---- */}
       <div className="relative p-5 sm:p-7" style={{ background: visual.panelBackground }}>
         <p className="max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">{event.summary}</p>
-        <p className={`mt-2 text-sm font-semibold ${visual.accentClass}`}>🎯 {event.goal}</p>
+        <p className={`mt-2 text-sm font-semibold ${visual.accentClass}`}>🎯 {phased ? event.goal : phases[0].goal}</p>
 
+        {phased ? (
+          <div className="mt-5">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">🗺️ A trilha: {phases.length} fases, cada uma com um item lendário</p>
+            <PhaseTrail event={event} student={student} missions={missions} released={released} />
+          </div>
+        ) : (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           <div className="rounded-2xl border border-slate-700/60 bg-black/30 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Seu progresso</p>
@@ -92,21 +131,22 @@ function EventCard({ event, student, missions, onEnter }: { event: AcademyEvent;
           <div className="rounded-2xl border border-amber-400/30 bg-black/30 p-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-200/80">🏆 Recompensa final</p>
             <div className="mt-2 flex items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-400/10 text-2xl">{event.reward.item.icon}</span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-amber-400/40 bg-amber-400/10 text-2xl">{reward.item.icon}</span>
               <div className="min-w-0">
                 <p className="flex flex-wrap items-center gap-2 font-semibold text-white">
-                  {event.reward.item.name} <RarityBadge rarity={event.reward.item.rarity} />
+                  {reward.item.name} <RarityBadge rarity={reward.item.rarity} />
                 </p>
                 <p className="mt-1 flex flex-wrap items-center gap-3 text-sm">
-                  <span className="font-bold text-violet-300">✦ +{event.reward.xp} XP</span>
+                  <span className="font-bold text-violet-300">✦ +{reward.xp} XP</span>
                   <span className="flex items-center gap-1 font-bold text-amber-300">
-                    <CoinIcon size={15} /> +{event.reward.coins}
+                    <CoinIcon size={15} /> +{reward.coins}
                   </span>
                 </p>
               </div>
             </div>
           </div>
         </div>
+        )}
 
         <button onClick={onEnter} className={`mt-6 w-full rounded-full px-6 py-3.5 text-base font-black uppercase tracking-wider transition-transform hover:scale-[1.02] sm:w-auto ${visual.buttonClass}`}>
           {buttonLabel}
@@ -120,8 +160,8 @@ export default function EventosPage() {
   const router = useRouter();
   const { activeStudent, students, patchActive } = useStudents();
   const { missions, ready } = useMissions();
-  const { statusOf, ready: runsReady } = useEventRuns();
-  const [introOf, setIntroOf] = useState<AcademyEvent | null>(null);
+  const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
+  const [introOf, setIntroOf] = useState<{ event: AcademyEvent; phase: number } | null>(null);
   const [rankingEventId, setRankingEventId] = useState<EventId | null>(null);
   // Perfil aberto pelo ranking (guarda só o id: o aluno é relido da lista).
   const [viewingId, setViewingId] = useState<string | null>(null);
@@ -135,16 +175,19 @@ export default function EventosPage() {
   const rankingEvent = rankedEvents.find((e) => e.id === rankingEventId) ?? rankedEvents[0];
   const viewingStudent = students.find((s) => s.id === viewingId) ?? null;
 
+  // Abertura da fase em que o aluno está (evento comum: a do evento) se ele ainda não viu; senão, direto pra tela do evento.
   function enter(event: AcademyEvent) {
-    if (eventProgress(me, event.id).introSeenAt) router.push(`/academia/eventos/${event.id}`);
-    else setIntroOf(event);
+    const released = releasedOf(me.teacherId, event.id);
+    const phase = currentPhase(me, event, released);
+    if (!phaseLock(me, event, phase, released) && !phaseProgress(me, event, phase).introSeenAt) setIntroOf({ event, phase });
+    else router.push(`/academia/eventos/${event.id}`);
   }
 
   // Viu a abertura até o fim ou pulou: fica marcado e o aluno vai pra tela do evento.
   function closeIntro() {
     if (!introOf) return;
-    patchActive(introSeenPatch(me, introOf.id));
-    router.push(`/academia/eventos/${introOf.id}`);
+    patchActive(introSeenPatch(me, introOf.event, introOf.phase));
+    router.push(`/academia/eventos/${introOf.event.id}`);
     setIntroOf(null);
   }
 
@@ -193,7 +236,7 @@ export default function EventosPage() {
       ) : (
         <div className="flex flex-col gap-6">
           {liveEvents.map((event) => (
-            <EventCard key={event.id} event={event} student={me} missions={missions} onEnter={() => enter(event)} />
+            <EventCard key={event.id} event={event} student={me} missions={missions} released={releasedOf(me.teacherId, event.id)} onEnter={() => enter(event)} />
           ))}
         </div>
       )}
@@ -241,7 +284,7 @@ export default function EventosPage() {
         <HousemateSheet student={viewingStudent} isYou={viewingStudent.id === me.id} sameHouse={viewingStudent.houseId === me.houseId} onClose={() => setViewingId(null)} />
       )}
 
-      {introOf && <EventScene event={introOf} kind="intro" student={me} onClose={closeIntro} />}
+      {introOf && <EventScene event={introOf.event} phase={getPhase(introOf.event, introOf.phase)} kind="intro" student={me} onClose={closeIntro} />}
     </div>
   );
 }

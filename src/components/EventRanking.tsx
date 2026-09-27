@@ -59,7 +59,7 @@ export default function EventRanking({
             🏆 Ranking do evento
           </h2>
           <p className="mt-1 text-xs text-slate-300">
-            {event.icon} {event.title}: só vale a pontuação do evento (XP das missões do evento + recompensa final). Todas as casas juntas.
+            {event.icon} {event.title}: só vale a pontuação do evento (XP das missões do evento + {event.phases ? "recompensa de cada fase concluída" : "recompensa final"}). Todas as casas juntas.
           </p>
         </div>
         {myPosition && (
@@ -173,6 +173,7 @@ export default function EventRanking({
                         </span>
                         <span className={`block text-[11px] ${isYou ? "opacity-70" : house.colorClass}`}>
                           {house.name} • {st.missionsDone} {st.missionsDone === 1 ? "missão" : "missões"}
+                          {event.phases && !st.finished && st.phasesDone > 0 && ` • 🎁 ${st.phasesDone}/${event.phases.length} fases`}
                           {st.finished && " • 🏆 finalizou"}
                         </span>
                       </span>

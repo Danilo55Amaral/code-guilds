@@ -95,6 +95,7 @@ export interface Mission {
   rewardItem: RewardItem;
   questions: QuizQuestion[];
   eventId?: string; // missão exclusiva de um evento (engine/specialEvents.ts): só aparece na tela do evento
+  eventPhase?: number; // em evento com fases (Natal): de qual fase a missão é (sem valor = fase 1)
 }
 
 /** O que o editor de missão preenche — o id é gerado ao criar e o professor dono vem de quem cria. */

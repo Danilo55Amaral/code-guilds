@@ -674,3 +674,127 @@ export function playSpookyAmbience(): () => void {
     }, 700);
   };
 }
+
+// ============================================================================
+// EVENTO DE NATAL — guizos do trenó, vento da nevasca e o fundo de inverno
+// (mais calmo e mágico que o fundo sombrio dos outros eventos).
+// ============================================================================
+
+/** Guizos do trenó: chocalhos em colcheias e o começo de Jingle Bells (melodia de domínio público) em sininhos. */
+export function playSleighBells(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.4);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  // chocalho: estalinhos de ruído agudo, com os tempos fortes um pouco mais altos
+  for (let i = 0; i < 16; i++) {
+    const at = t + i * 0.14;
+    const src = ctx.createBufferSource();
+    src.buffer = noiseBuffer(ctx, 0.12);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 6500;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(i % 2 ? 0.12 : 0.22, at + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.1);
+    src.connect(filter).connect(gain).connect(out);
+    src.start(at);
+    src.stop(at + 0.12);
+  }
+  // mi mi mi, mi mi mi, mi sol dó ré mi
+  const beat = 0.28;
+  const melody: [number, number][] = [
+    [76, 0], [76, 1], [76, 2],
+    [76, 4], [76, 5], [76, 6],
+    [76, 8], [79, 9], [72, 10], [74, 10.75], [76, 11.5],
+  ];
+  melody.forEach(([midi, pos]) => playChime(ctx, out, midi + 12, t + pos * beat, 0.9, 0.09));
+  return closeScene(ctx);
+}
+
+/** Vento da nevasca: ruído passando por um filtro que sobe e desce devagar, como um uivo. */
+export function playWindHowl(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.5);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx, 4);
+  const filter = ctx.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.Q.value = 6;
+  filter.frequency.setValueAtTime(300, t);
+  filter.frequency.exponentialRampToValueAtTime(900, t + 1.2);
+  filter.frequency.exponentialRampToValueAtTime(420, t + 2.2);
+  filter.frequency.exponentialRampToValueAtTime(1100, t + 3.2);
+  filter.frequency.exponentialRampToValueAtTime(350, t + 3.9);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.9, t + 0.8);
+  gain.gain.setValueAtTime(0.9, t + 3);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 3.95);
+  src.connect(filter).connect(gain).connect(out);
+  src.start(t);
+  src.stop(t + 4);
+  return closeScene(ctx);
+}
+
+/**
+ * Fundo de inverno contínuo: um acorde suave e brilhante com o filtro "respirando"
+ * e um ventinho baixo por baixo. Toca até chamar a função devolvida.
+ */
+export function playWinterAmbience(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.4);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 1200;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.1;
+  const lfoDepth = ctx.createGain();
+  lfoDepth.gain.value = 500;
+  lfo.connect(lfoDepth).connect(filter.frequency);
+  lfo.start(t);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.1, t + 3);
+  filter.connect(gain).connect(out);
+  // Dó maior com sétima e nona, bem aberto: soa como neve caindo.
+  [60, 67, 71, 74, 79].forEach((midi, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = "triangle";
+    osc.frequency.value = midiToFreq(midi) * (1 + (i % 2 ? 0.002 : -0.002));
+    osc.connect(filter);
+    osc.start(t);
+  });
+  const wind = ctx.createBufferSource();
+  wind.buffer = noiseBuffer(ctx, 4);
+  wind.loop = true;
+  const windFilter = ctx.createBiquadFilter();
+  windFilter.type = "bandpass";
+  windFilter.frequency.value = 500;
+  windFilter.Q.value = 2;
+  const windGain = ctx.createGain();
+  windGain.gain.value = 0.18;
+  wind.connect(windFilter).connect(windGain).connect(gain);
+  wind.start(t);
+
+  return () => {
+    if (ctx.state === "closed") return;
+    const now = ctx.currentTime;
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.6);
+    window.setTimeout(() => {
+      if (ctx.state !== "closed") ctx.close();
+    }, 700);
+  };
+}

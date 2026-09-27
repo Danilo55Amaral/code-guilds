@@ -1,7 +1,7 @@
 "use client";
 
 import { wornAvatar } from "@/engine/students";
-import { getEvent } from "@/engine/specialEvents";
+import { getEvent, getPhase } from "@/engine/specialEvents";
 import Avatar from "../Avatar";
 import WizardDanilo from "../WizardDanilo";
 import { Castle, Confetti, Fog, Lightning, Rays, RewardShowcase, Stage, Stars } from "./common";
@@ -520,7 +520,7 @@ export default function ZombieArt({ art, speaker, mouthOpen = false, student }: 
           <div className="absolute inset-0" style={{ background: "radial-gradient(60% 55% at 50% 45%, rgba(217,249,157,0.55), transparent 70%), linear-gradient(180deg, #0ea5e9 0%, #4ade80 55%, #fde68a 100%)" }} />
           <Rays color="rgba(236,252,203,0.55)" />
           <Confetti colors={["#a3e635", "#facc15", "#38bdf8", "#f8fafc", "#4ade80"]} />
-          <RewardShowcase event={getEvent("zumbi")!} avatar={student ? { ...wornAvatar(student), pet: "zumbi" } : null} ringColor="#a3e635" />
+          <RewardShowcase reward={getPhase(getEvent("zumbi")!, 1).reward} avatar={student ? { ...wornAvatar(student), pet: "zumbi" } : null} ringColor="#a3e635" />
         </div>
       );
 
