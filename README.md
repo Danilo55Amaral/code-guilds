@@ -43,6 +43,9 @@ src/
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
     market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
     trades.ts         -> trocas de itens entre amigos (cg-trades): propor, aceitar, recusar, cancelar; os itens oferecidos ficam guardados na proposta
+    submissions.ts    -> entregas das missões de entrega (cg-submissions): enviar, corrigir (aprovar dá a recompensa; refazer volta com comentário), histórico de tentativas
+    fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar)
+    multiverse.ts     -> Sala do Multiverso: os mundos dos portais, a Chave do Multiverso pronta e o passe de entrada do aluno (Student.multiverseAccess)
     gifts.ts          -> presentes do professor/ADM: dar um item pra um ou vários alunos de uma vez (giveItemTo), com a mensagem 🎁 Presente
     eventItems.ts     -> catálogo dos itens dos eventos (recompensas das fases e itens das missões prontas), a coleção da Loja de cada evento e resolveEventItem (a versão editada pelo ADM na Loja)
     friends.ts        -> amizades entre alunos (pedido, aceitar, recusar/cancelar, desfazer) e a conversa por balões: catálogo fixo de frases (7 categorias) e as mensagens, que guardam só o id da frase (cg-friends, cg-chats)
@@ -69,6 +72,10 @@ src/
     FriendActions.tsx   -> caixa de amizade do perfil de um aluno (enviar pedido, cancelar, aceitar/recusar, conversar, propor troca, desfazer amizade)
     FriendChat.tsx      -> conversa entre amigos: os dois avatares frente a frente com o último balão de cada um, histórico e escolha dos balões prontos
     SellItemModal.tsx   -> janela de venda de um item (pro sistema ou oferta pra um colega)
+    TaskSubmissionModal.tsx -> janela do aluno numa missão de entrega (enunciado, resposta escrita, arquivos, situação e tentativas)
+    SubmissionReviewer.tsx  -> card "📥 Entregas para corrigir" (professor) / aba Entregas (ADM): aprovar ou pedir pra refazer
+    SubmissionParts.tsx     -> peças das entregas: situação, lista de arquivos com ⬇ Baixar, conteúdo enviado
+    multiverse/CosmicArt.tsx -> arte da Sala do Multiverso: céu de estrelas em canvas (com o salto pro hiperespaço), nebulosas, buraco negro e os portais
     GiftItemPicker.tsx  -> escolha do item a dar: ✏️ criar, 🛍️ da Loja, ⚔️ de uma missão ou 🎉 de um evento (ficha do aluno e presentes em massa)
     GiftComposer.tsx    -> card "🎁 Presentes em massa": dar um item pra toda a turma (ou todos os alunos, no ADM) ou pra uma casa
     TradeModal.tsx      -> troca de itens com um amigo: escolher o amigo, os itens que você dá e os que recebe (+ TradeCard, o cartão de uma proposta)
@@ -102,6 +109,7 @@ src/
     academia/missoes|inventario|casa -> as 3 telas principais (layout compartilhado)
     academia/eventos, eventos/[eventId] -> Salão dos Eventos e a tela de cada evento
     academia/guildas                 -> Guildas: a lenda da fundação e a apresentação das quatro casas
+    multiverso                       -> Sala do Multiverso (tela cheia, sem botão pros alunos; ?modo=mestre pro professor/ADM)
     academia/amigos                  -> Amigos: lista de amigos, pedidos recebidos/enviados e a conversa com balões (?com=<id> abre direto a conversa)
     academia/lore                    -> placeholder "em breve" (mesmo layout)
     professor/, professor/painel/    -> área do professor
@@ -151,6 +159,15 @@ public/
   - **Professor e ADM**: botão "🏆 Ver ranking do evento" no card de cada evento (professor: a turma dele; ADM: a plataforma toda)
 - 🏆 Ranking Geral da Academia (em Minha Casa, abaixo dos pontos das casas e do ranking da casa): todos os alunos de todas as casas por XP total (empate: moedas, depois nome), com pódio dos 3 primeiros (🥇🥈🥉), "Você está em #N de M", filtro por casa com a contagem de cada uma, busca por nome, nível ou casa e 10 por página. A posição mostrada é sempre a do ranking geral, mesmo filtrando. Clicar num aluno abre o mesmo perfil público do ranking da casa (avatar, nível, casa, moedas e itens; o título vira "Aluno da Academia" quando é de outra casa). Componente: `GeneralRanking.tsx`
 - 🎒 Inventário com paginação: 12 itens por página, com "Mostrando 1–12 de N itens"
+- 🌀 Sala do Multiverso (`/multiverso`) — uma sala secreta em tela cheia, sempre escura: entrada com salto pelo hiperespaço (estrelas em canvas virando rastros de luz), céu estrelado com nebulosas coloridas flutuando, um **buraco negro** no centro (disco de acreção girando, anel de fótons, o arco de luz dobrada pela gravidade e partículas caindo em órbita) e **5 portais** pra outros mundos em volta dele, ligados por feixes de energia: 🌌 Nebulosa de Código, 💎 Reino do Cristal Binário, ⚛️ Abismo Quântico, 👾 Dimensão Pixel e 🌠 Galáxia Esquecida. Cada portal é um redemoinho de luz nas cores do mundo; clicar abre a história do mundo e o aviso de que ele ainda está selado (no futuro, `MultiverseWorld.href` leva às missões secretas desse universo). Som cósmico opcional (🔊)
+  - **Aluno**: não existe botão pra sala. Ele só entra usando uma **🌀 Chave do Multiverso** no Inventário ("🌀 Abrir o portal", com confirmação): a chave some e ele atravessa o portal. O passe é gasto ao entrar, então sair da sala (ou recarregar a página) fecha o portal: pra voltar, só com outra chave. Sem chave, a página mostra "O portal está fechado"
+  - **Professor e ADM** entram sempre, pelo botão **🌀 Sala do Multiverso** no topo dos painéis ("🧙 Modo Mestre")
+  - **Criar a chave**: no presente (ficha do aluno ou presentes em massa → ✏️ Criar item) e na recompensa da missão, a opção **🌀 Chave do Multiverso** transforma o item numa chave (marcando com o nome vazio, a chave pronta já vem preenchida: 🌀 Chave do Multiverso, lendária). No Inventário ela aparece com o selo 🌀 Portal
+- 📝 Missões de entrega (resposta aberta e envio de arquivos, corrigidas pelo professor):
+  - Botão **📝 + Nova Missão de Entrega** ao lado de "+ Nova Missão", no painel do professor e na aba Missões do Painel ADM. Em vez de perguntas, o editor pede o **enunciado** e o que o aluno pode enviar: **✍️ resposta escrita**, **📎 arquivos** ou os dois, escolhendo os tipos aceitos: 📄 PDF (.pdf), 📝 Word (.doc, .docx), 🐱 Scratch (.sb3, .sb2, .sb), 📱 MIT App Inventor (.aia, .apk) e 🎮 Roblox Studio (.rbxl, .rbxlx, .rbxm, .rbxmx). XP, moedas, item, dificuldade e nível mínimo funcionam como nas outras missões (`Mission.kind = "entrega"` e `Mission.task`)
+  - Aluno: a missão aparece com o selo 📝 Entrega e o botão **📝 Fazer entrega**, que abre a janela com o enunciado, a caixa de resposta (até 5.000 caracteres) e a escolha de arquivos (até 5 arquivos de 25 MB; tipo não aceito é recusado na hora). **📤 Enviar para correção** deixa a missão "⏳ Aguardando correção". Funciona também nas missões de evento
+  - Professor: o card **📥 Entregas para corrigir** (com contador) mostra cada entrega com o aluno, a tentativa, o enunciado, a resposta e os arquivos (⬇ Baixar). **✅ Aprovar e dar a recompensa** conclui a missão e dá XP, moedas e item (com o comentário, se tiver, na mensagem de recompensa); **↩ Pedir pra refazer** exige um comentário e manda a mensagem 📝 Entrega pro aluno, que vê o comentário e envia de novo (cada envio é uma tentativa, com histórico). O ADM corrige qualquer entrega na aba **📥 Entregas** (com o filtro de professor)
+  - Os arquivos ficam no IndexedDB do navegador (como o resto da plataforma, que guarda tudo neste dispositivo); excluir o aluno ou a missão apaga as entregas e os arquivos dela
 - 🎁 Presentes do professor e do ADM:
   - **🎁 Presentes em massa** (painel do professor, embaixo de Comunicados; Painel ADM, aba Alunos, com o filtro de professor): dá um item de uma vez pra **toda a turma** (no ADM, todos os alunos ou a turma escolhida) ou pra **todos de uma casa**, com confirmação ("Dar 🍪 Biscoito da Ceia pra 2 alunos (Casa Ignis)?"). Cada aluno ganha o próprio item e a mensagem 🎁 Presente; quem estiver com o inventário cheio fica com o item em "Esperando espaço", e o resumo diz quantos
   - O item pode vir de 4 lugares, tanto no presente em massa quanto no "Dar item" da ficha do aluno: **✏️ Criar item**, **🛍️ Da Loja**, **⚔️ De uma missão** (o item de recompensa dela) ou **🎉 De um evento** (recompensas das fases e itens das missões prontas de cada evento). O professor não vê os itens da Loja fora da vitrine nem os itens de espaço (esses só o ADM dá)

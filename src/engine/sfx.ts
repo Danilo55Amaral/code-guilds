@@ -798,3 +798,71 @@ export function playWinterAmbience(): () => void {
     }, 700);
   };
 }
+
+// ============================================================================
+// SALA DO MULTIVERSO — zumbido cósmico: um grave profundo "respirando" e
+// notas agudas cintilando lá longe, como o som do espaço entre os mundos.
+// ============================================================================
+
+/** Fundo cósmico contínuo. Toca até chamar a função devolvida. */
+export function playCosmicAmbience(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t);
+  master.gain.exponentialRampToValueAtTime(0.5, t + 3);
+  master.connect(out);
+
+  // grave profundo (Lá1 + quinta), com o filtro abrindo e fechando devagar
+  const lowFilter = ctx.createBiquadFilter();
+  lowFilter.type = "lowpass";
+  lowFilter.frequency.value = 220;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 0.07;
+  const lfoDepth = ctx.createGain();
+  lfoDepth.gain.value = 120;
+  lfo.connect(lfoDepth).connect(lowFilter.frequency);
+  lfo.start(t);
+  const lowGain = ctx.createGain();
+  lowGain.gain.value = 0.35;
+  lowFilter.connect(lowGain).connect(master);
+  [55, 55.4, 82.4].forEach((freq) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq;
+    osc.connect(lowFilter);
+    osc.start(t);
+  });
+
+  // cintilado: notas agudas de sino, com tremolo lento cada uma no seu ritmo
+  [1318.5, 1760, 2093, 2637].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    const trem = ctx.createOscillator();
+    trem.frequency.value = 0.11 + i * 0.07;
+    const tremDepth = ctx.createGain();
+    tremDepth.gain.value = 0.018;
+    trem.connect(tremDepth).connect(gain.gain);
+    osc.connect(gain).connect(master);
+    osc.start(t);
+    trem.start(t);
+  });
+
+  return () => {
+    if (ctx.state === "closed") return;
+    const now = ctx.currentTime;
+    master.gain.cancelScheduledValues(now);
+    master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.8);
+    window.setTimeout(() => {
+      if (ctx.state !== "closed") ctx.close();
+    }, 900);
+  };
+}

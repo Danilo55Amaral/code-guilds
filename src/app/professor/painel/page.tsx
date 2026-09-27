@@ -162,8 +162,15 @@ export default function PainelProfessorPage() {
           <p className="text-[11px] font-medium uppercase tracking-wider text-slate-500">Painel do Mestre • Professor {teacher.name}</p>
           <h1 className="text-2xl font-bold text-white">Visão Geral da Turma</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <ThemeToggle />
+          <Link
+            href="/multiverso?modo=mestre"
+            className="rounded-full bg-gradient-to-r from-fuchsia-500 via-violet-500 to-cyan-400 px-4 py-2 text-xs font-black text-cg-onaccent shadow-lg shadow-violet-500/30 transition-transform hover:scale-[1.04]"
+            title="Entrar na Sala do Multiverso (professor e ADM entram sempre)"
+          >
+            🌀 Sala do Multiverso
+          </Link>
           <button onClick={() => setTutorialOpen(true)} className="cg-btn-secondary !px-4 !py-2 text-xs" title="Ver o tutorial do painel">
             ❓ Tutorial
           </button>

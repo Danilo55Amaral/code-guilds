@@ -20,6 +20,7 @@ export interface GiftItem {
   xp: number;
   cosmetic?: Cosmetic;
   slots?: number;
+  multiverse?: boolean; // Chave do Multiverso
 }
 
 export interface Giver {

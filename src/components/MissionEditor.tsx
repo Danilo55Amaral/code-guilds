@@ -24,6 +24,7 @@ import EmojiPicker from "./EmojiPicker";
 import ShopItemPicker from "./ShopItemPicker";
 import { eventItemOfReward } from "@/engine/eventItems";
 import { ItemStats, RarityBadge } from "./GameUI";
+import { MULTIVERSE_KEY_ITEM } from "@/engine/multiverse";
 
 type OptionKey = "a" | "b" | "c" | "d";
 
@@ -51,6 +52,7 @@ interface MissionDraft {
   rewardItemXp: number;
   rewardItemCosmetic?: Cosmetic; // vem de um item de visual da Loja (só pelo Painel ADM)
   rewardItemSlots?: number; // vem de um item de espaço da Loja (só pelo Painel ADM)
+  rewardItemMultiverse?: boolean; // Chave do Multiverso: usar abre a Sala do Multiverso
   questions: QuestionDraft[];
   // missão de entrega
   taskPrompt: string;
@@ -107,6 +109,7 @@ function missionToDraft(m: Mission): MissionDraft {
     rewardItemXp: m.rewardItem.xp,
     rewardItemCosmetic: m.rewardItem.cosmetic,
     rewardItemSlots: m.rewardItem.slots,
+    rewardItemMultiverse: m.rewardItem.multiverse,
     questions: m.questions.map((q) => ({
       prompt: q.prompt,
       code: q.code ?? "",
@@ -143,9 +146,10 @@ function draftToMission(d: MissionDraft, kind: MissionKind): MissionContent {
       rarity: d.rewardItemRarity,
       value: d.rewardItemValue,
       // visual do avatar e item de espaço não dão XP
-      xp: d.rewardItemCosmetic || d.rewardItemSlots ? 0 : d.rewardItemXp,
+      xp: d.rewardItemCosmetic || d.rewardItemSlots || d.rewardItemMultiverse ? 0 : d.rewardItemXp,
       ...(d.rewardItemCosmetic && { cosmetic: d.rewardItemCosmetic }),
       ...(d.rewardItemSlots && { slots: d.rewardItemSlots }),
+      ...(d.rewardItemMultiverse && { multiverse: true }),
     },
     // missão de entrega: sem perguntas, com o enunciado e o que o aluno pode enviar
     ...(isTask && {
@@ -261,6 +265,23 @@ export default function MissionEditor({
   function handleSave() {
     if (!draftIsValid(draft, kind)) return;
     onSave(draftToMission(draft, kind), teachers ? teacherId : undefined);
+  }
+
+  /** Recompensa vira (ou deixa de ser) a Chave do Multiverso; com o nome vazio, já vem a chave pronta. */
+  function toggleMultiverse(on: boolean) {
+    setDraft((d) => ({
+      ...d,
+      rewardItemMultiverse: on || undefined,
+      ...(on &&
+        !d.rewardItemName.trim() && {
+          rewardItemName: MULTIVERSE_KEY_ITEM.name,
+          rewardItemIcon: MULTIVERSE_KEY_ITEM.icon,
+          rewardItemDescription: MULTIVERSE_KEY_ITEM.description,
+          rewardItemRarity: MULTIVERSE_KEY_ITEM.rarity,
+          rewardItemValue: MULTIVERSE_KEY_ITEM.value,
+        }),
+      ...(on && { rewardItemXp: 0 }),
+    }));
   }
 
   function toggleFileKind(k: SubmissionFileKind) {
@@ -401,6 +422,17 @@ export default function MissionEditor({
               </div>
             ) : (
               <>
+            <div className="sm:col-span-2">
+              <div className={`rounded-xl border p-3 ${!!draft.rewardItemMultiverse ? "border-fuchsia-400/60 bg-fuchsia-500/10" : "border-slate-700"}`}>
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" checked={!!draft.rewardItemMultiverse} onChange={(e) => toggleMultiverse(e.target.checked)} className="mt-0.5 h-4 w-4 accent-fuchsia-500" />
+                  <span className="text-sm text-slate-200">
+                    🌀 Chave do Multiverso
+                    <span className="block text-[11px] text-slate-400">Usar o item abre a Sala do Multiverso uma vez. Quando o aluno sair da sala, precisa de outra chave pra voltar.</span>
+                  </span>
+                </label>
+              </div>
+            </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Item — nome</label>
               <input

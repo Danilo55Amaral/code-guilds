@@ -22,7 +22,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "⚔️",
     title: "Missões",
-    body: "As missões são desafios em forma de quiz, criados pelo seu professor. Acerte pelo menos 60% das perguntas e eu te recompenso com XP, moedas e um item! As missões mais difíceis só se revelam pra quem tem nível alto. Use a busca e os filtros pra achar a próxima aventura.",
+    body: "As missões são desafios em forma de quiz, criados pelo seu professor. Acerte pelo menos 60% das perguntas e eu te recompenso com XP, moedas e um item! As missões mais difíceis só se revelam pra quem tem nível alto. Use a busca e os filtros pra achar a próxima aventura. E fique de olho nas missões 📝 de Entrega: nelas você escreve a resposta ou envia um arquivo (Scratch, PDF, Word, App Inventor ou Roblox Studio), e ganha a recompensa quando o professor corrigir e aprovar!",
   },
   {
     icon: "✨",
@@ -90,7 +90,7 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "⚔️",
     title: "Missões",
-    body: "Aqui nasce a magia! Crie missões com perguntas, explicações, nível mínimo, dificuldade e recompensas: XP, moedas e um item com ícone e descrição. Seus alunos precisam acertar 60% pra ganhar a recompensa.",
+    body: "Aqui nasce a magia! Crie missões com perguntas, explicações, nível mínimo, dificuldade e recompensas: XP, moedas e um item com ícone e descrição. Seus alunos precisam acertar 60% pra ganhar a recompensa. Com o botão Nova Missão de Entrega, o aluno escreve uma resposta aberta e/ou envia arquivos (PDF, Word, Scratch, App Inventor, Roblox Studio); a entrega chega no card Entregas para corrigir, e ele só ganha a recompensa quando você aprovar. E um segredo: o botão Sala do Multiverso, no topo do painel, leva a uma sala escondida com portais pra outros mundos. Os alunos só entram com uma Chave do Multiverso, que você cria marcando essa opção no item da recompensa de uma missão ou num presente.",
   },
   {
     icon: "📅",

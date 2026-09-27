@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { openMultiversePatch } from "@/engine/multiverse";
 import { useStudents, useMissions, useOffers, useFriends, useTrades } from "@/engine/store";
 import {
   InventoryItem,
@@ -48,6 +50,9 @@ export default function InventarioPage() {
   const { friendIds } = useFriends(activeStudent?.id ?? null);
   // Janela de troca aberta (com o amigo já escolhido, se veio do perfil dele).
   const [trading, setTrading] = useState<{ friendId: string | null } | null>(null);
+  const router = useRouter();
+  // Chave do Multiverso esperando a confirmação (a chave some ao usar).
+  const [confirmPortalId, setConfirmPortalId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selling, setSelling] = useState<InventoryItem | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -85,6 +90,19 @@ export default function InventarioPage() {
     patchActive(result.student);
     flash(`✨ Você usou ${item.name} e ganhou +${result.xpGained} XP!`);
     if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
+  }
+
+  /** Usa a Chave do Multiverso: a chave some e o aluno atravessa o portal pra Sala do Multiverso. */
+  function openPortal(item: InventoryItem) {
+    if (confirmPortalId !== item.id) {
+      setConfirmPortalId(item.id);
+      return;
+    }
+    const patch = openMultiversePatch(me, item.id);
+    if (!patch) return;
+    patchActive(patch);
+    setConfirmPortalId(null);
+    router.push("/multiverso");
   }
 
   function expandInventory(item: InventoryItem) {
@@ -387,6 +405,9 @@ export default function InventarioPage() {
               {equipped && (
                 <span className="absolute right-2 top-2 rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">✓ Equipado</span>
               )}
+              {item.multiverse && (
+                <span className="absolute right-2 top-2 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">🌀 Portal</span>
+              )}
               {item.slots && (
                 <span className="absolute right-2 top-2 rounded-full bg-teal-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">📦 +{item.slots}</span>
               )}
@@ -422,6 +443,20 @@ export default function InventarioPage() {
                       👕 Equipar
                     </button>
                   ))}
+                {item.multiverse && (
+                  <button
+                    onClick={() => openPortal(item)}
+                    onBlur={() => setConfirmPortalId((id) => (id === item.id ? null : id))}
+                    title="A chave some ao usar. Quando você sair da sala, o portal se fecha."
+                    className={`rounded-lg px-2 py-1.5 text-xs font-semibold transition-colors ${
+                      confirmPortalId === item.id
+                        ? "border border-fuchsia-300 bg-fuchsia-500/30 text-fuchsia-50"
+                        : "bg-gradient-to-r from-fuchsia-500 to-violet-500 text-cg-onaccent hover:brightness-110"
+                    }`}
+                  >
+                    {confirmPortalId === item.id ? "Usar a chave e entrar?" : "🌀 Abrir o portal"}
+                  </button>
+                )}
                 {item.slots && (
                   <button onClick={() => expandInventory(item)} className="rounded-lg bg-teal-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-teal-400">
                     📦 Usar (+{item.slots} espaços)

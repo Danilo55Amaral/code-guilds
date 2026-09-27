@@ -7,6 +7,7 @@ import { ShopItem } from "@/engine/shop";
 import { ACADEMY_EVENTS, getEvent } from "@/engine/specialEvents";
 import { EVENT_ITEMS, eventItemOfReward, resolveEventItem } from "@/engine/eventItems";
 import { GiftItem } from "@/engine/gifts";
+import { MULTIVERSE_KEY_ITEM } from "@/engine/multiverse";
 import Avatar from "./Avatar";
 import EmojiPicker from "./EmojiPicker";
 import ItemEconomyFields from "./ItemEconomyFields";
@@ -38,9 +39,10 @@ function toGift(item: GiftItem): GiftItem {
     description: item.description,
     rarity: item.rarity,
     value: item.value,
-    xp: item.cosmetic || item.slots ? 0 : item.xp,
+    xp: item.cosmetic || item.slots || item.multiverse ? 0 : item.xp,
     ...(item.cosmetic && { cosmetic: item.cosmetic }),
     ...(item.slots && { slots: item.slots }),
+    ...(item.multiverse && { multiverse: true }),
   };
 }
 
@@ -64,6 +66,7 @@ function GiftPreview({ item, note }: { item: GiftItem; note?: string | null }) {
         <p className="mt-1 line-clamp-2 text-[11px] text-slate-400">{item.description}</p>
         {item.cosmetic && <p className="mt-1 text-[11px] text-violet-300">👕 Visual do avatar — quem já tiver ganha mais um (dá pra vender).</p>}
         {item.slots && <p className="mt-1 text-[11px] text-teal-300">📦 Item de espaço — ao usar, o inventário ganha +{item.slots} espaços.</p>}
+        {item.multiverse && <p className="mt-1 text-[11px] text-fuchsia-300">🌀 Chave do Multiverso — usar abre a Sala do Multiverso uma vez.</p>}
         {note && <p className="mt-1 text-[11px] text-fuchsia-300">{note}</p>}
       </div>
     </div>
@@ -95,6 +98,7 @@ export default function GiftItemPicker({
   const [rarity, setRarity] = useState<Rarity>("comum");
   const [value, setValue] = useState(RARITY_DEFAULT_VALUE.comum);
   const [xp, setXp] = useState(0);
+  const [multiverse, setMultiverse] = useState(false);
   // loja, missão, evento
   const [shopItemId, setShopItemId] = useState("");
   const [missionId, setMissionId] = useState("");
@@ -107,7 +111,10 @@ export default function GiftItemPicker({
   let chosen: GiftItem | null = null;
   let note: string | null = null;
   if (source === "criar") {
-    chosen = name.trim() && description.trim() ? { name: name.trim(), icon, description: description.trim(), rarity, value, xp } : null;
+    chosen =
+      name.trim() && description.trim()
+        ? { name: name.trim(), icon, description: description.trim(), rarity, value, xp: multiverse ? 0 : xp, ...(multiverse && { multiverse: true }) }
+        : null;
   } else if (source === "loja") {
     const shop = availableShop.find((i) => i.id === shopItemId);
     chosen = shop ? toGift(shop) : null;
@@ -121,12 +128,25 @@ export default function GiftItemPicker({
     if (entry) note = `🎉 ${entry.origin} — só o ADM altera esse item (na Loja).`;
   }
 
+  /** Marca/desmarca a Chave do Multiverso; marcando com os campos vazios, já vem a chave pronta. */
+  function toggleMultiverse(on: boolean) {
+    setMultiverse(on);
+    if (on && !name.trim()) {
+      setName(MULTIVERSE_KEY_ITEM.name);
+      setIcon(MULTIVERSE_KEY_ITEM.icon);
+      setDescription(MULTIVERSE_KEY_ITEM.description);
+      setRarity(MULTIVERSE_KEY_ITEM.rarity);
+      setValue(MULTIVERSE_KEY_ITEM.value);
+    }
+  }
+
   function give() {
     if (!chosen || actionDisabled) return;
     onGive(chosen);
     if (source === "criar") {
       setName("");
       setDescription("");
+      setMultiverse(false);
     }
   }
 
@@ -147,6 +167,15 @@ export default function GiftItemPicker({
 
       {source === "criar" && (
         <>
+          <div className={`rounded-xl border p-3 ${multiverse ? "border-fuchsia-400/60 bg-fuchsia-500/10" : "border-slate-700"}`}>
+            <label className="flex cursor-pointer items-start gap-3">
+              <input type="checkbox" checked={multiverse} onChange={(e) => toggleMultiverse(e.target.checked)} className="mt-0.5 h-4 w-4 accent-fuchsia-500" />
+              <span className="text-sm text-slate-200">
+                🌀 Chave do Multiverso
+                <span className="block text-[11px] text-slate-400">Usar o item abre a Sala do Multiverso uma vez. Quando o aluno sair da sala, precisa de outra chave pra voltar.</span>
+              </span>
+            </label>
+          </div>
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nome do item (ex.: Anel do Iterador)" className="cg-input" aria-label="Nome do item" />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(Object.keys(RARITY_META) as Rarity[]).map((r) => (

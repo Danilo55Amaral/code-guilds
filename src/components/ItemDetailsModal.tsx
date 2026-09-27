@@ -59,7 +59,9 @@ export default function ItemDetailsModal({ item, onClose }: { item: RewardItem &
 
           <div className="mt-3 flex w-full flex-col gap-1 text-left text-[11px] text-slate-500">
             <p>
-              {item.slots
+              {item.multiverse
+                ? "🌀 Chave do Multiverso — usar abre a Sala do Multiverso uma única vez."
+                : item.slots
                 ? `📦 Item de espaço — usar aumenta o seu inventário em +${item.slots} espaços, pra sempre.`
                 : item.xp > 0
                   ? `✨ Consumível — usar dá +${item.xp} XP.`

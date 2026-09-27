@@ -23,6 +23,7 @@ export interface InventoryItem {
   description: string; // "" = item antigo, sem descrição
   cosmetic?: Cosmetic; // item de visual do avatar (vem da Loja) — pode ser equipado
   slots?: number; // item de espaço (criado pelo ADM na Loja): usar aumenta o inventário em tantos espaços
+  multiverse?: boolean; // Chave do Multiverso: usar abre a Sala do Multiverso uma vez (engine/multiverse.ts)
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -58,6 +59,7 @@ export interface Student {
   events: Record<string, EventProgress>; // id do evento -> progresso
   bonusSlots: number; // espaços extras no inventário, ganhos usando itens de espaço (além dos BASE_INVENTORY_SLOTS)
   pendingItems: InventoryItem[]; // itens ganhos com o inventário cheio, esperando espaço (nada se perde)
+  multiverseAccess?: string; // usou uma Chave do Multiverso e ainda não entrou na sala (o passe é gasto ao entrar)
   createdAt: string;
 }
 
@@ -349,20 +351,22 @@ export function applySpaceItem(student: Student, itemId: string): SpaceItemResul
 /** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). Sem espaço, ele fica esperando espaço. */
 export function grantItem(
   student: Student,
-  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic; slots?: number },
+  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic; slots?: number; multiverse?: boolean },
 ): Student {
   const newItem: InventoryItem = {
     // item da Loja doado pelo ADM: se for visual, o aluno pode equipar (e visual não é consumível)
     ...(item.cosmetic && { cosmetic: item.cosmetic }),
     // item de espaço doado pelo ADM: usar aumenta o inventário (e não dá XP)
     ...(item.slots && item.slots > 0 && { slots: Math.round(item.slots) }),
+    // Chave do Multiverso: usar abre a Sala do Multiverso (e não dá XP)
+    ...(item.multiverse && { multiverse: true }),
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
     icon: item.icon.trim() || DEFAULT_ITEM_ICON,
     description: item.description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
-    xp: item.cosmetic || item.slots ? 0 : Math.max(0, Math.round(item.xp)),
+    xp: item.cosmetic || item.slots || item.multiverse ? 0 : Math.max(0, Math.round(item.xp)),
     obtainedAt: new Date().toISOString(),
   };
   return storeItems(student, [newItem]);
@@ -458,11 +462,13 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     description: mission.rewardItem.description,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
-    xp: mission.rewardItem.cosmetic || mission.rewardItem.slots ? 0 : mission.rewardItem.xp,
+    xp: mission.rewardItem.cosmetic || mission.rewardItem.slots || mission.rewardItem.multiverse ? 0 : mission.rewardItem.xp,
     // recompensa que é item de visual da Loja: o aluno pode equipar
     ...(mission.rewardItem.cosmetic && { cosmetic: mission.rewardItem.cosmetic }),
     // recompensa que é item de espaço da Loja: usar aumenta o inventário
     ...(mission.rewardItem.slots && { slots: mission.rewardItem.slots }),
+    // recompensa que é Chave do Multiverso: usar abre a Sala do Multiverso
+    ...(mission.rewardItem.multiverse && { multiverse: true }),
     obtainedAt: new Date().toISOString(),
   };
 

@@ -367,6 +367,18 @@
   0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
   100% { transform: translate(var(--cg-dx, 0px), var(--cg-dy, -120px)) rotate(var(--cg-spin, 180deg)) scale(0.4); opacity: 0; }
 }
+/* Sala do Multiverso */
+@keyframes cg-dash {
+  to { stroke-dashoffset: -40; }
+}
+@keyframes cg-nebula-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, -3%) scale(1.12); }
+}
+@keyframes cg-glow-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  50% { transform: scale(1.12); opacity: 0.95; }
+}
 @keyframes cg-shiver {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-1.5px); }
@@ -458,6 +470,18 @@
   .cg-anim-sleigh { animation: cg-sleigh var(--cg-duration, 9s) linear var(--cg-delay, 0s) infinite both; }
   .cg-anim-shatter { animation: cg-shatter 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) var(--cg-delay, 0.9s) both; }
   .cg-anim-shiver { animation: cg-shiver 0.3s linear infinite; }
+  /* Sala do Multiverso */
+  .cg-anim-dash { animation: cg-dash 1.6s linear infinite; }
+  .cg-anim-nebula { animation: cg-nebula-drift 18s ease-in-out infinite; }
+  .cg-anim-glow-pulse { animation: cg-glow-pulse 3.2s ease-in-out infinite; }
+  .cg-anim-shimmer-cosmic {
+    background: linear-gradient(90deg, #a5f3fc, #c084fc, #f0abfc, #fde68a, #a5f3fc);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: cg-shimmer 4s linear infinite;
+  }
   .cg-anim-shimmer-violet {
     background: linear-gradient(90deg, #c4b5fd, #8b5cf6, #f5f3ff, #8b5cf6, #c4b5fd);
     background-size: 200% auto;

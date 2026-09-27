@@ -42,8 +42,8 @@ export default function ThemeToggle({ className = "" }: { className?: string }) 
   );
 }
 
-// Telas que já têm o botão no próprio cabeçalho.
-const PAGES_WITH_HEADER_TOGGLE = ["/academia", "/professor/painel", "/admin/painel"];
+// Telas que já têm o botão no próprio cabeçalho (e a Sala do Multiverso, que é sempre escura).
+const PAGES_WITH_HEADER_TOGGLE = ["/academia", "/professor/painel", "/admin/painel", "/multiverso"];
 
 /** Botão flutuante (canto superior direito) pras telas sem cabeçalho: login, cadastro, casa e avatar. */
 export function FloatingThemeToggle() {
