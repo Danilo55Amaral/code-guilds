@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useStudents, useMissions, useMissionAttempt } from "@/engine/store";
-import { Mission, RewardItem, matchesSearch, requiredCorrect } from "@/engine/missions";
+import { useStudents, useMissions, useMissionAttempt, useSubmissions } from "@/engine/store";
+import { latestSubmissionIn } from "@/engine/submissions";
+import TaskSubmissionModal from "@/components/TaskSubmissionModal";
+import { Mission, RewardItem, isTaskMission, matchesSearch, requiredCorrect } from "@/engine/missions";
 import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 import QuizModal from "@/components/QuizModal";
 import Pagination from "@/components/Pagination";
@@ -26,6 +28,9 @@ export default function MissoesPage() {
   const { missions: allMissions, ready: missionsReady } = useMissions();
   const attemptMission = useMissionAttempt();
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  // Missão de entrega aberta (resposta aberta/arquivos, corrigida pelo professor).
+  const [taskMission, setTaskMission] = useState<Mission | null>(null);
+  const { submissions } = useSubmissions();
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("todas");
@@ -129,6 +134,8 @@ export default function MissoesPage() {
           {pagedMissions.map((m) => {
             const unlocked = activeStudent.level >= m.minLevel;
             const completed = completedIds.includes(m.id);
+            const isTask = isTaskMission(m);
+            const delivery = isTask && !completed ? latestSubmissionIn(submissions, activeStudent.id, m.id) : undefined;
             return (
               <div key={m.id} className="cg-card flex flex-wrap items-center justify-between gap-4 p-5">
                 <div className="flex items-start gap-4">
@@ -138,7 +145,12 @@ export default function MissoesPage() {
                       <p className="font-semibold text-white">{m.title}</p>
                       <DifficultyBadge difficulty={m.difficulty} />
                       <span className="text-xs text-slate-500">Nv {m.minLevel}+</span>
+                      {isTask && (
+                        <span className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 text-[10px] font-semibold text-indigo-300">📝 Entrega</span>
+                      )}
                       {completed && <span className="text-xs text-emerald-400">✓ Concluída</span>}
+                      {delivery?.status === "pendente" && <span className="text-xs font-semibold text-amber-300">⏳ Aguardando correção</span>}
+                      {delivery?.status === "refazer" && <span className="text-xs font-semibold text-rose-300">↩ O professor pediu pra refazer</span>}
                     </div>
                     <p className="mt-1 text-sm text-slate-400">{m.description}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
@@ -154,21 +166,32 @@ export default function MissoesPage() {
                       >
                         {m.rewardItem.icon} {m.rewardItem.name} <RarityBadge rarity={m.rewardItem.rarity} />
                       </button>
-                      {!completed && (
-                        <span className="text-slate-500">
-                          🎯 Mín. {requiredCorrect(m.questions.length)}/{m.questions.length} acertos
-                        </span>
-                      )}
+                      {!completed &&
+                        (isTask ? (
+                          <span className="text-slate-500">📝 Corrigida pelo professor</span>
+                        ) : (
+                          <span className="text-slate-500">
+                            🎯 Mín. {requiredCorrect(m.questions.length)}/{m.questions.length} acertos
+                          </span>
+                        ))}
                     </div>
                   </div>
                 </div>
 
                 {unlocked ? (
                   <button
-                    onClick={() => setActiveMission(m)}
-                    className={completed ? "cg-btn-secondary shrink-0 !px-4 !py-2 text-sm" : "cg-btn-primary shrink-0 !px-4 !py-2 text-sm"}
+                    onClick={() => (isTask ? setTaskMission(m) : setActiveMission(m))}
+                    className={completed || delivery?.status === "pendente" ? "cg-btn-secondary shrink-0 !px-4 !py-2 text-sm" : "cg-btn-primary shrink-0 !px-4 !py-2 text-sm"}
                   >
-                    {completed ? "👁 Visualizar" : "Iniciar Missão →"}
+                    {completed
+                      ? "👁 Visualizar"
+                      : delivery?.status === "pendente"
+                        ? "👁 Ver entrega"
+                        : delivery?.status === "refazer"
+                          ? "↩ Refazer entrega →"
+                          : isTask
+                            ? "📝 Fazer entrega →"
+                            : "Iniciar Missão →"}
                   </button>
                 ) : (
                   <span className="shrink-0 rounded-full border border-slate-800 bg-cg-sunken px-4 py-2 text-xs font-medium text-slate-600">
@@ -200,6 +223,8 @@ export default function MissoesPage() {
           onClose={() => setLevelUp(null)}
         />
       )}
+
+      {taskMission && <TaskSubmissionModal mission={taskMission} student={activeStudent} onClose={() => setTaskMission(null)} />}
 
       {activeMission && (
         <QuizModal mission={activeMission} onClose={() => setActiveMission(null)} onComplete={handleComplete} viewOnly={alreadyCompleted} />

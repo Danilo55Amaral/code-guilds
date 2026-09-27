@@ -28,7 +28,8 @@ export default function ShopItemPicker({
 }) {
   const selected = items.find((i) => i.id === value) ?? null;
   const groups = [
-    { key: "ano-todo", label: "🛍️ Ano todo", list: items.filter((i) => !i.collection) },
+    { key: "espaco", label: "📦 Espaço no inventário", list: items.filter((i) => i.slots) },
+    { key: "ano-todo", label: "🛍️ Ano todo", list: items.filter((i) => !i.collection && !i.slots) },
     ...COLLECTIONS.map((c) => ({ key: c, label: `${COLLECTION_THEME[c].emoji} ${COLLECTION_THEME[c].title}`, list: items.filter((i) => i.collection === c) })),
   ].filter((g) => g.list.length > 0);
 
@@ -69,6 +70,8 @@ export default function ShopItemPicker({
             </div>
             <p className="mt-1 line-clamp-2 text-[11px] text-slate-400">{selected.description}</p>
             {selected.cosmetic && <p className="mt-1 text-[11px] text-violet-300">👕 Visual do avatar — o aluno vai poder equipar.</p>}
+            {selected.slots && <p className="mt-1 text-[11px] text-teal-300">📦 Item de espaço — ao usar, o inventário do aluno ganha +{selected.slots} espaços.</p>}
+            {selected.hidden && <p className="mt-1 text-[11px] text-slate-400">🔒 Fora da vitrine da Loja (só presente ou recompensa).</p>}
             {note && <p className="mt-1 text-[11px] text-amber-300">{note}</p>}
           </div>
         </div>

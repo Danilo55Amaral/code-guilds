@@ -7,7 +7,7 @@ import { ShopItem } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
 import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "@/components/collections";
-import { Student, equipItem, getStudent, ownsCosmetic, wornAvatar } from "@/engine/students";
+import { Student, equipItem, freeSlots, getStudent, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "@/components/Avatar";
 import { CoinIcon, RarityBadge } from "@/components/GameUI";
@@ -68,7 +68,9 @@ function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: nu
 
 export default function LojaPage() {
   const { activeStudent, patchActive } = useStudents();
-  const { items, ready, buy } = useShop();
+  const { items: allItems, ready, buy } = useShop();
+  // Itens "fora da vitrine" só o ADM dá (presente ou recompensa de missão): não aparecem aqui.
+  const items = allItems.filter((i) => !i.hidden);
   const [tab, setTab] = useState<Tab>("todos");
   const [sort, setSort] = useState<Sort>("destaques");
   const [tryOn, setTryOn] = useState<ShopItem | null>(null);
@@ -152,12 +154,19 @@ export default function LojaPage() {
         <div className="px-4 pb-4">
           <p className="font-semibold text-white">{item.name}</p>
           <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs text-slate-400">{item.description}</p>
+          {item.eventItemKey && <p className="mt-1 text-[10px] font-semibold text-fuchsia-300">🎉 Item de evento</p>}
           <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
             <span className="flex items-center gap-1 text-base font-black text-amber-300">
               <CoinIcon size={16} /> {item.price}
             </span>
             <span className="text-slate-500">
-              {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : item.xp > 0 ? `✨ +${item.xp} XP ao usar` : "🎒 Item"}
+              {item.cosmetic
+                ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}`
+                : item.slots
+                  ? `📦 +${item.slots} espaços no inventário`
+                  : item.xp > 0
+                    ? `✨ +${item.xp} XP ao usar`
+                    : "🎒 Item"}
             </span>
           </div>
           {actions(item)}
@@ -426,6 +435,16 @@ export default function LojaPage() {
                   </span>
                 </div>
               </div>
+              {confirming.slots && (
+                <p className="mt-3 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3 py-2 text-xs text-teal-100">
+                  📦 Use no Inventário pra ganhar +{confirming.slots} espaços pra sempre (hoje cabem {inventoryCapacity(me)}).
+                </p>
+              )}
+              {freeSlots(me) < 1 && (
+                <p className="mt-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+                  🎒 Seu inventário está cheio ({me.inventory.length}/{inventoryCapacity(me)}). Libere espaço no Inventário pra poder comprar.
+                </p>
+              )}
               {error && <p className="mt-3 text-xs text-rose-300">{error}</p>}
               <div className="mt-5 flex gap-2">
                 <button onClick={() => setConfirming(null)} className="cg-btn-secondary flex-1 !py-2.5">

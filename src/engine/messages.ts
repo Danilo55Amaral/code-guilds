@@ -10,7 +10,7 @@ import { HouseId, getHouse } from "./houses";
 import { DEFAULT_TEACHER_ID } from "./teachers";
 import { Rarity, RARITY_META } from "./missions";
 
-export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda" | "amizade";
+export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda" | "amizade" | "troca" | "entrega";
 
 export const MESSAGE_KIND_META: Record<MessageKind, { label: string; plural: string; icon: string; colorClass: string; borderClass: string; bgClass: string }> = {
   aviso: { label: "Aviso", plural: "Avisos", icon: "⚠️", colorClass: "text-amber-300", borderClass: "border-amber-500/40", bgClass: "bg-amber-500/10" },
@@ -20,6 +20,8 @@ export const MESSAGE_KIND_META: Record<MessageKind, { label: string; plural: str
   compra: { label: "Compra", plural: "Compras", icon: "🛒", colorClass: "text-cyan-300", borderClass: "border-cyan-500/40", bgClass: "bg-cyan-500/10" },
   venda: { label: "Venda", plural: "Vendas", icon: "💰", colorClass: "text-lime-300", borderClass: "border-lime-500/40", bgClass: "bg-lime-500/10" },
   amizade: { label: "Amizade", plural: "Amizades", icon: "🤝", colorClass: "text-pink-300", borderClass: "border-pink-500/40", bgClass: "bg-pink-500/10" },
+  troca: { label: "Troca", plural: "Trocas", icon: "🔄", colorClass: "text-teal-300", borderClass: "border-teal-500/40", bgClass: "bg-teal-500/10" },
+  entrega: { label: "Entrega", plural: "Entregas", icon: "📝", colorClass: "text-indigo-300", borderClass: "border-indigo-500/40", bgClass: "bg-indigo-500/10" },
 };
 
 /** Ordem dos tipos nos filtros da caixa de mensagens. */
@@ -70,6 +72,50 @@ export function eventPhaseRewardMessage(data: {
     `O item já está no seu Inventário. A próxima fase chega quando o seu professor liberar!`
   );
 }
+
+function describeItems(items: ItemSummary[]): string {
+  return items.map(describeItem).join(", ");
+}
+
+/** Um amigo propôs uma troca de itens. */
+export function tradeProposalMessage(data: { fromName: string; give: ItemSummary[]; ask: ItemSummary[] }): string {
+  return (
+    `🔄 ${data.fromName} te propôs uma troca de itens!\n\n` +
+    `Você recebe: ${describeItems(data.give)}.\nVocê dá: ${describeItems(data.ask)}.\n\n` +
+    `Vá no Inventário pra aceitar ou recusar.`
+  );
+}
+
+/** O amigo aceitou a troca que o aluno propôs. */
+export function tradeAcceptedMessage(data: { friendName: string; received: ItemSummary[]; gave: ItemSummary[] }): string {
+  return (
+    `🔄 Troca feita com ${data.friendName}!\n\n` +
+    `Você recebeu: ${describeItems(data.received)}.\nVocê deu: ${describeItems(data.gave)}.\n\n` +
+    `Os itens novos já estão no seu Inventário.`
+  );
+}
+
+/** O amigo recusou a troca (ou ela não pôde acontecer): os itens voltaram. */
+export function tradeDeclinedMessage(data: { friendName: string; returned: ItemSummary[] }): string {
+  return `🔄 ${data.friendName} não aceitou a sua proposta de troca.\n\nOs itens que você ofereceu (${describeItems(data.returned)}) voltaram pro seu Inventário.`;
+}
+
+/** O professor corrigiu a entrega e pediu pra refazer. */
+export function taskRedoMessage(data: { mission: { title: string; icon: string }; reviewerName: string; feedback: string }): string {
+  return (
+    `↩ ${data.reviewerName} corrigiu a sua entrega da missão ${data.mission.icon} ${data.mission.title} e pediu pra você refazer.\n\n` +
+    `💬 Comentário: ${data.feedback}\n\nVá em Missões, ajuste o que foi pedido e envie de novo!`
+  );
+}
+
+/** Comentário do professor que vai junto da mensagem de recompensa quando a entrega é aprovada. */
+export function taskApprovedNote(data: { reviewerName: string; feedback: string }): string {
+  return `\n\n📝 Entrega aprovada por ${data.reviewerName}!` + (data.feedback ? `\n💬 Comentário: ${data.feedback}` : "");
+}
+
+/** Aviso que vai no fim da mensagem quando o item ganho não coube no inventário. */
+export const PENDING_ITEM_NOTE =
+  "\n\n📦 Seu inventário estava cheio, então o item ficou guardado em \"Esperando espaço\", no Inventário. Libere espaço (ou use um item de espaço) pra pegar ele.";
 
 /** Aluno recebeu um pedido de amizade. */
 export function friendRequestMessage(fromName: string): string {

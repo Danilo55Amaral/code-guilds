@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar, ownsCosmetic } from "@/engine/students";
+import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar, inventoryCapacity } from "@/engine/students";
+import { GiftItem } from "@/engine/gifts";
 import { ShopItem } from "@/engine/shop";
 import {
   SKIN_TONES,
@@ -13,11 +14,9 @@ import {
   eyewearLabel,
   hatLabel,
 } from "@/engine/avatar";
-import { Mission, Rarity, RARITY_META, RARITY_ICON, RARITY_DEFAULT_VALUE, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
-import ItemEconomyFields from "./ItemEconomyFields";
-import EmojiPicker from "./EmojiPicker";
+import { Mission } from "@/engine/missions";
 import ItemDetailsModal from "./ItemDetailsModal";
-import ShopItemPicker from "./ShopItemPicker";
+import GiftItemPicker from "./GiftItemPicker";
 import { PaginationFooter, usePagination } from "./Pagination";
 
 const MESSAGES_PER_PAGE = 5;
@@ -64,14 +63,15 @@ export default function StudentDetails({
   teachers,
   onChangeTeacher,
   shopItems,
-  onGrantShopItem,
+  isAdmin = false,
   onClose,
 }: {
   student: Student;
   /** Missões do professor do aluno. */
   missions: Mission[];
   messages: Message[];
-  onGrantItem: (item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) => void;
+  /** Dá um item (criado, da Loja, de missão ou de evento) pro aluno. */
+  onGrantItem: (item: GiftItem) => void;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
   onDeleteStudent: () => void;
@@ -83,30 +83,13 @@ export default function StudentDetails({
   /** Só o Painel ADM passa: permite trocar o professor do aluno. */
   teachers?: Teacher[];
   onChangeTeacher?: (teacherId: string) => void;
-  /** Só o Painel ADM passa: doar um item da Loja (itens da Loja só podem ser doados pelo ADM). */
-  shopItems?: ShopItem[];
-  onGrantShopItem?: (shopItemId: string) => void;
+  /** Itens da Loja que dá pra doar (o professor não vê os fora da vitrine nem os de espaço). */
+  shopItems: ShopItem[];
+  /** Painel ADM: pode doar qualquer item da Loja. */
+  isAdmin?: boolean;
   onClose: () => void;
 }) {
-  const [giveMode, setGiveMode] = useState<"loja" | "criar">("loja");
-  const [giftShopItemId, setGiftShopItemId] = useState("");
-  const giftShopItem = shopItems?.find((i) => i.id === giftShopItemId) ?? null;
-  const giftAlreadyOwned = !!giftShopItem?.cosmetic && ownsCosmetic(student, giftShopItem.cosmetic);
-
-  function handleGrantShopItem() {
-    if (!giftShopItem || !onGrantShopItem) return;
-    onGrantShopItem(giftShopItem.id);
-    setGrantedMsg(`${giftShopItem.icon} "${giftShopItem.name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
-    setTimeout(() => setGrantedMsg(null), 3000);
-    setGiftShopItemId("");
-  }
-  const [itemName, setItemName] = useState("");
-  const [itemIcon, setItemIcon] = useState(DEFAULT_ITEM_ICON);
-  const [itemDescription, setItemDescription] = useState("");
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
-  const [itemRarity, setItemRarity] = useState<Rarity>("comum");
-  const [itemValue, setItemValue] = useState(RARITY_DEFAULT_VALUE.comum);
-  const [itemXp, setItemXp] = useState(0);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
   const [grantedMsg, setGrantedMsg] = useState<string | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -167,18 +150,10 @@ export default function StudentDetails({
   }
 
   const house = student.houseId ? getHouse(student.houseId) : null;
-  // Sugestões pro campo "Dar item": os itens que as missões já oferecem como recompensa.
-  const suggestedItems = Array.from(new Set(missions.map((m) => m.rewardItem.name)));
-
-  function handleGrant() {
-    const name = itemName.trim();
-    if (!name) return;
-    if (!name || !itemDescription.trim()) return;
-    onGrantItem({ name, icon: itemIcon, description: itemDescription, rarity: itemRarity, value: itemValue, xp: itemXp });
-    setGrantedMsg(`${itemIcon || DEFAULT_ITEM_ICON} "${name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
+  function handleGrant(item: GiftItem) {
+    onGrantItem(item);
+    setGrantedMsg(`${item.icon} "${item.name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
     setTimeout(() => setGrantedMsg(null), 3000);
-    setItemName("");
-    setItemDescription("");
   }
 
   function handleRemove(itemId: string) {
@@ -496,7 +471,10 @@ export default function StudentDetails({
           </div>
 
           <div className="mb-6">
-            <SectionTitle>Inventário ({student.inventory.length} {student.inventory.length === 1 ? "item" : "itens"})</SectionTitle>
+            <SectionTitle>
+              Inventário ({student.inventory.length}/{inventoryCapacity(student)} espaços)
+              {student.pendingItems.length > 0 && ` • 📦 ${student.pendingItems.length} esperando espaço`}
+            </SectionTitle>
             {inventory.length === 0 ? (
               <p className="text-sm text-slate-500">Nenhum item no inventário.</p>
             ) : (
@@ -559,119 +537,8 @@ export default function StudentDetails({
 
           <div className="rounded-xl border border-slate-800 bg-cg-sunken p-4">
             <SectionTitle>Dar item</SectionTitle>
-            {shopItems && onGrantShopItem && (
-              <div className="mb-3 grid grid-cols-2 gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
-                {(
-                  [
-                    ["loja", "🛍️ Item da Loja"],
-                    ["criar", "✏️ Criar item"],
-                  ] as const
-                ).map(([m, label]) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => setGiveMode(m)}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${giveMode === m ? "bg-white text-cg-ink" : "text-slate-400 hover:text-slate-200"}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {shopItems && onGrantShopItem && giveMode === "loja" && (
-              <div className="flex flex-col gap-3">
-                <ShopItemPicker
-                  items={shopItems}
-                  value={giftShopItemId}
-                  onChange={setGiftShopItemId}
-                  note={giftAlreadyOwned ? `${student.name} já tem esse visual — vai ganhar mais um (dá pra vender).` : null}
-                />
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-emerald-300">{grantedMsg}</p>
-                  <button onClick={handleGrantShopItem} disabled={!giftShopItem} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">
-                    🎁 Dar item da Loja
-                  </button>
-                </div>
-              </div>
-            )}
-            <div className={`flex flex-col gap-3 ${shopItems && onGrantShopItem && giveMode === "loja" ? "hidden" : ""}`}>
-              <input
-                value={itemName}
-                onChange={(e) => {
-                  setItemName(e.target.value);
-                  // escolheu um item de missão da lista? já preenche raridade, valor e XP dele
-                  const known = missions.find((m) => m.rewardItem.name === e.target.value)?.rewardItem;
-                  if (known) {
-                    setItemIcon(known.icon);
-                    setItemDescription(known.description);
-                    setItemRarity(known.rarity);
-                    setItemValue(known.value);
-                    setItemXp(known.xp);
-                  }
-                }}
-                onKeyDown={(e) => e.key === "Enter" && handleGrant()}
-                list="cg-item-suggestions"
-                placeholder="Nome do item (ex.: Anel do Iterador)"
-                className="cg-input"
-              />
-              <datalist id="cg-item-suggestions">
-                {suggestedItems.map((name) => (
-                  <option key={name} value={name} />
-                ))}
-              </datalist>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(Object.keys(RARITY_META) as Rarity[]).map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setItemRarity(r)}
-                    title={`Valor sugerido: ${RARITY_DEFAULT_VALUE[r]} moedas`}
-                    className={`rounded-lg border px-2 py-2 text-xs font-medium transition-colors ${
-                      itemRarity === r ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"
-                    }`}
-                  >
-                    {RARITY_ICON[r]} {RARITY_META[r].label}
-                  </button>
-                ))}
-              </div>
-              <div>
-                <textarea
-                  value={itemDescription}
-                  onChange={(e) => setItemDescription(e.target.value)}
-                  maxLength={ITEM_DESCRIPTION_MAX_LENGTH}
-                  rows={2}
-                  placeholder="Descrição do item (aparece quando o aluno clica nele)"
-                  aria-label="Descrição do item"
-                  className="cg-input resize-y"
-                />
-                <p className="mt-1 text-right text-[11px] text-slate-500">
-                  {itemDescription.length}/{ITEM_DESCRIPTION_MAX_LENGTH}
-                </p>
-              </div>
-              <div>
-                <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone do item</p>
-                <EmojiPicker value={itemIcon} onChange={setItemIcon} defaultGroup="Itens" />
-              </div>
-              <ItemEconomyFields
-                value={itemValue}
-                xp={itemXp}
-                onChange={(patch) => {
-                  if (patch.value !== undefined) setItemValue(patch.value);
-                  if (patch.xp !== undefined) setItemXp(patch.xp);
-                }}
-              />
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <p className="text-xs text-emerald-300">{grantedMsg}</p>
-                <button
-                  onClick={handleGrant}
-                  disabled={!itemName.trim() || !itemDescription.trim()}
-                  title={itemName.trim() && itemDescription.trim() ? undefined : "Preencha o nome e a descrição do item."}
-                  className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30"
-                >
-                  🎁 Dar item
-                </button>
-              </div>
-            </div>
+            <GiftItemPicker shopItems={shopItems} missions={missions} isAdmin={isAdmin} actionLabel="🎁 Dar item" onGive={handleGrant} />
+            {grantedMsg && <p className="mt-2 text-xs text-emerald-300">{grantedMsg}</p>}
           </div>
         </div>
       </div>

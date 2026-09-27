@@ -10,7 +10,7 @@
 // Quando a compra fecha, comprador e vendedor recebem uma mensagem automática.
 // ============================================================================
 
-import { InventoryItem, getStudent, updateStudent, removeItem } from "./students";
+import { InventoryItem, freeSlots, getStudent, inventoryFullError, storeItems, updateStudent, removeItem } from "./students";
 import { normalizeRewardItem } from "./missions";
 import { SYSTEM_SENDER_ID, sendMessage, purchaseMessage, saleMessage } from "./messages";
 
@@ -86,7 +86,11 @@ export function createOffer(data: { sellerId: string; buyerId: string; itemId: s
 
 function returnItemToSeller(offer: Offer) {
   const seller = getStudent(offer.sellerId);
-  if (seller) updateStudent(seller.id, { inventory: [...seller.inventory, offer.item] });
+  // sem espaço, o item devolvido fica esperando espaço (nada se perde)
+  if (seller) {
+    const back = storeItems(seller, [offer.item]);
+    updateStudent(seller.id, { inventory: back.inventory, pendingItems: back.pendingItems });
+  }
 }
 
 export function acceptOffer(offerId: string): MarketResult {
@@ -96,6 +100,7 @@ export function acceptOffer(offerId: string): MarketResult {
   const seller = getStudent(offer.sellerId);
   if (!buyer) return { ok: false, error: "Comprador não encontrado." };
   if (buyer.coins < offer.price) return { ok: false, error: `Moedas insuficientes — faltam ${offer.price - buyer.coins}.` };
+  if (freeSlots(buyer) < 1) return { ok: false, error: inventoryFullError(buyer) };
 
   updateStudent(buyer.id, {
     coins: buyer.coins - offer.price,

@@ -7,7 +7,7 @@ import { Student } from "@/engine/students";
 
 // ============================================================================
 // AÇÕES DE AMIZADE no perfil de um aluno (HousemateSheet): mandar pedido,
-// cancelar, aceitar/recusar um pedido recebido, abrir a conversa ou desfazer
+// cancelar, aceitar/recusar um pedido recebido, abrir a conversa, propor troca de itens ou desfazer
 // a amizade. Só aparece pro aluno logado olhando o perfil de outro aluno.
 // ============================================================================
 
@@ -78,6 +78,12 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
             className="mt-2 w-full rounded-full bg-gradient-to-r from-violet-500 to-sky-500 px-4 py-2.5 text-sm font-black text-cg-onaccent shadow-lg shadow-violet-500/30 transition-transform hover:scale-[1.02]"
           >
             💬 Conversar com {firstName}
+          </button>
+          <button
+            onClick={() => router.push(`/academia/inventario?trocar=${other.id}`)}
+            className="mt-2 w-full rounded-full border border-teal-400/60 bg-teal-500/10 px-4 py-2 text-sm font-bold text-teal-100 transition-colors hover:bg-teal-500/20"
+          >
+            🔄 Propor troca de itens
           </button>
           <button
             onClick={() => (confirmRemove ? friends.unfriend(other.id) : setConfirmRemove(true))}

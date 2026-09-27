@@ -10,8 +10,9 @@
 
 import { Rarity } from "./missions";
 import { Cosmetic, CosmeticCollection, sameCosmetic } from "./avatar";
-import { InventoryItem, getStudent, updateStudent, ownsCosmetic } from "./students";
+import { InventoryItem, freeSlots, getStudent, inventoryFullError, updateStudent, ownsCosmetic } from "./students";
 import { SYSTEM_SENDER_ID, sendMessage, shopPurchaseMessage } from "./messages";
+import { EVENT_ITEMS } from "./eventItems";
 
 export interface ShopItem {
   id: string;
@@ -23,6 +24,9 @@ export interface ShopItem {
   value: number; // quanto o sistema paga se o aluno vender depois
   xp: number; // XP ao usar (0 = não consumível); visuais nunca são consumíveis
   cosmetic?: Cosmetic; // presente = é um visual do avatar
+  slots?: number; // presente = é um item de espaço: usar aumenta o inventário do aluno em tantos espaços
+  hidden?: boolean; // true = não aparece na Loja dos alunos (o ADM só dá de presente ou usa como recompensa)
+  eventItemKey?: string; // item de um evento especial (engine/eventItems.ts): o que o ADM mudar aqui vale também no evento
   featured: boolean; // aparece no destaque do topo da Loja
   collection?: CosmeticCollection; // item de coleção temática (ganha seção própria na Loja)
   sold: number; // quantas vezes já foi comprado
@@ -180,11 +184,17 @@ export function listShopItems(): ShopItem[] {
   return readAll().sort((a, b) => Number(b.featured) - Number(a.featured) || b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Máximo de espaços que um item de espaço pode dar. */
+export const MAX_SPACE_SLOTS = 200;
+
 /** Valida o cadastro do ADM. Devolve a mensagem de erro, ou null. `exceptId` ignora o próprio item. */
 export function validateShopItem(data: ShopItemData, exceptId?: string): string | null {
   if (!data.name.trim()) return "Informe o nome do item.";
   if (!data.description.trim()) return "Escreva uma descrição — ela aparece no card da Loja.";
   if (!Number.isInteger(data.price) || data.price < 1) return "O preço precisa ser de pelo menos 1 moeda.";
+  if (data.slots !== undefined && (!Number.isInteger(data.slots) || data.slots < 1 || data.slots > MAX_SPACE_SLOTS)) {
+    return `O item de espaço precisa dar de 1 a ${MAX_SPACE_SLOTS} espaços.`;
+  }
   if (data.cosmetic && readAll().some((i) => i.id !== exceptId && sameCosmetic(i.cosmetic, data.cosmetic))) {
     return "Esse visual já está à venda na Loja.";
   }
@@ -195,7 +205,7 @@ export function validateShopItem(data: ShopItemData, exceptId?: string): string 
 export function createShopItem(data: ShopItemData): ShopItem {
   const item: ShopItem = {
     ...data,
-    xp: data.cosmetic ? 0 : data.xp,
+    xp: data.cosmetic || data.slots ? 0 : data.xp,
     id: `loja_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     sold: 0,
     createdAt: new Date().toISOString(),
@@ -205,7 +215,12 @@ export function createShopItem(data: ShopItemData): ShopItem {
 }
 
 export function updateShopItem(id: string, data: ShopItemData) {
-  writeAll(readAll().map((i) => (i.id === id ? { ...i, ...data, xp: data.cosmetic ? 0 : data.xp, id } : i)));
+  // visual, espaço e "só presente" vêm sempre do cadastro (trocar o tipo do item apaga o que era do tipo antigo)
+  writeAll(
+    readAll().map((i) =>
+      i.id === id ? { ...i, ...data, cosmetic: data.cosmetic, slots: data.slots, hidden: data.hidden, xp: data.cosmetic || data.slots ? 0 : data.xp, id } : i,
+    ),
+  );
 }
 
 /** Tirar da Loja não mexe em quem já comprou — o item continua no inventário dessas pessoas. */
@@ -681,13 +696,42 @@ function toCollection(presets: Preset[], collection: CosmeticCollection): ShopIt
   return presets.map((p) => ({ ...p, value: Math.floor(p.price / 2), xp: p.xp ?? 0, featured: p.featured ?? false, collection }));
 }
 
+/** Preço sugerido na Loja pros itens dos eventos (o ADM muda depois, se quiser). */
+const EVENT_ITEM_PRICE: Record<Rarity, number> = { comum: 60, raro: 120, epico: 220, lendario: 400 };
+
+/**
+ * Os itens dos eventos que vão pra coleção (recompensas das fases e itens das missões prontas).
+ * Visual que a coleção já vende (ex.: o mascote de abóbora no Halloween) não entra duas vezes.
+ */
+function eventItemsFor(collection: CosmeticCollection, collectionItems: ShopItemData[]): ShopItemData[] {
+  return EVENT_ITEMS.filter((e) => e.collection === collection)
+    .filter((e) => !e.item.cosmetic || !collectionItems.some((c) => sameCosmetic(c.cosmetic, e.item.cosmetic)))
+    .map((e) => ({
+      name: e.item.name,
+      icon: e.item.icon,
+      description: e.item.description,
+      rarity: e.item.rarity,
+      price: Math.max(EVENT_ITEM_PRICE[e.item.rarity], e.item.value * 2),
+      value: e.item.value,
+      xp: e.item.cosmetic || e.item.slots ? 0 : e.item.xp,
+      ...(e.item.cosmetic && { cosmetic: e.item.cosmetic }),
+      featured: e.item.rarity === "lendario",
+      collection,
+      eventItemKey: e.key,
+    }));
+}
+
+function withEventItems(collection: CosmeticCollection, items: ShopItemData[]): ShopItemData[] {
+  return [...items, ...eventItemsFor(collection, items)];
+}
+
 /** Os itens prontos de cada coleção temática. */
 export const SHOP_COLLECTIONS: Record<CosmeticCollection, ShopItemData[]> = {
-  natal: toCollection(CHRISTMAS_PRESETS, "natal"),
+  natal: withEventItems("natal", toCollection(CHRISTMAS_PRESETS, "natal")),
   pascoa: toCollection(EASTER_PRESETS, "pascoa"),
-  halloween: toCollection(HALLOWEEN_PRESETS, "halloween"),
-  zumbi: toCollection(ZOMBIE_PRESETS, "zumbi"),
-  alien: toCollection(ALIEN_PRESETS, "alien"),
+  halloween: withEventItems("halloween", toCollection(HALLOWEEN_PRESETS, "halloween")),
+  zumbi: withEventItems("zumbi", toCollection(ZOMBIE_PRESETS, "zumbi")),
+  alien: withEventItems("alien", toCollection(ALIEN_PRESETS, "alien")),
   futuro: toCollection(FUTURE_PRESETS, "futuro"),
   grega: toCollection(GREEK_PRESETS, "grega"),
   egipcia: toCollection(EGYPTIAN_PRESETS, "egipcia"),
@@ -696,8 +740,17 @@ export const SHOP_COLLECTIONS: Record<CosmeticCollection, ShopItemData[]> = {
 /** Itens da coleção que ainda não estão na Loja. */
 export function missingFromCollection(collection: CosmeticCollection, current: ShopItem[]): ShopItemData[] {
   return SHOP_COLLECTIONS[collection].filter((p) =>
-    p.cosmetic ? !current.some((i) => sameCosmetic(i.cosmetic, p.cosmetic)) : !current.some((i) => i.collection === collection && i.name === p.name),
+    p.eventItemKey
+      ? !current.some((i) => i.eventItemKey === p.eventItemKey || (p.cosmetic && sameCosmetic(i.cosmetic, p.cosmetic)))
+      : p.cosmetic
+        ? !current.some((i) => sameCosmetic(i.cosmetic, p.cosmetic))
+        : !current.some((i) => i.collection === collection && i.name === p.name),
   );
+}
+
+/** Quantos itens dos eventos a coleção tem (pra mostrar no Painel ADM). */
+export function eventItemCount(collection: CosmeticCollection): number {
+  return SHOP_COLLECTIONS[collection].filter((p) => p.eventItemKey).length;
 }
 
 /** Coloca à venda os itens da coleção que ainda não estão na Loja. Devolve quantos entraram. */
@@ -729,9 +782,10 @@ export function buyShopItem(studentId: string, shopItemId: string): ShopResult {
   const student = getStudent(studentId);
   const shopItem = readAll().find((i) => i.id === shopItemId);
   if (!student) return { ok: false, error: "Aluno não encontrado." };
-  if (!shopItem) return { ok: false, error: "Esse item não está mais à venda." };
+  if (!shopItem || shopItem.hidden) return { ok: false, error: "Esse item não está mais à venda." };
   if (shopItem.cosmetic && ownsCosmetic(student, shopItem.cosmetic)) return { ok: false, error: "Você já tem esse visual — é só equipar no Inventário." };
   if (student.coins < shopItem.price) return { ok: false, error: `Moedas insuficientes — faltam ${shopItem.price - student.coins}.` };
+  if (freeSlots(student) < 1) return { ok: false, error: inventoryFullError(student) };
 
   const item: InventoryItem = {
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
@@ -740,8 +794,9 @@ export function buyShopItem(studentId: string, shopItemId: string): ShopResult {
     description: shopItem.description,
     rarity: shopItem.rarity,
     value: shopItem.value,
-    xp: shopItem.cosmetic ? 0 : shopItem.xp,
+    xp: shopItem.cosmetic || shopItem.slots ? 0 : shopItem.xp,
     ...(shopItem.cosmetic && { cosmetic: shopItem.cosmetic }),
+    ...(shopItem.slots && { slots: shopItem.slots }),
     obtainedAt: new Date().toISOString(),
   };
   updateStudent(student.id, { coins: student.coins - shopItem.price, inventory: [...student.inventory, item] });

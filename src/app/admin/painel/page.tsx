@@ -3,27 +3,30 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns } from "@/engine/store";
-import { Mission, MissionContent, Rarity } from "@/engine/missions";
-import { Cosmetic } from "@/engine/avatar";
-import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions } from "@/engine/store";
+import SubmissionReviewer from "@/components/SubmissionReviewer";
+import { Mission, MissionContent, MissionKind } from "@/engine/missions";
+import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
-import { MessageKind, itemGiftMessage } from "@/engine/messages";
+import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
 import StudentList from "@/components/StudentList";
 import MissionList from "@/components/MissionList";
 import TeacherList from "@/components/TeacherList";
 import StudentDetails from "@/components/StudentDetails";
+import GiftComposer from "@/components/GiftComposer";
+import { GiftItem } from "@/engine/gifts";
 import TeacherEditor from "@/components/TeacherEditor";
 import ThemeToggle from "@/components/ThemeToggle";
 import ShopManager from "@/components/ShopManager";
 import EventMissionsManager from "@/components/EventMissionsManager";
+import { eventMissionItemKey, resolveEventItem } from "@/engine/eventItems";
 import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, missingPresets } from "@/engine/specialEvents";
 
-type Tab = "professores" | "alunos" | "missoes" | "eventos" | "loja";
+type Tab = "professores" | "alunos" | "missoes" | "entregas" | "eventos" | "loja";
 
-const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões", eventos: "📅 Eventos", loja: "🛍️ Loja" };
+const TAB_LABELS: Record<Tab, string> = { professores: "Professores", alunos: "Alunos", missoes: "Missões", entregas: "📥 Entregas", eventos: "📅 Eventos", loja: "🛍️ Loja" };
 
 const ALL_TEACHERS = "todos";
 
@@ -33,6 +36,10 @@ export default function PainelAdminPage() {
   const { students, ready, patchStudent, deleteStudent } = useStudents();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { items: shopItems } = useShop();
+  const { give } = useGifts();
+  const { submissions } = useSubmissions();
+  // Tipo da missão nova: quiz (perguntas) ou entrega (resposta aberta/arquivos, corrigida pelo professor).
+  const [newKind, setNewKind] = useState<MissionKind>("quiz");
   const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
   const [tab, setTab] = useState<Tab>("professores");
   // Filtro de professor das abas Alunos e Missões.
@@ -68,6 +75,7 @@ export default function PainelAdminPage() {
     professores: teachers.length,
     alunos: students.length,
     missoes: missions.length,
+    entregas: submissions.filter((s) => s.status === "pendente").length,
     eventos: activeEventCount,
     loja: shopItems.length,
   };
@@ -96,6 +104,7 @@ export default function PainelAdminPage() {
   function closeEditor() {
     setEditorTarget(null);
     setNewMissionEvent(null);
+    setNewKind("quiz");
   }
 
   function handleSaveMission(data: MissionContent, teacherId?: string) {
@@ -124,26 +133,19 @@ export default function PainelAdminPage() {
   function addEventPresets(eventId: EventId, phase: number) {
     const event = getEvent(eventId);
     if (!event) return;
-    missingPresets(event, phase, missionsOf(eventTeacher)).forEach((p) => addMission({ ...p, teacherId: eventTeacher, ...eventMissionFields(eventId, phase) }));
+    // o item de cada missão pronta vem com as alterações que o ADM fez na Loja
+    missingPresets(event, phase, missionsOf(eventTeacher)).forEach((p) =>
+      addMission({ ...p, rewardItem: resolveEventItem(eventMissionItemKey(eventId, p.title), p.rewardItem, shopItems), teacherId: eventTeacher, ...eventMissionFields(eventId, phase) }),
+    );
   }
 
   // ---- alunos ----
 
   /** Doa um item da Loja (igualzinho ao da Loja, inclusive se for visual pra equipar) — só o ADM faz isso. */
-  function handleGrantShopItem(shopItemId: string) {
-    const item = shopItems.find((i) => i.id === shopItemId);
-    if (item) handleGrantItem(item);
-  }
-
-  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic }) {
+  function handleGrantItem(item: GiftItem) {
     if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
-    sendMessage({
-      studentId: selectedStudent.id,
-      senderId: admin.id,
-      kind: "presente",
-      body: itemGiftMessage({ studentName: selectedStudent.name, item, giverName: admin.name, giverRole: "adm" }),
-    });
+    // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
+    give([selectedStudent.id], item, { id: admin.id, name: admin.name, role: "adm" });
   }
 
   function handleRemoveItem(itemId: string) {
@@ -271,6 +273,19 @@ export default function PainelAdminPage() {
       )}
 
       {tab === "alunos" && (
+        <GiftComposer
+          key={`presentes-${teacherFilter}`}
+          students={visibleStudents}
+          giver={{ id: admin.id, name: admin.name, role: "adm" }}
+          shopItems={shopItems}
+          missions={missions}
+          isAdmin
+          scopeLabel={teacherFilter === ALL_TEACHERS ? "Todos os alunos" : `Turma de ${teacherName(teacherFilter)}`}
+          headerRight={teacherFilterSelect}
+        />
+      )}
+
+      {tab === "alunos" && (
         <StudentList
           key={teacherFilter}
           title="Alunos da plataforma"
@@ -280,6 +295,17 @@ export default function PainelAdminPage() {
           headerRight={teacherFilterSelect}
           teacherName={teacherName}
           onSelect={setSelectedStudentId}
+        />
+      )}
+
+      {tab === "entregas" && (
+        <SubmissionReviewer
+          key={`entregas-${teacherFilter}`}
+          submissions={teacherFilter === ALL_TEACHERS ? submissions : submissions.filter((s) => s.teacherId === teacherFilter)}
+          students={students}
+          missions={missions}
+          reviewerName={`ADM ${admin.name}`}
+          headerRight={teacherFilterSelect}
         />
       )}
 
@@ -297,6 +323,16 @@ export default function PainelAdminPage() {
               {teacherFilterSelect}
               <button onClick={() => setEditorTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
                 + Nova Missão
+              </button>
+              <button
+                onClick={() => {
+                  setNewKind("entrega");
+                  setEditorTarget("new");
+                }}
+                className="rounded-full border border-indigo-400/60 bg-indigo-500/15 px-3 py-1.5 text-xs font-bold text-indigo-100 transition-colors hover:bg-indigo-500/25"
+                title="O aluno escreve uma resposta e/ou envia arquivos (PDF, Word, Scratch, App Inventor, Roblox Studio), e você corrige"
+              >
+                📝 + Nova Missão de Entrega
               </button>
             </div>
           }
@@ -367,7 +403,7 @@ export default function PainelAdminPage() {
           teachers={teachers}
           onChangeTeacher={handleChangeTeacher}
           shopItems={shopItems}
-          onGrantShopItem={handleGrantShopItem}
+          isAdmin
           onClose={() => setSelectedStudentId(null)}
         />
       )}
@@ -376,6 +412,7 @@ export default function PainelAdminPage() {
         <MissionEditor
           existingMission={editorTarget === "new" ? undefined : editorTarget}
           teachers={teachers}
+          newKind={newKind}
           defaultTeacherId={newMissionEvent ? eventTeacher : teacherFilter === ALL_TEACHERS ? admin.id : teacherFilter}
           shopItems={shopItems}
           eventLabel={editorTarget === "new" ? (newMissionEvent ? eventMissionLabel(newMissionEvent.eventId, newMissionEvent.phase) : undefined) : eventMissionLabel(editorTarget.eventId, editorTarget.eventPhase)}

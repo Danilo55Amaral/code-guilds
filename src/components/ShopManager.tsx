@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useShop } from "@/engine/store";
-import { SHOP_COLLECTIONS, ShopItem, ShopItemData, missingFromCollection, validateShopItem } from "@/engine/shop";
+import { SHOP_COLLECTIONS, ShopItem, ShopItemData, missingFromCollection, validateShopItem, eventItemCount } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
 import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, DEFAULT_AVATAR, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "./collections";
@@ -85,7 +85,8 @@ export default function ShopManager() {
                   {theme.emoji} Coleção {theme.title.replace(/^Coleção de /, "de ")}
                 </p>
                 <p className={`text-xs ${theme.subtitleClass}`}>
-                  {SHOP_COLLECTIONS[collection].length} itens prontos (mascotes, chapéus, óculos, fantasias, cores, auras e itens de XP) •{" "}
+                  {SHOP_COLLECTIONS[collection].length} itens prontos (mascotes, chapéus, óculos, fantasias, cores, auras e itens de XP
+                  {eventItemCount(collection) > 0 && `, com ${eventItemCount(collection)} itens do evento`}) •{" "}
                   {onSale > 0 ? `${onSale} à venda agora` : "nenhum à venda ainda"}
                 </p>
               </div>
@@ -151,12 +152,16 @@ export default function ShopManager() {
               {item.cosmetic ? (
                 <Avatar config={applyCosmetic(DEFAULT_AVATAR, item.cosmetic)} size={52} />
               ) : (
-                <div className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl bg-cg-tile text-2xl">{item.icon}</div>
+                <div className={`relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl bg-cg-tile text-2xl ${item.hidden ? "opacity-60" : ""}`}>
+                  {item.icon}
+                  {item.slots && <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-teal-500 px-1.5 text-[10px] font-black text-cg-onaccent">+{item.slots}</span>}
+                </div>
               )}
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-semibold text-white">
                   {item.featured && <span title="Em destaque">⭐ </span>}
                   {item.collection && <span title={COLLECTION_THEME[item.collection].title}>{COLLECTION_THEME[item.collection].emoji} </span>}
+                  {item.eventItemKey && <span title="Item de evento">🎉 </span>}
                   {item.name}
                 </p>
                 <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -166,8 +171,10 @@ export default function ShopManager() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : "🧪 Item comum"} • {item.sold} {item.sold === 1 ? "vendido" : "vendidos"}
+                  {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : item.slots ? `📦 +${item.slots} espaços no inventário` : "🧪 Item comum"} • {item.sold}{" "}
+                  {item.sold === 1 ? "vendido" : "vendidos"}
                 </p>
+                {item.hidden && <p className="mt-0.5 text-[11px] font-semibold text-slate-400">🔒 Fora da vitrine (só presente ou recompensa)</p>}
               </div>
             </button>
           ))}

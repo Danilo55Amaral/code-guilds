@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns } from "@/engine/store";
-import { Mission, RewardItem, requiredCorrect } from "@/engine/missions";
-import { SYSTEM_SENDER_ID, eventPhaseRewardMessage, eventRewardMessage } from "@/engine/messages";
+import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns, useShop, useSubmissions } from "@/engine/store";
+import { eventRewardKey, resolveEventItem } from "@/engine/eventItems";
+import { Mission, RewardItem, isTaskMission, requiredCorrect } from "@/engine/missions";
+import { latestSubmissionIn } from "@/engine/submissions";
+import TaskSubmissionModal from "@/components/TaskSubmissionModal";
+import { PENDING_ITEM_NOTE, SYSTEM_SENDER_ID, eventPhaseRewardMessage, eventRewardMessage } from "@/engine/messages";
 import {
   canFinishPhase,
   currentPhase,
@@ -46,11 +49,15 @@ export default function EventoPage() {
   const { missions: allMissions, ready } = useMissions();
   const { send } = useMessages(activeStudent?.id ?? null);
   const attemptMission = useMissionAttempt();
+  const { items: shopItems } = useShop();
   const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
   const [scene, setScene] = useState<{ kind: "intro" | "outro"; phase: number } | null>(null);
   // Fase escolhida na trilha (null = a fase em que o aluno está).
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
   const [activeMission, setActiveMission] = useState<Mission | null>(null);
+  // Missão de entrega aberta (resposta aberta/arquivos, corrigida pelo professor).
+  const [taskMission, setTaskMission] = useState<Mission | null>(null);
+  const { submissions } = useSubmissions();
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
@@ -120,16 +127,19 @@ export default function EventoPage() {
     if (scene.kind === "outro" && canFinishPhase(me, sceneMissions, ev, scene.phase)) {
       const finished = getPhase(ev, scene.phase);
       const { reward } = finished;
-      const result = finishPhase(me, ev, scene.phase);
+      // o item da recompensa com as alterações que o ADM fez na Loja
+      const rewardItem = resolveEventItem(eventRewardKey(ev.id, scene.phase), reward.item, shopItems);
+      const result = finishPhase(me, ev, scene.phase, rewardItem);
       patchActive(result.student);
+      const waiting = result.student.pendingItems.length > me.pendingItems.length;
       send({
         studentId: me.id,
         senderId: SYSTEM_SENDER_ID,
         kind: "missao",
         body:
-          scene.phase === phases.length
-            ? eventRewardMessage({ event: ev, item: reward.item, xp: reward.xp, coins: reward.coins })
-            : eventPhaseRewardMessage({ event: ev, phase: finished, totalPhases: phases.length, item: reward.item, xp: reward.xp, coins: reward.coins }),
+          (scene.phase === phases.length
+            ? eventRewardMessage({ event: ev, item: rewardItem, xp: reward.xp, coins: reward.coins })
+            : eventPhaseRewardMessage({ event: ev, phase: finished, totalPhases: phases.length, item: rewardItem, xp: reward.xp, coins: reward.coins })) + (waiting ? PENDING_ITEM_NOTE : ""),
       });
       if (result.leveledUp) setLevelUp({ from: me.level, to: result.newLevel });
       setSelectedPhase(null);
@@ -310,6 +320,8 @@ export default function EventoPage() {
               {missions.map((m) => {
                 const unlocked = me.level >= m.minLevel;
                 const completed = completedIds.includes(m.id);
+                const isTask = isTaskMission(m);
+                const delivery = isTask && !completed ? latestSubmissionIn(submissions, me.id, m.id) : undefined;
                 return (
                   <div
                     key={m.id}
@@ -338,25 +350,40 @@ export default function EventoPage() {
                           <button type="button" onClick={() => setViewingReward(m.rewardItem)} title="Ver detalhes do item de recompensa" className="flex items-center gap-1 hover:text-slate-300 hover:underline">
                             {m.rewardItem.icon} {m.rewardItem.name} <RarityBadge rarity={m.rewardItem.rarity} />
                           </button>
-                          {!completed && (
-                            <span>
-                              🎯 Mín. {requiredCorrect(m.questions.length)}/{m.questions.length} acertos
-                            </span>
-                          )}
+                          {!completed &&
+                            (isTask ? (
+                              <span className="text-indigo-300">
+                                📝 Entrega corrigida pelo professor
+                                {delivery?.status === "pendente" && " • ⏳ aguardando correção"}
+                                {delivery?.status === "refazer" && " • ↩ refazer"}
+                              </span>
+                            ) : (
+                              <span>
+                                🎯 Mín. {requiredCorrect(m.questions.length)}/{m.questions.length} acertos
+                              </span>
+                            ))}
                         </div>
                       </div>
                     </div>
 
                     {unlocked ? (
                       <button
-                        onClick={() => setActiveMission(m)}
+                        onClick={() => (isTask ? setTaskMission(m) : setActiveMission(m))}
                         className={
                           completed
                             ? "shrink-0 rounded-full border border-slate-600 bg-black/40 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:border-slate-400"
                             : `shrink-0 rounded-full px-5 py-2 text-sm font-black transition-transform hover:scale-[1.04] ${visual.buttonClass}`
                         }
                       >
-                        {completed ? "👁 Visualizar" : "Enfrentar →"}
+                        {completed
+                          ? "👁 Visualizar"
+                          : delivery?.status === "pendente"
+                            ? "👁 Ver entrega"
+                            : delivery?.status === "refazer"
+                              ? "↩ Refazer entrega →"
+                              : isTask
+                                ? "📝 Fazer entrega →"
+                                : "Enfrentar →"}
                       </button>
                     ) : (
                       <span className="shrink-0 rounded-full border border-slate-700 bg-black/40 px-4 py-2 text-xs font-medium text-slate-500">🔒 Bloqueada: Nv {m.minLevel}</span>
@@ -388,6 +415,8 @@ export default function EventoPage() {
           onClose={() => setLevelUp(null)}
         />
       )}
+
+      {taskMission && <TaskSubmissionModal mission={taskMission} student={me} onClose={() => setTaskMission(null)} />}
 
       {activeMission && (
         <QuizModal mission={activeMission} onClose={() => setActiveMission(null)} onComplete={handleComplete} viewOnly={completedIds.includes(activeMission.id)} />

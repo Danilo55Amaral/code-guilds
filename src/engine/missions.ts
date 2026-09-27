@@ -36,6 +36,7 @@ export interface RewardItem {
   value: number;
   xp: number;
   cosmetic?: Cosmetic; // item da Loja que é visual do avatar (o ADM pode usar como recompensa)
+  slots?: number; // item de espaço da Loja (o ADM pode usar como recompensa): usar aumenta o inventário em tantos espaços
 }
 
 /** Ícone sugerido pra um item novo (o professor troca no seletor de emojis). */
@@ -82,6 +83,40 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+// ============================================================================
+// MISSÃO DE ENTREGA — em vez de perguntas de múltipla escolha, o aluno escreve
+// uma resposta aberta e/ou envia arquivos (PDF, Word, Scratch, App Inventor,
+// Roblox Studio). A entrega vai pro professor corrigir (engine/submissions.ts):
+// só quando ele aprova o aluno ganha a recompensa.
+// ============================================================================
+
+export type MissionKind = "quiz" | "entrega";
+
+export type SubmissionFileKind = "pdf" | "doc" | "scratch" | "appinventor" | "roblox";
+
+export const SUBMISSION_FILE_TYPES: Record<SubmissionFileKind, { label: string; icon: string; extensions: string[] }> = {
+  pdf: { label: "PDF", icon: "📄", extensions: [".pdf"] },
+  doc: { label: "Word (DOC/DOCX)", icon: "📝", extensions: [".doc", ".docx"] },
+  scratch: { label: "Scratch", icon: "🐱", extensions: [".sb3", ".sb2", ".sb"] },
+  appinventor: { label: "MIT App Inventor", icon: "📱", extensions: [".aia", ".apk"] },
+  roblox: { label: "Roblox Studio", icon: "🎮", extensions: [".rbxl", ".rbxlx", ".rbxm", ".rbxmx"] },
+};
+
+export const SUBMISSION_FILE_KINDS = Object.keys(SUBMISSION_FILE_TYPES) as SubmissionFileKind[];
+
+export interface MissionTask {
+  prompt: string; // o enunciado da entrega (o que o aluno tem que fazer)
+  allowText: boolean; // aceita resposta escrita
+  allowFiles: boolean; // aceita envio de arquivos
+  fileKinds: SubmissionFileKind[]; // quais tipos de arquivo (quando allowFiles)
+}
+
+/** Tipo de arquivo pela extensão do nome (ex.: "jogo.sb3" -> scratch). */
+export function fileKindOf(fileName: string): SubmissionFileKind | null {
+  const name = fileName.toLowerCase();
+  return SUBMISSION_FILE_KINDS.find((k) => SUBMISSION_FILE_TYPES[k].extensions.some((ext) => name.endsWith(ext))) ?? null;
+}
+
 export interface Mission {
   id: string;
   teacherId: string; // professor dono — só os alunos dele veem a missão
@@ -93,9 +128,16 @@ export interface Mission {
   rewardXp: number;
   rewardCoins: number;
   rewardItem: RewardItem;
-  questions: QuizQuestion[];
+  questions: QuizQuestion[]; // missão de entrega: vazia
+  kind?: MissionKind; // sem valor = "quiz" (missões de antes da entrega)
+  task?: MissionTask; // só na missão de entrega
   eventId?: string; // missão exclusiva de um evento (engine/specialEvents.ts): só aparece na tela do evento
   eventPhase?: number; // em evento com fases (Natal): de qual fase a missão é (sem valor = fase 1)
+}
+
+/** Missão de entrega (resposta aberta/arquivos, corrigida pelo professor)? */
+export function isTaskMission(mission: Pick<Mission, "kind">): boolean {
+  return mission.kind === "entrega";
 }
 
 /** O que o editor de missão preenche — o id é gerado ao criar e o professor dono vem de quem cria. */

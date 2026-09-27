@@ -2019,11 +2019,14 @@ export interface FinishEventResult {
   newLevel: number;
 }
 
-/** Aplica a recompensa da fase (XP, moedas e item) e marca a fase como finalizada. No evento comum, é a recompensa final. */
-export function finishPhase(student: Student, event: AcademyEvent, phase: number): FinishEventResult {
+/**
+ * Aplica a recompensa da fase (XP, moedas e item) e marca a fase como finalizada. No evento comum, é a recompensa final.
+ * `item` = o item com as alterações que o ADM fez na Loja (engine/eventItems.ts); sem ele, vale o item original do evento.
+ */
+export function finishPhase(student: Student, event: AcademyEvent, phase: number, item?: RewardItem): FinishEventResult {
   const { reward } = getPhase(event, phase);
   const { level, xp } = addXp(student, reward.xp);
-  const withItem = grantItem(student, reward.item);
+  const withItem = grantItem(student, item ?? reward.item);
   return {
     student: {
       ...withItem,

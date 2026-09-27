@@ -1,8 +1,23 @@
 "use client";
 
-import { useState } from "react";
-import { useStudents, useMissions, useOffers } from "@/engine/store";
-import { InventoryItem, xpToNextLevel, consumeItem, removeItem, sellItemToSystem, equipItem, unequipItem, isEquipped, wornAvatar } from "@/engine/students";
+import { useEffect, useState } from "react";
+import { useStudents, useMissions, useOffers, useFriends, useTrades } from "@/engine/store";
+import {
+  InventoryItem,
+  xpToNextLevel,
+  consumeItem,
+  removeItem,
+  sellItemToSystem,
+  equipItem,
+  unequipItem,
+  isEquipped,
+  wornAvatar,
+  applySpaceItem,
+  claimPendingItems,
+  freeSlots,
+  inventoryCapacity,
+  BASE_INVENTORY_SLOTS,
+} from "@/engine/students";
 import { COSMETIC_SLOT_LABELS } from "@/engine/avatar";
 import { getHouse } from "@/engine/houses";
 import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components/GameUI";
@@ -11,17 +26,41 @@ import CharacterSheet from "@/components/CharacterSheet";
 import SellItemModal from "@/components/SellItemModal";
 import ItemDetailsModal from "@/components/ItemDetailsModal";
 import LevelUpScreen from "@/components/LevelUpScreen";
+import TradeModal, { TradeCard } from "@/components/TradeModal";
+import { PaginationFooter, usePagination } from "@/components/Pagination";
+
+// ============================================================================
+// INVENTÁRIO — os itens do aluno (12 por página), com usar, equipar, vender e
+// excluir; as ofertas de compra de colegas; e a troca de itens com amigos
+// (🔄 Trocar itens), com as propostas recebidas e enviadas.
+// O inventário tem limite de espaços (20 + os ganhos com itens de espaço);
+// o que o aluno ganha com ele cheio fica em "📦 Esperando espaço".
+// ?trocar=<id do amigo> abre a troca direto com esse amigo (vem do perfil).
+// ============================================================================
+
+const ITEMS_PER_PAGE = 12;
 
 export default function InventarioPage() {
   const { activeStudent, students, patchActive } = useStudents();
   const { missions: allMissions } = useMissions();
   const { received, sent, offer, accept, withdraw } = useOffers(activeStudent?.id ?? null);
+  const trades = useTrades(activeStudent?.id ?? null);
+  const { friendIds } = useFriends(activeStudent?.id ?? null);
+  // Janela de troca aberta (com o amigo já escolhido, se veio do perfil dele).
+  const [trading, setTrading] = useState<{ friendId: string | null } | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [selling, setSelling] = useState<InventoryItem | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ text: string; tone: "ok" | "erro" } | null>(null);
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
+  const pager = usePagination(activeStudent?.inventory ?? [], ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    const friendId = new URLSearchParams(window.location.search).get("trocar");
+    if (friendId) setTrading({ friendId });
+  }, []);
+
   if (!activeStudent) return null;
 
   const me = activeStudent;
@@ -30,6 +69,10 @@ export default function InventarioPage() {
   const buyers = students.filter((s) => s.id !== me.id && s.onboardingStep === "completo");
   const nameOf = (id: string) => students.find((s) => s.id === id)?.name ?? "Aluno removido";
   const inventoryValue = me.inventory.reduce((sum, i) => sum + i.value, 0);
+  const friends = friendIds.map((id) => students.find((s) => s.id === id)).filter((s): s is NonNullable<typeof s> => !!s);
+  const capacity = inventoryCapacity(me);
+  const free = freeSlots(me);
+  const usedPercent = Math.min(100, Math.round((me.inventory.length / capacity) * 100));
 
   function flash(text: string, tone: "ok" | "erro" = "ok") {
     setNotice({ text, tone });
@@ -42,6 +85,27 @@ export default function InventarioPage() {
     patchActive(result.student);
     flash(`✨ Você usou ${item.name} e ganhou +${result.xpGained} XP!`);
     if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
+  }
+
+  function expandInventory(item: InventoryItem) {
+    const result = applySpaceItem(me, item.id);
+    if (!result) return;
+    patchActive(result.student);
+    flash(
+      `📦 Seu inventário cresceu +${result.slotsGained} espaços! Agora cabem ${inventoryCapacity(result.student)} itens.` +
+        (result.claimed > 0 ? ` ${result.claimed} ${result.claimed === 1 ? "item que esperava espaço foi guardado" : "itens que esperavam espaço foram guardados"}.` : ""),
+    );
+  }
+
+  function claim(itemId?: string) {
+    const updated = claimPendingItems(me, itemId);
+    const moved = updated.inventory.length - me.inventory.length;
+    if (moved === 0) {
+      flash("Não há espaço livre no inventário. Use um item de espaço, venda ou descarte algum item.", "erro");
+      return;
+    }
+    patchActive({ inventory: updated.inventory, pendingItems: updated.pendingItems });
+    flash(`📥 ${moved} ${moved === 1 ? "item guardado" : "itens guardados"} no inventário.`);
   }
 
   function equip(item: InventoryItem) {
@@ -78,6 +142,23 @@ export default function InventarioPage() {
     setSelling(null);
     flash(`🤝 Oferta enviada: ${item.name} para ${nameOf(buyerId)} por ${price} moedas.`);
     return null;
+  }
+
+  function proposeTrade(friendId: string, offeredIds: string[], requestedIds: string[]): string | null {
+    const result = trades.propose({ fromId: me.id, toId: friendId, offeredIds, requestedIds });
+    if (!result.ok) return result.error;
+    setTrading(null);
+    flash(`🔄 Proposta de troca enviada para ${nameOf(friendId)}! Seus itens ficam guardados até a resposta.`);
+    return null;
+  }
+
+  function acceptTrade(tradeId: string, friendId: string) {
+    const result = trades.accept(tradeId);
+    if (!result.ok) {
+      flash(result.error, "erro");
+      return;
+    }
+    flash(`🔄 Troca feita com ${nameOf(friendId)}! Os itens novos já estão no seu inventário.`);
   }
 
   function buy(offerId: string, itemName: string, price: number) {
@@ -135,13 +216,36 @@ export default function InventarioPage() {
         </p>
       )}
 
+      {/* propostas de troca que amigos fizeram pra mim */}
+      {trades.received.length > 0 && (
+        <div className="cg-card mb-6 !border-teal-500/40 p-4">
+          <p className="mb-3 text-sm font-semibold text-teal-200">🔄 Propostas de troca recebidas ({trades.received.length})</p>
+          <div className="flex flex-col gap-3">
+            {trades.received.map((t) => (
+              <TradeCard
+                key={t.id}
+                trade={t}
+                me={me}
+                mine={false}
+                friend={students.find((s) => s.id === t.fromId)}
+                onAccept={() => acceptTrade(t.id, t.fromId)}
+                onDecline={() => {
+                  trades.decline(t.id);
+                  flash(`Você recusou a troca de ${nameOf(t.fromId)}. Os itens voltaram pra quem propôs.`);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* ofertas que outros alunos fizeram pra mim */}
       {received.length > 0 && (
         <div className="cg-card mb-6 !border-amber-500/40 p-4">
           <p className="mb-3 text-sm font-semibold text-amber-200">📦 Ofertas recebidas ({received.length})</p>
           <div className="flex flex-col gap-2">
             {received.map((o) => {
-              const canAfford = me.coins >= o.price;
+              const canAfford = me.coins >= o.price && free > 0;
               return (
                 <div key={o.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2.5">
                   <div className="flex min-w-0 items-center gap-3">
@@ -173,10 +277,10 @@ export default function InventarioPage() {
                     <button
                       onClick={() => buy(o.id, o.item.name, o.price)}
                       disabled={!canAfford}
-                      title={canAfford ? undefined : `Faltam ${o.price - me.coins} moedas`}
+                      title={canAfford ? undefined : free === 0 ? "Inventário cheio" : `Faltam ${o.price - me.coins} moedas`}
                       className="cg-btn-primary !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-30"
                     >
-                      {canAfford ? "Comprar" : `Faltam ${o.price - me.coins} moedas`}
+                      {canAfford ? "Comprar" : free === 0 ? "Inventário cheio" : `Faltam ${o.price - me.coins} moedas`}
                     </button>
                     <button onClick={() => withdraw(o.id)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
                       Recusar
@@ -189,24 +293,102 @@ export default function InventarioPage() {
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-300">Itens ({me.inventory.length})</p>
-        {me.inventory.length > 0 && (
-          <p className="flex items-center gap-1 text-xs text-slate-500">
-            Valor do inventário: <CoinIcon size={12} /> <span className="font-semibold text-amber-300">{inventoryValue}</span>
+      {/* espaço do inventário */}
+      <div className={`cg-card mb-4 p-4 ${free === 0 ? "!border-amber-500/50" : ""}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-white">
+            🎒 Espaço: {me.inventory.length}/{capacity} itens
+            {me.bonusSlots > 0 && (
+              <span className="ml-2 text-xs font-normal text-teal-300">
+                ({BASE_INVENTORY_SLOTS} + {me.bonusSlots} de itens de espaço)
+              </span>
+            )}
+          </p>
+          <span className={`text-xs font-semibold ${free === 0 ? "text-amber-300" : "text-slate-400"}`}>
+            {free === 0 ? "Inventário cheio!" : `${free} ${free === 1 ? "espaço livre" : "espaços livres"}`}
+          </span>
+        </div>
+        <div className="mt-2 h-2.5 overflow-hidden rounded-full bg-cg-sunken">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${usedPercent >= 100 ? "bg-amber-400" : usedPercent >= 80 ? "bg-orange-400" : "bg-teal-400"}`}
+            style={{ width: `${usedPercent}%` }}
+          />
+        </div>
+        {free === 0 && (
+          <p className="mt-2 text-xs text-amber-200/90">
+            Com o inventário cheio você não consegue comprar nem receber itens em trocas. Use um item de espaço 📦 (compre na Loja), venda ou descarte itens pra liberar espaço.
           </p>
         )}
+      </div>
+
+      {/* itens ganhos com o inventário cheio, esperando espaço */}
+      {me.pendingItems.length > 0 && (
+        <div className="cg-card mb-6 !border-sky-500/40 p-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-sky-200">📦 Esperando espaço ({me.pendingItems.length})</p>
+              <p className="text-[11px] text-slate-400">Itens que você ganhou com o inventário cheio. Eles não se perdem: guarde quando tiver espaço livre.</p>
+            </div>
+            <button
+              onClick={() => claim()}
+              disabled={free === 0}
+              className="rounded-full bg-sky-500 px-4 py-1.5 text-xs font-bold text-cg-onaccent transition-colors hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              📥 Guardar {free >= me.pendingItems.length ? "todos" : `${Math.min(free, me.pendingItems.length)} (cabem ${free})`}
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {me.pendingItems.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-slate-800 bg-cg-sunken px-3 py-2">
+                <button type="button" onClick={() => setViewingItem(item)} title="Ver detalhes do item" className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-cg-tile text-xl">
+                  {item.icon}
+                </button>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-white">{item.name}</p>
+                  <RarityBadge rarity={item.rarity} />
+                </div>
+                <button
+                  onClick={() => claim(item.id)}
+                  disabled={free === 0}
+                  className="shrink-0 rounded-lg border border-sky-500/50 px-2.5 py-1 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  📥 Guardar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-slate-300">Itens ({me.inventory.length})</p>
+        <div className="flex flex-wrap items-center gap-3">
+          {me.inventory.length > 0 && (
+            <p className="flex items-center gap-1 text-xs text-slate-500">
+              Valor do inventário: <CoinIcon size={12} /> <span className="font-semibold text-amber-300">{inventoryValue}</span>
+            </p>
+          )}
+          <button
+            onClick={() => setTrading({ friendId: null })}
+            className="rounded-full bg-gradient-to-r from-teal-400 to-sky-500 px-4 py-2 text-xs font-black text-cg-ink shadow-lg shadow-teal-500/25 transition-transform hover:scale-[1.03]"
+          >
+            🔄 Trocar itens com um amigo
+          </button>
+        </div>
       </div>
       {me.inventory.length === 0 ? (
         <p className="text-sm text-slate-500">Nenhum item ainda — complete missões para ganhar itens.</p>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-          {me.inventory.map((item) => {
+          {pager.pageItems.map((item) => {
             const equipped = isEquipped(me, item.id);
             return (
             <div key={item.id} className={`cg-card relative flex flex-col items-center gap-2 p-4 text-center ${equipped ? "!border-violet-500/60" : ""}`}>
               {equipped && (
                 <span className="absolute right-2 top-2 rounded-full bg-violet-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">✓ Equipado</span>
+              )}
+              {item.slots && (
+                <span className="absolute right-2 top-2 rounded-full bg-teal-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">📦 +{item.slots}</span>
               )}
               {item.cosmetic && !equipped && (
                 <span className="absolute right-2 top-2 rounded-full border border-violet-500/40 px-2 py-0.5 text-[10px] font-semibold text-violet-300">
@@ -240,6 +422,11 @@ export default function InventarioPage() {
                       👕 Equipar
                     </button>
                   ))}
+                {item.slots && (
+                  <button onClick={() => expandInventory(item)} className="rounded-lg bg-teal-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-teal-400">
+                    📦 Usar (+{item.slots} espaços)
+                  </button>
+                )}
                 {item.xp > 0 && (
                   <button onClick={() => consume(item)} className="rounded-lg bg-violet-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-violet-400">
                     ✨ Usar (+{item.xp} XP)
@@ -269,6 +456,29 @@ export default function InventarioPage() {
             </div>
             );
           })}
+        </div>
+      )}
+      <PaginationFooter pager={pager} noun="itens" />
+
+      {/* propostas de troca que eu fiz e ainda estão esperando o amigo */}
+      {trades.sent.length > 0 && (
+        <div className="mt-6">
+          <p className="mb-3 text-sm font-semibold text-slate-300">🔄 Suas propostas de troca aguardando resposta ({trades.sent.length})</p>
+          <div className="flex flex-col gap-3">
+            {trades.sent.map((t) => (
+              <TradeCard
+                key={t.id}
+                trade={t}
+                me={me}
+                mine
+                friend={students.find((s) => s.id === t.toId)}
+                onCancel={() => {
+                  trades.cancel(t.id);
+                  flash("Proposta cancelada. Seus itens voltaram pro inventário.");
+                }}
+              />
+            ))}
+          </div>
         </div>
       )}
 
@@ -308,6 +518,10 @@ export default function InventarioPage() {
           onOffer={(buyerId, price) => offerTo(selling, buyerId, price)}
           onClose={() => setSelling(null)}
         />
+      )}
+
+      {trading && (
+        <TradeModal me={me} friends={friends} initialFriendId={trading.friendId} onPropose={proposeTrade} onClose={() => setTrading(null)} />
       )}
 
       {viewingItem && <ItemDetailsModal item={viewingItem} onClose={() => setViewingItem(null)} />}

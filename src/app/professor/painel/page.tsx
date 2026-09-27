@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useEventRuns } from "@/engine/store";
-import { Mission, MissionContent, Rarity } from "@/engine/missions";
-import { grantItem, removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
-import { MessageKind, itemGiftMessage } from "@/engine/messages";
+import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useShop, useGifts, useSubmissions } from "@/engine/store";
+import SubmissionReviewer from "@/components/SubmissionReviewer";
+import { Mission, MissionContent, MissionKind } from "@/engine/missions";
+import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
 import StudentList from "@/components/StudentList";
@@ -14,9 +15,12 @@ import MissionList from "@/components/MissionList";
 import EventMissionsManager from "@/components/EventMissionsManager";
 import StudentDetails from "@/components/StudentDetails";
 import BroadcastComposer from "@/components/BroadcastComposer";
+import GiftComposer from "@/components/GiftComposer";
+import { GiftItem } from "@/engine/gifts";
 import TutorialModal from "@/components/TutorialModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { teacherTutorial } from "@/engine/tutorial";
+import { eventMissionItemKey, resolveEventItem } from "@/engine/eventItems";
 import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, missingPresets } from "@/engine/specialEvents";
 
 export default function PainelProfessorPage() {
@@ -25,6 +29,11 @@ export default function PainelProfessorPage() {
   const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
+  const { items: shopItems } = useShop();
+  const { give } = useGifts();
+  const { submissions } = useSubmissions();
+  // Tipo da missão nova: quiz (perguntas) ou entrega (resposta aberta/arquivos, corrigida pelo professor).
+  const [newKind, setNewKind] = useState<MissionKind>("quiz");
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
   // Evento da missão nova sendo criada (null = missão normal).
   // Evento (e fase) da missão nova sendo criada (null = missão normal).
@@ -57,6 +66,7 @@ export default function PainelProfessorPage() {
   function closeEditor() {
     setEditorTarget(null);
     setNewMissionEvent(null);
+    setNewKind("quiz");
   }
 
   function handleSave(data: MissionContent) {
@@ -84,20 +94,18 @@ export default function PainelProfessorPage() {
   function addEventPresets(eventId: EventId, phase: number) {
     const event = getEvent(eventId);
     if (!event) return;
-    missingPresets(event, phase, missions).forEach((p) => addMission({ ...p, teacherId: teacher.id, ...eventMissionFields(eventId, phase) }));
+    // o item de cada missão pronta vem com as alterações que o ADM fez na Loja
+    missingPresets(event, phase, missions).forEach((p) =>
+      addMission({ ...p, rewardItem: resolveEventItem(eventMissionItemKey(eventId, p.title), p.rewardItem, shopItems), teacherId: teacher.id, ...eventMissionFields(eventId, phase) }),
+    );
   }
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
 
-  function handleGrantItem(item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number }) {
+  function handleGrantItem(item: GiftItem) {
     if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { inventory: grantItem(selectedStudent, item).inventory });
-    sendMessage({
-      studentId: selectedStudent.id,
-      senderId: teacher.id,
-      kind: "presente",
-      body: itemGiftMessage({ studentName: selectedStudent.name, item, giverName: teacher.name, giverRole: "professor" }),
-    });
+    // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
+    give([selectedStudent.id], item, { id: teacher.id, name: teacher.name, role: "professor" });
   }
 
   function handleRemoveItem(itemId: string) {
@@ -195,7 +203,23 @@ export default function PainelProfessorPage() {
         onSelect={setSelectedStudentId}
       />
 
+      <SubmissionReviewer
+        submissions={submissions.filter((s) => s.teacherId === teacher.id)}
+        students={students}
+        missions={missions}
+        reviewerName={`Professor ${teacher.name}`}
+      />
+
       <BroadcastComposer students={students} senderId={teacher.id} />
+
+      <GiftComposer
+        students={students}
+        giver={{ id: teacher.id, name: teacher.name, role: "professor" }}
+        shopItems={shopItems}
+        missions={missions}
+        isAdmin={false}
+        scopeLabel="Toda a turma"
+      />
 
       <MissionList
         title="Missões cadastradas"
@@ -203,9 +227,21 @@ export default function PainelProfessorPage() {
         students={students}
         emptyText="Você ainda não criou nenhuma missão — seus alunos só veem as missões criadas por você."
         headerRight={
-          <button onClick={() => setEditorTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
-            + Nova Missão
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setEditorTarget("new")} className="cg-btn-primary !px-3 !py-1.5 text-xs">
+              + Nova Missão
+            </button>
+          <button
+              onClick={() => {
+                setNewKind("entrega");
+                setEditorTarget("new");
+              }}
+              className="rounded-full border border-indigo-400/60 bg-indigo-500/15 px-3 py-1.5 text-xs font-bold text-indigo-100 transition-colors hover:bg-indigo-500/25"
+              title="O aluno escreve uma resposta e/ou envia arquivos (PDF, Word, Scratch, App Inventor, Roblox Studio), e você corrige"
+            >
+              📝 + Nova Missão de Entrega
+            </button>
+          </div>
         }
         onSelect={setEditorTarget}
       />
@@ -231,6 +267,7 @@ export default function PainelProfessorPage() {
           missions={missions}
           messages={selectedMessages}
           onGrantItem={handleGrantItem}
+          shopItems={shopItems}
           onRemoveItem={handleRemoveItem}
           onSendMessage={handleSendMessage}
           onDeleteStudent={handleDeleteStudent}
@@ -244,6 +281,8 @@ export default function PainelProfessorPage() {
       {editorTarget && (
         <MissionEditor
           existingMission={editorTarget === "new" ? undefined : editorTarget}
+          lockEventItem
+          newKind={newKind}
           eventLabel={editorTarget === "new" ? (newMissionEvent ? eventMissionLabel(newMissionEvent.eventId, newMissionEvent.phase) : undefined) : eventMissionLabel(editorTarget.eventId, editorTarget.eventPhase)}
           onSave={handleSave}
           onDelete={editorTarget !== "new" ? handleDelete : undefined}

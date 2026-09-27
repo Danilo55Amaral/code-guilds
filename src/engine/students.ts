@@ -22,6 +22,7 @@ export interface InventoryItem {
   icon: string; // emoji do item (itens antigos ganham o da raridade na leitura)
   description: string; // "" = item antigo, sem descrição
   cosmetic?: Cosmetic; // item de visual do avatar (vem da Loja) — pode ser equipado
+  slots?: number; // item de espaço (criado pelo ADM na Loja): usar aumenta o inventário em tantos espaços
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -55,6 +56,8 @@ export interface Student {
   tutorialDone?: boolean; // já viu (ou pulou) o tutorial da Academia
   equipped: Partial<Record<CosmeticSlot, string>>; // espaço do avatar -> id do item de visual equipado
   events: Record<string, EventProgress>; // id do evento -> progresso
+  bonusSlots: number; // espaços extras no inventário, ganhos usando itens de espaço (além dos BASE_INVENTORY_SLOTS)
+  pendingItems: InventoryItem[]; // itens ganhos com o inventário cheio, esperando espaço (nada se perde)
   createdAt: string;
 }
 
@@ -112,6 +115,8 @@ function readAll(): Student[] {
         avatar: normalizeAvatar(s.avatar ?? {}),
         equipped: s.equipped ?? {},
         events: s.events ?? {},
+        bonusSlots: s.bonusSlots ?? 0,
+        pendingItems: (s.pendingItems ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
         // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
         // itens de antes do ícone próprio ficam com o ícone da raridade
         inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
@@ -216,6 +221,8 @@ export function createStudent(data: { name: string; email: string; turma: string
     onboardingStep: "casa",
     equipped: {},
     events: {},
+    bonusSlots: 0,
+    pendingItems: [],
     createdAt: new Date().toISOString(),
   };
   writeAll([...readAll(), student]);
@@ -279,24 +286,86 @@ export function addXp(student: Student, amount: number): { level: number; xp: nu
 // quem chama decide onde salvar (mesmo padrão do applyMissionReward).
 // ============================================================================
 
-/** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). */
+// ============================================================================
+// ESPAÇO NO INVENTÁRIO — todo aluno começa com BASE_INVENTORY_SLOTS espaços e
+// ganha mais usando itens de espaço (criados pelo ADM na Loja, com quantos
+// espaços cada um dá). O que o aluno ganha sem ter pedido (recompensa de
+// missão e de evento, presente, item devolvido de troca/oferta) nunca se
+// perde: se não couber, fica em pendingItems ("esperando espaço") até ele
+// liberar espaço. O que ele escolhe pegar (comprar, aceitar oferta ou troca)
+// é bloqueado quando não cabe.
+// ============================================================================
+
+export const BASE_INVENTORY_SLOTS = 20;
+
+export function inventoryCapacity(student: Student): number {
+  return BASE_INVENTORY_SLOTS + (student.bonusSlots ?? 0);
+}
+
+export function freeSlots(student: Student): number {
+  return Math.max(0, inventoryCapacity(student) - student.inventory.length);
+}
+
+/** Mensagem de inventário cheio pra quem tenta pegar mais itens do que cabe. */
+export function inventoryFullError(student: Student, needed = 1): string {
+  const cap = inventoryCapacity(student);
+  return needed <= 1
+    ? `Seu inventário está cheio (${student.inventory.length}/${cap}). Use um item de espaço, venda ou descarte itens pra liberar espaço.`
+    : `Não cabe no seu inventário: você precisa de ${needed} espaços livres e tem ${freeSlots(student)} (${student.inventory.length}/${cap}). Libere espaço e tente de novo.`;
+}
+
+/** Guarda itens no inventário; o que não couber vai pra "esperando espaço" (nada se perde). */
+export function storeItems(student: Student, items: InventoryItem[]): Student {
+  const fits = items.slice(0, freeSlots(student));
+  const rest = items.slice(fits.length);
+  return { ...student, inventory: [...student.inventory, ...fits], pendingItems: [...(student.pendingItems ?? []), ...rest] };
+}
+
+/** Passa pro inventário os itens que estavam esperando espaço (todos que couberem, ou só um pelo id). */
+export function claimPendingItems(student: Student, itemId?: string): Student {
+  const pending = student.pendingItems ?? [];
+  const wanted = itemId ? pending.filter((i) => i.id === itemId) : pending;
+  const moving = wanted.slice(0, freeSlots(student));
+  if (moving.length === 0) return student;
+  const ids = new Set(moving.map((i) => i.id));
+  return { ...student, inventory: [...student.inventory, ...moving], pendingItems: pending.filter((i) => !ids.has(i.id)) };
+}
+
+export interface SpaceItemResult {
+  student: Student;
+  slotsGained: number;
+  claimed: number; // itens que estavam esperando e entraram no inventário
+}
+
+/** Usa um item de espaço: ele some, o inventário cresce e os itens que esperavam espaço entram (os que couberem). */
+export function applySpaceItem(student: Student, itemId: string): SpaceItemResult | null {
+  const item = student.inventory.find((i) => i.id === itemId);
+  if (!item || !item.slots || item.slots <= 0) return null;
+  const grown: Student = { ...removeItem(student, itemId), bonusSlots: (student.bonusSlots ?? 0) + item.slots };
+  const claimed = claimPendingItems(grown);
+  return { student: claimed, slotsGained: item.slots, claimed: claimed.inventory.length - grown.inventory.length };
+}
+
+/** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). Sem espaço, ele fica esperando espaço. */
 export function grantItem(
   student: Student,
-  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic },
+  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic; slots?: number },
 ): Student {
   const newItem: InventoryItem = {
     // item da Loja doado pelo ADM: se for visual, o aluno pode equipar (e visual não é consumível)
     ...(item.cosmetic && { cosmetic: item.cosmetic }),
+    // item de espaço doado pelo ADM: usar aumenta o inventário (e não dá XP)
+    ...(item.slots && item.slots > 0 && { slots: Math.round(item.slots) }),
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
     icon: item.icon.trim() || DEFAULT_ITEM_ICON,
     description: item.description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
-    xp: item.cosmetic ? 0 : Math.max(0, Math.round(item.xp)),
+    xp: item.cosmetic || item.slots ? 0 : Math.max(0, Math.round(item.xp)),
     obtainedAt: new Date().toISOString(),
   };
-  return { ...student, inventory: [...student.inventory, newItem] };
+  return storeItems(student, [newItem]);
 }
 
 /** Remove um item pelo id — só aquele exemplar, mesmo que o aluno tenha outros com o mesmo nome. */
@@ -389,18 +458,20 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     description: mission.rewardItem.description,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
-    xp: mission.rewardItem.cosmetic ? 0 : mission.rewardItem.xp,
+    xp: mission.rewardItem.cosmetic || mission.rewardItem.slots ? 0 : mission.rewardItem.xp,
     // recompensa que é item de visual da Loja: o aluno pode equipar
     ...(mission.rewardItem.cosmetic && { cosmetic: mission.rewardItem.cosmetic }),
+    // recompensa que é item de espaço da Loja: usar aumenta o inventário
+    ...(mission.rewardItem.slots && { slots: mission.rewardItem.slots }),
     obtainedAt: new Date().toISOString(),
   };
 
+  // sem espaço, o item fica esperando espaço (a recompensa nunca se perde)
   const updated: Student = {
-    ...student,
+    ...storeItems(student, [newItem]),
     level,
     xp,
     coins: student.coins + mission.rewardCoins,
-    inventory: [...student.inventory, newItem],
     completedMissionIds: student.completedMissionIds.includes(mission.id)
       ? student.completedMissionIds
       : [...student.completedMissionIds, mission.id],

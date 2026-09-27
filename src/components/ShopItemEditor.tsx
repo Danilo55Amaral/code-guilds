@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ShopItem, ShopItemData } from "@/engine/shop";
+import { MAX_SPACE_SLOTS, ShopItem, ShopItemData } from "@/engine/shop";
+import { getEventItem } from "@/engine/eventItems";
+import { getEvent } from "@/engine/specialEvents";
+import { BASE_INVENTORY_SLOTS } from "@/engine/students";
 import { Rarity, RARITY_META, RARITY_DEFAULT_VALUE, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import { COSMETIC_CATALOG, COSMETIC_SLOT_LABELS, CosmeticOption, CosmeticSlot, DEFAULT_AVATAR, applyCosmetic, sameCosmetic } from "@/engine/avatar";
 import Avatar from "./Avatar";
@@ -9,7 +12,9 @@ import { COLLECTION_THEME } from "./collections";
 import EmojiPicker from "./EmojiPicker";
 import ItemEconomyFields from "./ItemEconomyFields";
 
-type Kind = "visual" | "item";
+type Kind = "visual" | "item" | "espaco";
+
+const DEFAULT_SPACE_SLOTS = 10;
 
 function Label({ children }: { children: React.ReactNode }) {
   return <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">{children}</label>;
@@ -19,7 +24,10 @@ const SLOTS = Object.keys(COSMETIC_SLOT_LABELS) as CosmeticSlot[];
 
 /**
  * Cadastro/edição de item da Loja pelo ADM: um item comum (com XP ao usar, se
- * quiser) ou um visual do avatar escolhido no catálogo, com prévia no avatar.
+ * quiser), um visual do avatar escolhido no catálogo, com prévia no avatar, ou
+ * um item de espaço (usar aumenta o inventário do aluno em N espaços — só o ADM
+ * cria esse tipo). Qualquer item pode ficar fora da vitrine ("só presente"):
+ * aí o ADM só dá de presente ou usa como recompensa de missão.
  */
 export default function ShopItemEditor({
   existing,
@@ -37,10 +45,17 @@ export default function ShopItemEditor({
   onClose: () => void;
 }) {
   const firstFree = COSMETIC_CATALOG.find((o) => !taken.some((t) => sameCosmetic(t, o))) ?? COSMETIC_CATALOG[0];
-  const [kind, setKind] = useState<Kind>(existing ? (existing.cosmetic ? "visual" : "item") : "visual");
+  const [kind, setKind] = useState<Kind>(existing ? (existing.slots ? "espaco" : existing.cosmetic ? "visual" : "item") : "visual");
+  const [slots, setSlots] = useState(existing?.slots ?? DEFAULT_SPACE_SLOTS);
+  const [forSale, setForSale] = useState(!existing?.hidden);
+  // Visual exclusivo de evento (ex.: a renazinha Cometa) não está no catálogo da Loja: fica o do próprio item.
+  const exclusiveCosmetic = !!existing?.cosmetic && !COSMETIC_CATALOG.some((o) => sameCosmetic(o, existing.cosmetic));
   const [cosmetic, setCosmetic] = useState<CosmeticOption>(
-    (existing?.cosmetic && COSMETIC_CATALOG.find((o) => sameCosmetic(o, existing.cosmetic))) || firstFree,
+    (existing?.cosmetic && COSMETIC_CATALOG.find((o) => sameCosmetic(o, existing.cosmetic))) ||
+      (existing?.cosmetic ? { ...existing.cosmetic, label: existing.name, icon: existing.icon } : firstFree),
   );
+  const eventEntry = existing?.eventItemKey ? getEventItem(existing.eventItemKey) : undefined;
+  const eventOf = eventEntry ? getEvent(eventEntry.eventId) : undefined;
   const [name, setName] = useState(existing?.name ?? (existing ? "" : firstFree.label));
   const [icon, setIcon] = useState(existing?.icon ?? firstFree.icon);
   const [description, setDescription] = useState(existing?.description ?? "");
@@ -59,6 +74,15 @@ export default function ShopItemEditor({
     setCosmetic(option);
   }
 
+  function chooseKind(k: Kind) {
+    // Item novo: nome e ícone sugeridos pro item de espaço, enquanto o ADM não personalizou.
+    if (!existing && k === "espaco" && (!name.trim() || name === cosmetic.label)) {
+      setName("Mochila Encantada");
+      setIcon("🎒");
+    }
+    setKind(k);
+  }
+
   function handleSave() {
     const problem = onSave({
       name,
@@ -70,8 +94,10 @@ export default function ShopItemEditor({
       xp: kind === "item" ? Math.max(0, Math.round(xp)) : 0,
       featured,
       ...(kind === "visual" && { cosmetic: { slot: cosmetic.slot, value: cosmetic.value } }),
+      ...(kind === "espaco" && { slots: Math.round(slots) }),
+      ...(!forSale && { hidden: true }),
       // visual de coleção entra na coleção; item comum mantém a que já tinha (ex.: Doce ou Travessura)
-      ...((kind === "visual" ? cosmetic.collection : existing?.collection) && {
+      ...((kind === "visual" ? cosmetic.collection : kind === "item" ? existing?.collection : undefined) && {
         collection: kind === "visual" ? cosmetic.collection : existing?.collection,
       }),
     });
@@ -91,17 +117,24 @@ export default function ShopItemEditor({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
-          <div className="mb-5 grid grid-cols-2 gap-2">
+          {eventEntry && (
+            <p className="mb-4 rounded-xl border border-fuchsia-500/40 bg-fuchsia-500/10 px-4 py-3 text-xs text-fuchsia-100">
+              🎉 Item do evento {eventOf ? `${eventOf.icon} ${eventOf.title}` : ""} ({eventEntry.origin}). Só o ADM altera: o que você mudar aqui (preço, XP, valor, nome, descrição...) vale também pra
+              recompensa do evento e pras missões prontas adicionadas depois.
+            </p>
+          )}
+          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {(
               [
                 ["visual", "👕 Visual do avatar", "Chapéu, óculos, cor da roupa, aura ou mascote exclusivos"],
                 ["item", "🧪 Item comum", "Vai pro inventário; pode dar XP ao usar"],
+                ["espaco", "📦 Espaço no inventário", "Usar aumenta o inventário do aluno em mais espaços"],
               ] as const
             ).map(([k, label, hint]) => (
               <button
                 key={k}
                 type="button"
-                onClick={() => setKind(k)}
+                onClick={() => chooseKind(k)}
                 className={`rounded-xl border px-3 py-3 text-left transition-colors ${kind === k ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"}`}
               >
                 <p className="text-sm font-semibold">{label}</p>
@@ -110,7 +143,48 @@ export default function ShopItemEditor({
             ))}
           </div>
 
-          {kind === "visual" && (
+          {kind === "espaco" && (
+            <div className="mb-5 rounded-2xl border border-teal-500/40 bg-teal-500/5 p-4">
+              <Label>Espaço extra no inventário (itens)</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <input
+                  type="number"
+                  min={1}
+                  max={MAX_SPACE_SLOTS}
+                  value={slots}
+                  onChange={(e) => setSlots(Math.min(MAX_SPACE_SLOTS, Math.max(1, Math.round(Number(e.target.value) || 1))))}
+                  className="cg-input !w-32"
+                />
+                <div className="flex flex-wrap gap-1.5">
+                  {[5, 10, 20, 50].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setSlots(n)}
+                      className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${slots === n ? "border-teal-300 bg-teal-500/20 text-teal-100" : "border-slate-700 text-slate-300 hover:border-slate-500"}`}
+                    >
+                      +{n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="mt-2 text-[11px] text-slate-400">
+                Todo aluno começa com {BASE_INVENTORY_SLOTS} espaços. Cada vez que ele usar este item no Inventário, ganha +{slots} espaços pra sempre (e o item some). Dá pra criar vários
+                itens de espaço, cada um com um tamanho e um preço.
+              </p>
+            </div>
+          )}
+
+          {kind === "visual" && exclusiveCosmetic && (
+            <div className="mb-5 flex items-center gap-3 rounded-xl border border-violet-500/40 bg-violet-500/10 p-3">
+              <Avatar config={applyCosmetic(DEFAULT_AVATAR, cosmetic)} size={64} ringColor="#8b5cf6" />
+              <p className="text-xs text-violet-100">
+                👕 Visual exclusivo ({COSMETIC_SLOT_LABELS[cosmetic.slot]}). Ele não aparece no catálogo da Loja e continua o mesmo; dá pra mudar o resto do item.
+              </p>
+            </div>
+          )}
+
+          {kind === "visual" && !exclusiveCosmetic && (
             <div className="mb-5">
               <Label>Escolha o visual</Label>
               <div className="flex flex-col gap-3">
@@ -172,6 +246,11 @@ export default function ShopItemEditor({
               <Label>Prévia</Label>
               {kind === "visual" ? (
                 <Avatar config={applyCosmetic(DEFAULT_AVATAR, cosmetic)} size={120} ringColor="#8b5cf6" />
+              ) : kind === "espaco" ? (
+                <div className="relative flex h-[120px] w-[120px] items-center justify-center rounded-2xl bg-cg-tile text-6xl">
+                  {icon}
+                  <span className="absolute -bottom-2 -right-2 rounded-full bg-teal-500 px-2 py-0.5 text-xs font-black text-cg-onaccent">+{slots}</span>
+                </div>
               ) : (
                 <div className="flex h-[120px] w-[120px] items-center justify-center rounded-2xl bg-cg-tile text-6xl">{icon}</div>
               )}
@@ -202,7 +281,7 @@ export default function ShopItemEditor({
               <input type="number" min={1} value={price} onChange={(e) => setPrice(toInt(e.target.value))} className="cg-input" />
               <p className="mt-1 text-[11px] text-slate-500">Quanto o aluno paga pra comprar.</p>
             </div>
-            {kind === "visual" && (
+            {kind !== "item" && (
               <div>
                 <Label>Item — valor em moedas</Label>
                 <input type="number" min={0} value={value} onChange={(e) => setValue(toInt(e.target.value))} className="cg-input" />
@@ -228,7 +307,15 @@ export default function ShopItemEditor({
             <EmojiPicker value={icon} onChange={setIcon} defaultGroup="Itens" />
           </div>
 
-          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
+          <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
+            <input type="checkbox" checked={forSale} onChange={(e) => setForSale(e.target.checked)} className="h-4 w-4 accent-emerald-500" />
+            <span className="text-sm text-slate-200">
+              🛒 À venda na Loja dos alunos{" "}
+              <span className="text-xs text-slate-500">— desmarcado, o item fica só pro ADM dar de presente ou usar como recompensa de missão</span>
+            </span>
+          </label>
+
+          <label className="mt-3 flex cursor-pointer items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
             <input type="checkbox" checked={featured} onChange={(e) => setFeatured(e.target.checked)} className="h-4 w-4 accent-amber-500" />
             <span className="text-sm text-slate-200">
               ⭐ Colocar em destaque <span className="text-xs text-slate-500">— aparece grande no topo da Loja</span>
@@ -254,7 +341,7 @@ export default function ShopItemEditor({
             <span />
           )}
           <button onClick={handleSave} className="cg-btn-primary">
-            {existing ? "Salvar alterações" : "Colocar à venda"}
+            {existing ? "Salvar alterações" : forSale ? "Colocar à venda" : "Criar item"}
           </button>
         </div>
       </div>

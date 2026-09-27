@@ -32,7 +32,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "🛡️",
     title: "Inventário",
-    body: "Todos os seus tesouros ficam guardados no Inventário. Itens consumíveis podem ser usados pra ganhar XP, e qualquer item pode ser vendido pro sistema ou pra um colega. E clicando no seu cartão, você abre a sua Ficha do Personagem.",
+    body: "Todos os seus tesouros ficam guardados no Inventário. Itens consumíveis podem ser usados pra ganhar XP, e qualquer item pode ser vendido pro sistema ou pra um colega. Com o botão Trocar itens você propõe uma troca pra um amigo: escolhe o que dá e o que quer receber. Atenção: cabem 20 itens no começo, e itens de espaço da Loja aumentam o seu inventário! E clicando no seu cartão, você abre a sua Ficha do Personagem.",
   },
   {
     icon: "🛍️",

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useStudents, useMessages, useOffers, useFriends } from "@/engine/store";
+import { useStudents, useMessages, useOffers, useFriends, useTrades } from "@/engine/store";
 
 interface NavItem {
   href: string;
@@ -36,17 +36,18 @@ export default function AcademySidebar() {
   const { activeStudent } = useStudents();
   const { unreadCount } = useMessages(activeStudent?.id ?? null);
   const { received: offersReceived } = useOffers(activeStudent?.id ?? null);
+  const { received: tradesReceived } = useTrades(activeStudent?.id ?? null);
   const { incoming: friendRequests, unreadTotal: unreadChats } = useFriends(activeStudent?.id ?? null);
 
   function renderLink(item: NavItem, isChild: boolean) {
     const active = pathname === item.href;
-    // mensagens não lidas no "Mensagens"; ofertas de compra esperando resposta no "Inventário";
+    // mensagens não lidas no "Mensagens"; ofertas de compra, propostas de troca e itens esperando espaço no "Inventário";
     // pedidos de amizade + balões não lidos no "Amigos"
     const count =
       item.href === MESSAGES_HREF
         ? unreadCount
         : item.href === INVENTORY_HREF
-          ? offersReceived.length
+          ? offersReceived.length + tradesReceived.length + (activeStudent?.pendingItems.length ?? 0)
           : item.href === FRIENDS_HREF
             ? friendRequests.length + unreadChats
             : 0;

@@ -58,7 +58,13 @@ export default function ItemDetailsModal({ item, onClose }: { item: RewardItem &
           </div>
 
           <div className="mt-3 flex w-full flex-col gap-1 text-left text-[11px] text-slate-500">
-            <p>{item.xp > 0 ? `✨ Consumível — usar dá +${item.xp} XP.` : "Não é consumível."}</p>
+            <p>
+              {item.slots
+                ? `📦 Item de espaço — usar aumenta o seu inventário em +${item.slots} espaços, pra sempre.`
+                : item.xp > 0
+                  ? `✨ Consumível — usar dá +${item.xp} XP.`
+                  : "Não é consumível."}
+            </p>
             <p>💰 Vale {item.value} moedas na venda pro sistema.</p>
             {item.obtainedAt && <p>📅 Obtido em {formatDate(item.obtainedAt)}.</p>}
           </div>

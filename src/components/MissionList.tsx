@@ -68,6 +68,9 @@ export default function MissionList({
                       <div className="min-w-0">
                         <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-white">
                           {m.title}
+                          {m.kind === "entrega" && (
+                            <span className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 text-[10px] font-semibold text-indigo-300">📝 Entrega</span>
+                          )}
                           {m.eventId && (
                             <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 text-[10px] font-semibold text-orange-300">
                               {getEvent(m.eventId)?.icon ?? "📅"} Evento

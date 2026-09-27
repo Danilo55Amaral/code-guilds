@@ -14,7 +14,7 @@ import {
   login as loginStudent,
   applyMissionReward,
 } from "./students";
-import { Mission, hasPassed } from "./missions";
+import { Mission, hasPassed, isTaskMission } from "./missions";
 import { listMissions, createMission, updateMission, deleteMission, reassignMissions } from "./missionsStore";
 import {
   Teacher,
@@ -41,6 +41,7 @@ import {
   deleteMessagesOf,
   SYSTEM_SENDER_ID,
   missionRewardMessage,
+  PENDING_ITEM_NOTE,
   friendRequestMessage,
   friendAcceptedMessage,
 } from "./messages";
@@ -61,6 +62,9 @@ import {
   unreadByFriendIn,
 } from "./friends";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
+import { GiftItem, Giver, giveItemTo } from "./gifts";
+import { Submission, deleteSubmissionsOf, deleteSubmissionsOfMission, listSubmissions, reviewSubmission, submitTask } from "./submissions";
+import { Trade, listTradesTo, listTradesFrom, proposeTrade, acceptTrade, declineTrade, cancelTrade, cancelTradesBetween, deleteTradesOf } from "./trades";
 import { subscribe, emitChange } from "./events";
 import { Theme, getTheme, setTheme, applyTheme } from "./theme";
 import { ShopItem, ShopItemData, listShopItems, createShopItem, updateShopItem, deleteShopItem, buyShopItem, addCollection, removeCollection } from "./shop";
@@ -139,6 +143,8 @@ export function useStudents() {
   // a abrir a Academia cairia na conta de outra pessoa.
   const deleteStudent = useCallback((id: string) => {
     deleteOffersOf(id);
+    deleteTradesOf(id);
+    deleteSubmissionsOf(id);
     deleteFriendsOf(id);
     removeStudent(id);
     deleteMessagesOf(id);
@@ -181,6 +187,7 @@ export function useMissions() {
 
   const removeMission = useCallback((id: string) => {
     deleteMission(id);
+    deleteSubmissionsOfMission(id); // as entregas (e os arquivos) da missão somem junto
     emitChange();
   }, []);
 
@@ -203,14 +210,17 @@ export function useMissionAttempt() {
   return useCallback(
     (mission: Mission, correctCount: number): { from: number; to: number } | null => {
       if (!activeStudent || activeStudent.completedMissionIds.includes(mission.id)) return null;
+      // missão de entrega só dá recompensa quando o professor aprova (engine/submissions.ts)
+      if (isTaskMission(mission)) return null;
       if (!hasPassed(correctCount, mission.questions.length)) return null;
       const result = applyMissionReward(activeStudent, mission);
       patchActive(result.student);
+      const waiting = result.student.pendingItems.length > activeStudent.pendingItems.length;
       send({
         studentId: activeStudent.id,
         senderId: SYSTEM_SENDER_ID,
         kind: "missao",
-        body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }),
+        body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) + (waiting ? PENDING_ITEM_NOTE : ""),
       });
       return result.leveledUp ? { from: activeStudent.level, to: result.newLevel } : null;
     },
@@ -434,6 +444,7 @@ export function useFriends(meId: string | null) {
   const unfriend = useCallback(
     (otherId: string) => {
       if (!meId) return;
+      cancelTradesBetween(meId, otherId); // trocas pendentes entre os dois são canceladas (os itens voltam)
       removeFriend(meId, otherId);
       emitChange();
     },
@@ -558,4 +569,78 @@ export function useOffers(studentId: string | null) {
   }, []);
 
   return { received, sent, offer, accept, withdraw };
+}
+
+/** Entregas das missões de entrega (engine/submissions.ts): o aluno envia, o professor/ADM corrige. */
+export function useSubmissions() {
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setSubmissions(listSubmissions());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const submit = useCallback(async (data: Parameters<typeof submitTask>[0]) => {
+    const result = await submitTask(data);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const review = useCallback((submissionId: string, decision: "aprovada" | "refazer", feedback: string, mission: Mission, reviewerName: string) => {
+    const result = reviewSubmission(submissionId, decision, feedback, mission, reviewerName);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  return { submissions, ready, submit, review };
+}
+
+/** Presentes do professor/ADM (engine/gifts.ts): dar um item pra um aluno, pra turma toda ou pra uma casa. */
+export function useGifts() {
+  const give = useCallback((studentIds: string[], item: GiftItem, giver: Giver) => {
+    const result = giveItemTo(studentIds, item, giver);
+    emitChange();
+    return result;
+  }, []);
+  return { give };
+}
+
+/** Trocas de itens entre amigos (engine/trades.ts): propostas recebidas e enviadas, propor, aceitar, recusar e cancelar. */
+export function useTrades(studentId: string | null) {
+  const [received, setReceived] = useState<Trade[]>([]);
+  const [sent, setSent] = useState<Trade[]>([]);
+
+  const sync = useCallback(() => {
+    setReceived(studentId ? listTradesTo(studentId) : []);
+    setSent(studentId ? listTradesFrom(studentId) : []);
+  }, [studentId]);
+
+  useSyncOnChange(sync);
+
+  const propose = useCallback((data: { fromId: string; toId: string; offeredIds: string[]; requestedIds: string[] }) => {
+    const result = proposeTrade(data);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const accept = useCallback((tradeId: string) => {
+    const result = acceptTrade(tradeId);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const decline = useCallback((tradeId: string) => {
+    declineTrade(tradeId);
+    emitChange();
+  }, []);
+
+  const cancel = useCallback((tradeId: string) => {
+    cancelTrade(tradeId);
+    emitChange();
+  }, []);
+
+  return { received, sent, propose, accept, decline, cancel };
 }
