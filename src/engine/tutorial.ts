@@ -52,7 +52,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "🔔",
     title: "Mensagens",
-    body: "Recados do professor, presentes, missões concluídas, compras e vendas chegam no sino lá no topo e em Minha Casa, Mensagens. O numerozinho vermelho mostra quantas você ainda não leu.",
+    body: "Recados do professor, presentes, missões concluídas, compras e vendas chegam no sino lá no topo e em Minha Casa, Mensagens. O numerozinho vermelho mostra quantas você ainda não leu. Ficou com dúvida? Em Mensagens tem o botão Escrever pro professor: a resposta dele chega aqui mesmo.",
   },
   {
     icon: "🤝",
@@ -85,7 +85,7 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "📢",
     title: "Comunicados",
-    body: "Precisa avisar a turma toda? Mande um comunicado pra todos os seus alunos de uma vez, ou só pros de uma casa. No histórico você acompanha quantos já leram.",
+    body: "Precisa avisar a turma toda? Mande um comunicado pra todos os seus alunos de uma vez, ou só pros de uma casa. No histórico você acompanha quantos já leram. E quando um aluno escrever pra você, a mensagem aparece no card Mensagens dos alunos, onde você lê e responde.",
   },
   {
     icon: "⚔️",

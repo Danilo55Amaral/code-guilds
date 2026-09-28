@@ -367,6 +367,124 @@
   0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
   100% { transform: translate(var(--cg-dx, 0px), var(--cg-dy, -120px)) rotate(var(--cg-spin, 180deg)) scale(0.4); opacity: 0; }
 }
+/* auras do avatar (components/Avatar.tsx) */
+@keyframes cg-aura-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.82; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+@keyframes cg-aura-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3.5px); }
+}
+@keyframes cg-aura-flicker {
+  0%, 100% { transform: scaleY(1) skewX(0deg); }
+  25% { transform: scaleY(1.14) skewX(-4deg); }
+  50% { transform: scaleY(0.9) skewX(3deg); }
+  75% { transform: scaleY(1.08) skewX(-2deg); }
+}
+@keyframes cg-aura-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-42px) scale(0.5); opacity: 0; }
+}
+@keyframes cg-aura-fall {
+  0% { transform: translateY(-12px) rotate(0deg); opacity: 0; }
+  10%, 85% { opacity: 1; }
+  100% { transform: translateY(135px) rotate(200deg); opacity: 0; }
+}
+@keyframes cg-aura-flash {
+  0%, 100% { opacity: 0.12; }
+  4% { opacity: 1; }
+  8% { opacity: 0.3; }
+  12% { opacity: 1; }
+  22% { opacity: 0.12; }
+}
+@keyframes cg-aura-sway {
+  0%, 100% { transform: rotate(-7deg); }
+  50% { transform: rotate(7deg); }
+}
+@keyframes cg-aura-wave {
+  0%, 100% { transform: translateX(-7px) scaleY(1); opacity: 0.75; }
+  50% { transform: translateX(7px) scaleY(1.2); opacity: 1; }
+}
+@keyframes cg-aura-drift {
+  from { transform: translateX(-9px); }
+  to { transform: translateX(9px); }
+}
+@keyframes cg-aura-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}
+@keyframes cg-aura-flow {
+  to { stroke-dashoffset: -24; }
+}
+@keyframes cg-aura-scroll {
+  0% { transform: translateY(-26px); opacity: 0; }
+  20%, 80% { opacity: 1; }
+  100% { transform: translateY(26px); opacity: 0; }
+}
+@keyframes cg-aura-march {
+  0%, 100% { transform: translateX(-3px); }
+  50% { transform: translateX(3px); }
+}
+@keyframes cg-aura-grid {
+  from { transform: translateY(0); }
+  to { transform: translateY(8px); }
+}
+/* morcego batendo as asas (a silhueta vira de cabeça pra baixo = asas pra baixo) */
+@keyframes cg-aura-flap {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(-0.55); }
+}
+/* sobe e desce do voo (vai por dentro do deslocamento, com outro ritmo) */
+@keyframes cg-aura-flutter {
+  0%, 100% { transform: translateY(-5px); }
+  50% { transform: translateY(5px); }
+}
+/* balancinho de lado das bolhas e brasas subindo */
+@keyframes cg-aura-wiggle {
+  0%, 100% { transform: translateX(-2.5px); }
+  50% { transform: translateX(2.5px); }
+}
+/* atravessar a aura de um lado ao outro (a posição de descanso é o meio) */
+@keyframes cg-aura-fly {
+  0% { transform: translateX(-92px); opacity: 0; }
+  8%, 92% { opacity: 1; }
+  100% { transform: translateX(92px); opacity: 0; }
+}
+/* morcegos saindo da lua sangrenta: pequenos lá longe, crescendo ao chegar perto */
+@keyframes cg-aura-moon-bat-a {
+  0% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  10% { opacity: 1; }
+  35% { transform: translate(-28px, 12px) scale(0.55); }
+  65% { transform: translate(-62px, 2px) scale(0.85); }
+  100% { transform: translate(-120px, 14px) scale(1.2); opacity: 1; }
+}
+@keyframes cg-aura-moon-bat-b {
+  0% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  10% { opacity: 1; }
+  40% { transform: translate(12px, 26px) scale(0.6); }
+  70% { transform: translate(2px, 56px) scale(0.9); }
+  100% { transform: translate(34px, 92px) scale(1.2); opacity: 1; }
+}
+@keyframes cg-aura-moon-bat-c {
+  0% { transform: translate(0, 0) scale(0.2); opacity: 0; }
+  12% { opacity: 1; }
+  45% { transform: translate(-34px, -12px) scale(0.6); }
+  75% { transform: translate(-66px, -4px) scale(0.85); }
+  100% { transform: translate(-104px, -30px) scale(1); opacity: 1; }
+}
+/* estrela cadente: um risco rápido e depois uma pausa longa */
+@keyframes cg-aura-shoot {
+  0% { transform: translate(0, 0); opacity: 0; }
+  2% { opacity: 1; }
+  12% { transform: translate(-64px, 34px); opacity: 0; }
+  100% { transform: translate(-64px, 34px); opacity: 0; }
+}
+@keyframes cg-aura-wobble {
+  0%, 100% { transform: rotate(-9deg); }
+  50% { transform: rotate(9deg); }
+}
 /* Sala do Multiverso */
 @keyframes cg-dash {
   to { stroke-dashoffset: -40; }
@@ -470,6 +588,34 @@
   .cg-anim-sleigh { animation: cg-sleigh var(--cg-duration, 9s) linear var(--cg-delay, 0s) infinite both; }
   .cg-anim-shatter { animation: cg-shatter 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) var(--cg-delay, 0.9s) both; }
   .cg-anim-shiver { animation: cg-shiver 0.3s linear infinite; }
+  /* auras do avatar: giram/pulsam em volta do centro do avatar (64, 60 no viewBox); o resto, em volta do próprio desenho */
+  .cg-anim-aura-spin { animation: cg-spin var(--cg-dur, 16s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 64px 60px; }
+  .cg-anim-aura-spin-rev { animation: cg-spin var(--cg-dur, 22s) linear var(--cg-delay, 0s) infinite reverse; transform-box: view-box; transform-origin: 64px 60px; }
+  .cg-anim-aura-pulse { animation: cg-aura-pulse var(--cg-dur, 3.4s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 64px 60px; }
+  .cg-anim-aura-twirl { animation: cg-spin var(--cg-dur, 8s) linear var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-bob { animation: cg-aura-bob var(--cg-dur, 3s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-flicker { animation: cg-aura-flicker var(--cg-dur, 0.9s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+  .cg-anim-aura-rise { animation: cg-aura-rise var(--cg-dur, 3s) ease-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-fall { animation: cg-aura-fall var(--cg-dur, 7s) linear var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-flash { animation: cg-aura-flash var(--cg-dur, 3.6s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-sway { animation: cg-aura-sway var(--cg-dur, 2.6s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+  .cg-anim-aura-wave { animation: cg-aura-wave var(--cg-dur, 6s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-drift { animation: cg-aura-drift var(--cg-dur, 5s) ease-in-out var(--cg-delay, 0s) infinite alternate; }
+  .cg-anim-aura-blink { animation: cg-aura-blink var(--cg-dur, 1.4s) ease-in-out var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-flow { animation: cg-aura-flow var(--cg-dur, 1.2s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-scroll { animation: cg-aura-scroll var(--cg-dur, 3s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-march { animation: cg-aura-march var(--cg-dur, 1.6s) steps(4) var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-grid { animation: cg-aura-grid var(--cg-dur, 1s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-flap { animation: cg-aura-flap var(--cg-dur, 0.32s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-aura-flutter { animation: cg-aura-flutter var(--cg-dur, 1.6s) ease-in-out var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-wiggle { animation: cg-aura-wiggle var(--cg-dur, 1.1s) ease-in-out var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-fly { animation: cg-aura-fly var(--cg-dur, 8s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-fly-back { animation: cg-aura-fly var(--cg-dur, 8s) linear var(--cg-delay, 0s) infinite reverse; }
+  .cg-anim-aura-moon-bat-a { animation: cg-aura-moon-bat-a var(--cg-dur, 6s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 0 0; }
+  .cg-anim-aura-moon-bat-b { animation: cg-aura-moon-bat-b var(--cg-dur, 6s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 0 0; }
+  .cg-anim-aura-moon-bat-c { animation: cg-aura-moon-bat-c var(--cg-dur, 6s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 0 0; }
+  .cg-anim-aura-shoot { animation: cg-aura-shoot var(--cg-dur, 7s) ease-out var(--cg-delay, 0s) infinite; }
+  .cg-anim-aura-wobble { animation: cg-aura-wobble var(--cg-dur, 2.4s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 90%; }
   /* Sala do Multiverso */
   .cg-anim-dash { animation: cg-dash 1.6s linear infinite; }
   .cg-anim-nebula { animation: cg-nebula-drift 18s ease-in-out infinite; }

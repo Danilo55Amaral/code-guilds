@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useStudents, useMessages } from "@/engine/store";
+import { useStudents, useMessages, useMissions, useTeachers, useTeacherMessages } from "@/engine/store";
+import { SentToTeacher, WriteToTeacherModal } from "@/components/ToTeacher";
 import { MessageKind, MESSAGE_KINDS, MESSAGE_KIND_META, formatMessageDate } from "@/engine/messages";
 import { MessageAudienceBadge, MessageKindBadge } from "@/components/GameUI";
 import { PaginationFooter, usePagination } from "@/components/Pagination";
@@ -14,11 +15,20 @@ export default function MensagensPage() {
   const { activeStudent } = useStudents();
   const { messages, unreadCount, ready, markRead, markAllRead } = useMessages(activeStudent?.id ?? null);
   const [filter, setFilter] = useState<KindFilter>("todas");
+  const { missions: allMissions } = useMissions();
+  const { teachers } = useTeachers();
+  const { messages: teacherMessages } = useTeacherMessages();
+  const [writing, setWriting] = useState(false);
+  const [sentNotice, setSentNotice] = useState(false);
   const filtered = filter === "todas" ? messages : messages.filter((m) => m.kind === filter);
   // Trocar de filtro volta pra página 1.
   const pager = usePagination(filtered, MESSAGES_PER_PAGE, filter);
 
   if (!activeStudent || !ready) return null;
+
+  const teacherName = teachers.find((t) => t.id === activeStudent.teacherId)?.name ?? "";
+  const myMissions = allMissions.filter((m) => m.teacherId === activeStudent.teacherId);
+  const mine = teacherMessages.filter((m) => m.studentId === activeStudent.id);
 
   const countOf = (kind: MessageKind) => messages.filter((m) => m.kind === kind).length;
   const unreadOf = (kind: MessageKind) => messages.filter((m) => m.kind === kind && !m.readAt).length;
@@ -37,12 +47,42 @@ export default function MensagensPage() {
             {unreadCount === 0 ? "tudo lido" : `${unreadCount} não ${unreadCount === 1 ? "lida" : "lidas"}`}
           </p>
         </div>
-        {unreadCount > 0 && (
-          <button onClick={markAllRead} className="cg-btn-secondary !px-4 !py-2 text-xs">
-            ✓ Marcar todas como lidas
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setWriting(true)}
+            className="rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-4 py-2 text-xs font-black text-cg-onaccent shadow-lg shadow-sky-500/25 transition-transform hover:scale-[1.03]"
+          >
+            ✉️ Escrever pro professor
           </button>
-        )}
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} className="cg-btn-secondary !px-4 !py-2 text-xs">
+              ✓ Marcar todas como lidas
+            </button>
+          )}
+        </div>
       </div>
+
+      {sentNotice && (
+        <p className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          ✉️ Mensagem enviada pro Professor {teacherName}! A resposta vai chegar aqui na sua caixa de Mensagens.
+        </p>
+      )}
+
+      <SentToTeacher messages={mine} missions={myMissions} teacherName={teacherName} />
+
+      {writing && (
+        <WriteToTeacherModal
+          student={activeStudent}
+          teacherName={teacherName}
+          missions={myMissions}
+          onClose={() => setWriting(false)}
+          onSent={() => {
+            setWriting(false);
+            setSentNotice(true);
+            window.setTimeout(() => setSentNotice(false), 5000);
+          }}
+        />
+      )}
 
       {messages.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Filtrar mensagens por tipo">

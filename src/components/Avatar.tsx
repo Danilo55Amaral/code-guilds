@@ -1315,6 +1315,76 @@ function MiniPumpkin({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
 }
 
 /** Brilho atrás do personagem, desenhado logo depois do fundo. */
+/**
+ * Uma parte animada da aura (classes cg-anim-aura-* do globals.css). `d` = atraso (negativo = já começa
+ * no meio do movimento, pra as partes não andarem todas juntas); `dur` = duração; `origin` troca o
+ * centro do giro/pulso (o padrão é o centro do avatar).
+ */
+// nomes por extenso: o Tailwind só mantém as classes do @layer que aparecem escritas no código
+const AURA_ANIM = {
+  spin: "cg-anim-aura-spin",
+  "spin-rev": "cg-anim-aura-spin-rev",
+  pulse: "cg-anim-aura-pulse",
+  twirl: "cg-anim-aura-twirl",
+  bob: "cg-anim-aura-bob",
+  flicker: "cg-anim-aura-flicker",
+  rise: "cg-anim-aura-rise",
+  fall: "cg-anim-aura-fall",
+  flash: "cg-anim-aura-flash",
+  sway: "cg-anim-aura-sway",
+  wave: "cg-anim-aura-wave",
+  drift: "cg-anim-aura-drift",
+  blink: "cg-anim-aura-blink",
+  scroll: "cg-anim-aura-scroll",
+  march: "cg-anim-aura-march",
+  grid: "cg-anim-aura-grid",
+  wobble: "cg-anim-aura-wobble",
+  flap: "cg-anim-aura-flap",
+  flutter: "cg-anim-aura-flutter",
+  wiggle: "cg-anim-aura-wiggle",
+  fly: "cg-anim-aura-fly",
+  "fly-back": "cg-anim-aura-fly-back",
+  "moon-bat-a": "cg-anim-aura-moon-bat-a",
+  "moon-bat-b": "cg-anim-aura-moon-bat-b",
+  "moon-bat-c": "cg-anim-aura-moon-bat-c",
+  shoot: "cg-anim-aura-shoot",
+} as const;
+
+function Anim({ c, d = 0, dur, origin, children }: { c: keyof typeof AURA_ANIM; d?: number; dur?: number; origin?: string; children: React.ReactNode }) {
+  return (
+    <g
+      className={AURA_ANIM[c]}
+      style={{ "--cg-delay": `${d}s`, ...(dur && { "--cg-dur": `${dur}s` }), ...(origin && { transformOrigin: origin }) } as React.CSSProperties}
+    >
+      {children}
+    </g>
+  );
+}
+
+/**
+ * Morcego voando: batendo as asas e subindo/descendo no ar, sem sair do lugar
+ * (quem leva ele pelo céu é o grupo de fora).
+ */
+function FlyingBat({ s = 1, d = 0 }: { s?: number; d?: number }) {
+  return (
+    <Anim c="flutter" d={d} dur={1.4}>
+      <Anim c="flap" d={d * 0.37} dur={0.3}>
+        <Bat x={0} y={0} s={s} />
+      </Anim>
+    </Anim>
+  );
+}
+
+/** Estrela cadente: risca o céu de vez em quando. */
+function ShootingStar({ x, y, d = 0, dur = 7 }: { x: number; y: number; d?: number; dur?: number }) {
+  return (
+    <Anim c="shoot" d={d} dur={dur}>
+      <path d={`M${x} ${y} L${x + 14} ${y - 7.5}`} stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
+      <circle cx={x} cy={y} r="1.3" fill="#fff" />
+    </Anim>
+  );
+}
+
 function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
   if (aura === "nenhum") return null;
   const [inner, outer] = AURA_COLORS[aura];
@@ -1328,20 +1398,31 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           <stop offset="1" stopColor={outer} stopOpacity="0.2" />
         </radialGradient>
       </defs>
-      <circle cx="64" cy="60" r="72" fill={`url(#${gradientId})`} />
-      {aura === "ovos" && (
-        <g>
-          <EasterEgg x={18} y={40} s={1.3} color="#f9a8d4" stripe="#7c3aed" />
-          <EasterEgg x={108} y={36} s={1.2} color="#86efac" stripe="#db2777" />
-          <EasterEgg x={20} y={86} s={1.1} color="#fde047" stripe="#2563eb" />
-          <EasterEgg x={108} y={84} s={1.3} color="#c4b5fd" stripe="#f59e0b" />
-          <EasterEgg x={36} y={14} s={0.9} color="#93c5fd" stripe="#db2777" />
-          <EasterEgg x={92} y={12} s={0.9} color="#fdba74" stripe="#16a34a" />
-        </g>
-      )}
-      {aura === "flores" && (
-        <g>
-          {[
+      {/* o brilho da aura respirando */}
+      <Anim c="pulse">
+        <circle cx="64" cy="60" r="72" fill={`url(#${gradientId})`} />
+      </Anim>
+
+      {aura === "ovos" &&
+        (
+          [
+            [18, 40, 1.3, "#f9a8d4", "#7c3aed"],
+            [108, 36, 1.2, "#86efac", "#db2777"],
+            [20, 86, 1.1, "#fde047", "#2563eb"],
+            [108, 84, 1.3, "#c4b5fd", "#f59e0b"],
+            [36, 14, 0.9, "#93c5fd", "#db2777"],
+            [92, 12, 0.9, "#fdba74", "#16a34a"],
+          ] as [number, number, number, string, string][]
+        ).map(([x, y, s, color, stripe], i) => (
+          <Anim key={`${x}-${y}`} c="bob" d={-i * 0.5} dur={2.6}>
+            <Anim c="wobble" d={-i * 0.4}>
+              <EasterEgg x={x} y={y} s={s} color={color} stripe={stripe} />
+            </Anim>
+          </Anim>
+        ))}
+      {aura === "flores" &&
+        (
+          [
             [16, 42, 3.4, "#f9a8d4"],
             [110, 38, 3.2, "#fde68a"],
             [22, 88, 3, "#c4b5fd"],
@@ -1350,59 +1431,103 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [94, 12, 2.8, "#f9a8d4"],
             [8, 66, 2.4, "#fff"],
             [120, 62, 2.4, "#c4b5fd"],
-          ].map(([x, y, r, color]) => (
-            <Flower key={`${x}-${y}`} x={Number(x)} y={Number(y)} r={Number(r)} color={color as string} />
-          ))}
-        </g>
-      )}
+          ] as [number, number, number, string][]
+        ).map(([x, y, r, color], i) => (
+          <Anim key={`${x}-${y}`} c="bob" d={-i * 0.4} dur={3.2}>
+            <Anim c="twirl" d={-i} dur={10 + (i % 3) * 3}>
+              <Flower x={x} y={y} r={r} color={color} />
+            </Anim>
+          </Anim>
+        ))}
       {aura === "arco-iris" && (
         <g fill="none" strokeLinecap="round" opacity="0.85">
           {["#fca5a5", "#fdba74", "#fde047", "#86efac", "#93c5fd", "#c4b5fd"].map((color, i) => {
             const r = 60 - i * 5;
-            return <path key={color} d={`M${64 - r} 70 A${r} ${r} 0 0 1 ${64 + r} 70`} stroke={color} strokeWidth="4.5" />;
+            return (
+              <Anim key={color} c="blink" d={-i * 0.25} dur={3}>
+                <path d={`M${64 - r} 70 A${r} ${r} 0 0 1 ${64 + r} 70`} stroke={color} strokeWidth="4.5" />
+              </Anim>
+            );
           })}
           <g fill="#fff" stroke="none" opacity="0.95">
-            <circle cx="6" cy="72" r="6" />
-            <circle cx="14" cy="70" r="7" />
-            <circle cx="114" cy="70" r="7" />
-            <circle cx="122" cy="72" r="6" />
+            <Anim c="bob" dur={3.4}>
+              <circle cx="6" cy="72" r="6" />
+              <circle cx="14" cy="70" r="7" />
+            </Anim>
+            <Anim c="bob" d={-1.7} dur={3.4}>
+              <circle cx="114" cy="70" r="7" />
+              <circle cx="122" cy="72" r="6" />
+            </Anim>
           </g>
+          {[
+            [30, 30],
+            [98, 26],
+            [64, 8],
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.6} dur={1.8}>
+              <Sparkle x={x} y={y} r={1.5} />
+            </Anim>
+          ))}
         </g>
       )}
       {aura === "radioativa" && (
         <g>
-          <Radiation x={20} y={40} s={1.2} />
-          <Radiation x={108} y={34} s={1} />
-          <Radiation x={106} y={88} s={0.85} />
+          {(
+            [
+              [20, 40, 1.2],
+              [108, 34, 1],
+              [106, 88, 0.85],
+            ] as [number, number, number][]
+          ).map(([x, y, s], i) => (
+            <Anim key={`${x}-${y}`} c="twirl" d={-i * 2} dur={6 + i * 2}>
+              <Radiation x={x} y={y} s={s} />
+            </Anim>
+          ))}
           {[
-            [24, 86, 4],
-            [16, 64, 2.6],
-            [34, 16, 3],
-            [94, 12, 2.4],
-            [112, 60, 2.8],
-            [30, 100, 2],
-            [8, 28, 2],
-          ].map(([x, y, r]) => (
-            <g key={`${x}-${y}`}>
-              <circle cx={x} cy={y} r={r} fill="#a3e635" fillOpacity="0.35" stroke="#d9f99d" strokeWidth="0.9" />
-              <circle cx={x - r * 0.35} cy={y - r * 0.35} r={r * 0.25} fill="#f7fee7" opacity="0.8" />
-            </g>
+            [24, 100, 4],
+            [16, 80, 2.6],
+            [34, 60, 3],
+            [94, 60, 2.4],
+            [112, 76, 2.8],
+            [30, 110, 2],
+            [8, 64, 2],
+            [100, 108, 3],
+          ].map(([x, y, r], i) => (
+            <Anim key={`${x}-${y}`} c="rise" d={-i * 0.45} dur={3 + (i % 3) * 0.6}>
+              <Anim c="wiggle" d={-i * 0.3}>
+                <circle cx={x} cy={y} r={r} fill="#a3e635" fillOpacity="0.35" stroke="#d9f99d" strokeWidth="0.9" />
+                <circle cx={x - r * 0.35} cy={y - r * 0.35} r={r * 0.25} fill="#f7fee7" opacity="0.8" />
+              </Anim>
+            </Anim>
           ))}
         </g>
       )}
       {aura === "maos-zumbi" && (
         <g>
           {/* lua verde e névoa no chão */}
-          <circle cx="100" cy="22" r="13" fill="#d9f99d" opacity="0.9" />
-          <circle cx="95" cy="19" r="2.6" fill="#a3e635" opacity="0.6" />
-          <circle cx="104" cy="27" r="1.8" fill="#a3e635" opacity="0.6" />
+          <Anim c="pulse" dur={4} origin="100px 22px">
+            <circle cx="100" cy="22" r="17" fill="#bef264" opacity="0.25" />
+            <circle cx="100" cy="22" r="13" fill="#d9f99d" opacity="0.9" />
+            <circle cx="95" cy="19" r="2.6" fill="#a3e635" opacity="0.6" />
+            <circle cx="104" cy="27" r="1.8" fill="#a3e635" opacity="0.6" />
+          </Anim>
           <path d="M0 128 L0 112 C8 108 20 110 30 114 L30 128 Z M128 128 L128 110 C120 106 108 108 98 113 L98 128 Z" fill="#1c1917" />
-          <ZombieHand x={12} y={113} s={1.3} />
-          <ZombieHand x={116} y={111} s={1.25} flip />
-          <ZombieHand x={27} y={100} s={0.9} flip />
-          <ZombieHand x={103} y={99} s={0.85} />
-          <ellipse cx="18" cy="118" rx="16" ry="3" fill="#d9f99d" opacity="0.2" />
-          <ellipse cx="110" cy="116" rx="16" ry="3" fill="#d9f99d" opacity="0.2" />
+          <Anim c="sway" dur={2.2}>
+            <ZombieHand x={12} y={113} s={1.3} />
+          </Anim>
+          <Anim c="sway" d={-1.1} dur={2.4}>
+            <ZombieHand x={116} y={111} s={1.25} flip />
+          </Anim>
+          <Anim c="sway" d={-0.6} dur={2}>
+            <ZombieHand x={27} y={100} s={0.9} flip />
+          </Anim>
+          <Anim c="sway" d={-1.6} dur={2.6}>
+            <ZombieHand x={103} y={99} s={0.85} />
+          </Anim>
+          <Anim c="drift" dur={4}>
+            <ellipse cx="18" cy="118" rx="16" ry="3" fill="#d9f99d" opacity="0.25" />
+            <ellipse cx="110" cy="116" rx="16" ry="3" fill="#d9f99d" opacity="0.25" />
+          </Anim>
         </g>
       )}
       {aura === "cidade-ruinas" && (
@@ -1410,15 +1535,16 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           {/* fumaça subindo dos prédios destruídos */}
           <g fill="#57534e" opacity="0.6">
             {[
-              [14, 52, 6],
-              [20, 41, 8],
-              [12, 29, 7],
-              [22, 18, 5],
-              [112, 46, 6],
-              [106, 34, 8],
-              [114, 22, 6],
-            ].map(([x, y, r]) => (
-              <circle key={`${x}-${y}`} cx={x} cy={y} r={r} />
+              [14, 60, 6],
+              [20, 50, 8],
+              [12, 40, 7],
+              [112, 56, 6],
+              [106, 46, 8],
+              [114, 36, 6],
+            ].map(([x, y, r], i) => (
+              <Anim key={`${x}-${y}`} c="rise" d={-i * 0.7} dur={4.2}>
+                <circle cx={x} cy={y} r={r} />
+              </Anim>
             ))}
           </g>
           <path
@@ -1438,25 +1564,36 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [109, 72, false],
             [101, 86, true],
             [93, 80, false],
-          ].map(([x, y, lit]) => (
-            <rect key={`${x}-${y}`} x={Number(x)} y={Number(y)} width="3" height="4" fill={lit ? "#fbbf24" : "#44403c"} opacity={lit ? 0.8 : 1} />
-          ))}
+          ].map(([x, y, lit], i) =>
+            lit ? (
+              <Anim key={`${x}-${y}`} c="blink" d={-i * 0.3} dur={1.6 + (i % 3) * 0.5}>
+                <rect x={Number(x)} y={Number(y)} width="3" height="4" fill="#fbbf24" opacity="0.85" />
+              </Anim>
+            ) : (
+              <rect key={`${x}-${y}`} x={Number(x)} y={Number(y)} width="3" height="4" fill="#44403c" />
+            ),
+          )}
         </g>
       )}
       {aura === "raio-trator" && (
         <g>
           {/* feixe de luz saindo do disco voador e envolvendo o personagem */}
-          <path d="M52 16 L76 16 L112 128 L16 128 Z" fill="#bef264" opacity="0.28" />
+          <Anim c="blink" dur={1.6}>
+            <path d="M52 16 L76 16 L112 128 L16 128 Z" fill="#bef264" opacity="0.28" />
+          </Anim>
           <path d="M56 16 L72 16 L96 128 L32 128 Z" fill="#ecfccb" opacity="0.2" />
           {[
-            [40, 90],
-            [88, 96],
-            [46, 56],
-            [84, 50],
-            [30, 112],
-            [98, 114],
-          ].map(([x, y]) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" fill="#f7fee7" />
+            [40, 110],
+            [88, 116],
+            [46, 90],
+            [84, 96],
+            [30, 120],
+            [98, 122],
+            [60, 104],
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="rise" d={-i * 0.4} dur={2.6}>
+              <circle cx={x} cy={y} r="1.4" fill="#f7fee7" />
+            </Anim>
           ))}
           {[
             [12, 20],
@@ -1464,63 +1601,126 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [112, 30],
             [118, 70],
             [8, 80],
-          ].map(([x, y]) => (
-            <circle key={`e${x}-${y}`} cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+          ].map(([x, y], i) => (
+            <Anim key={`e${x}-${y}`} c="blink" d={-i * 0.5} dur={2}>
+              <circle cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+            </Anim>
           ))}
-          <Ufo x={64} y={10} />
+          <Anim c="bob" dur={2.4}>
+            <Ufo x={64} y={10} />
+          </Anim>
         </g>
       )}
       {aura === "planetas" && (
         <g>
-          <ellipse cx="64" cy="62" rx="60" ry="20" fill="none" stroke="#c4b5fd" strokeWidth="1" strokeDasharray="2 3" opacity="0.45" transform="rotate(-15 64 62)" />
+          <ellipse
+            cx="64"
+            cy="62"
+            rx="60"
+            ry="20"
+            fill="none"
+            stroke="#c4b5fd"
+            strokeWidth="1"
+            strokeDasharray="2 3"
+            opacity="0.5"
+            transform="rotate(-15 64 62)"
+            className="cg-anim-aura-flow"
+            style={{ "--cg-dur": "2.4s" } as React.CSSProperties}
+          />
           {/* planeta com anéis: metade de trás do anel, planeta, metade da frente */}
-          <g transform="rotate(-20 22 32)">
-            <path d="M4 32 A18 4.5 0 0 1 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
-            <circle cx="22" cy="32" r="9.5" fill="#f59e0b" />
-            <path d="M13.5 29 C18 30.5 26 30.5 30.5 29 M13 34.5 C18 36 26 36 31 34.5" stroke="#b45309" strokeWidth="1.2" fill="none" opacity="0.7" />
-            <path d="M4 32 A18 4.5 0 0 0 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
-          </g>
+          <Anim c="bob" dur={5}>
+            <Anim c="wobble" dur={7}>
+              <g transform="rotate(-20 22 32)">
+                <path d="M4 32 A18 4.5 0 0 1 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
+                <circle cx="22" cy="32" r="9.5" fill="#f59e0b" />
+                <path d="M13.5 29 C18 30.5 26 30.5 30.5 29 M13 34.5 C18 36 26 36 31 34.5" stroke="#b45309" strokeWidth="1.2" fill="none" opacity="0.7" />
+                <path d="M4 32 A18 4.5 0 0 0 40 32" stroke="#fde68a" strokeWidth="2.2" fill="none" />
+              </g>
+            </Anim>
+          </Anim>
           {/* planetinha azul com continentes */}
-          <circle cx="108" cy="26" r="7.5" fill="#3b82f6" />
-          <path d="M103 23 C105 20 108 21 108 24 C107 27 104 27 103 23 Z M110 28 C112 26 114 28 113 31 C111 32 109 31 110 28 Z" fill="#22c55e" />
-          {/* planeta vermelho e lua */}
-          <circle cx="108" cy="88" r="5.5" fill="#ef4444" />
-          <circle cx="106" cy="86.5" r="1.2" fill="#b91c1c" />
-          <circle cx="110" cy="90" r="0.9" fill="#b91c1c" />
-          <circle cx="18" cy="86" r="4.5" fill="#e5e7eb" />
-          <circle cx="16.5" cy="85" r="1" fill="#9ca3af" />
-          <circle cx="19.5" cy="88" r="0.8" fill="#9ca3af" />
-          <Sparkle x={36} y={10} r={1.6} />
-          <Sparkle x={90} y={8} r={1.4} />
-          <Sparkle x={8} y={58} r={1.3} />
-          <Sparkle x={120} y={56} r={1.5} />
-          <Sparkle x={30} y={104} r={1.2} />
-          <Sparkle x={100} y={110} r={1.3} />
+          <Anim c="bob" d={-1.6} dur={4.2}>
+            <circle cx="108" cy="26" r="7.5" fill="#3b82f6" />
+            <path d="M103 23 C105 20 108 21 108 24 C107 27 104 27 103 23 Z M110 28 C112 26 114 28 113 31 C111 32 109 31 110 28 Z" fill="#22c55e" />
+          </Anim>
+          {/* planeta vermelho com uma luazinha dando voltas nele */}
+          <Anim c="bob" d={-2.4} dur={4.8}>
+            <circle cx="108" cy="88" r="5.5" fill="#ef4444" />
+            <circle cx="106" cy="86.5" r="1.2" fill="#b91c1c" />
+            <circle cx="110" cy="90" r="0.9" fill="#b91c1c" />
+            <Anim c="spin" dur={4} origin="108px 88px">
+              <circle cx="117" cy="88" r="1.3" fill="#fde68a" />
+            </Anim>
+          </Anim>
+          <Anim c="bob" d={-0.8} dur={3.8}>
+            <circle cx="18" cy="86" r="4.5" fill="#e5e7eb" />
+            <circle cx="16.5" cy="85" r="1" fill="#9ca3af" />
+            <circle cx="19.5" cy="88" r="0.8" fill="#9ca3af" />
+          </Anim>
+          <ShootingStar x={96} y={52} dur={6.5} />
+          {[
+            [36, 10, 1.6],
+            [90, 8, 1.4],
+            [8, 58, 1.3],
+            [120, 56, 1.5],
+            [30, 104, 1.2],
+            [100, 110, 1.3],
+          ].map(([x, y, r], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.5} dur={2.2}>
+              <Sparkle x={x} y={y} r={r} />
+            </Anim>
+          ))}
         </g>
       )}
-      {aura === "invasao" && (
-        <g>
-          <PixelInvader x={20} y={26} p={1.5} color="#4ade80" />
-          <PixelInvader x={108} y={24} p={1.4} color="#e879f9" />
-          <PixelInvader x={14} y={62} p={1.2} color="#22d3ee" />
-          <PixelInvader x={114} y={60} p={1.2} color="#fde047" />
-          <PixelInvader x={22} y={96} p={1.1} color="#f87171" />
-          <PixelInvader x={106} y={96} p={1.1} color="#4ade80" />
-          <path d="M20 35 L20 41 M108 33 L108 39 M14 69 L14 74 M114 67 L114 72" stroke="#fef08a" strokeWidth="1.3" strokeLinecap="round" />
-        </g>
-      )}
+      {aura === "invasao" &&
+        (
+          [
+            [20, 26, 1.5, "#4ade80"],
+            [108, 24, 1.4, "#e879f9"],
+            [14, 62, 1.2, "#22d3ee"],
+            [114, 60, 1.2, "#fde047"],
+            [22, 96, 1.1, "#f87171"],
+            [106, 96, 1.1, "#4ade80"],
+          ] as [number, number, number, string][]
+        ).map(([x, y, p, color], i) => (
+          <Anim key={`${x}-${y}`} c="march" d={-i * 0.3}>
+            <PixelInvader x={x} y={y} p={p} color={color} />
+            {i < 4 && (
+              <Anim c="blink" d={-i * 0.4} dur={0.8}>
+                <path d={`M${x} ${y + 9} L${x} ${y + 15}`} stroke="#fef08a" strokeWidth="1.3" strokeLinecap="round" />
+              </Anim>
+            )}
+          </Anim>
+        ))}
       {aura === "circuito" && (
         <g>
-          <g stroke="#22d3ee" strokeWidth="1.3" fill="none" opacity="0.85" strokeLinejoin="round">
-            <path d="M0 30 L14 30 L22 38 L22 56" />
-            <path d="M0 70 L10 70 L18 62 L28 62" />
-            <path d="M6 110 L16 100 L16 80" />
-            <path d="M30 0 L30 10 L38 18" />
-            <path d="M128 36 L114 36 L106 44 L106 58" />
-            <path d="M128 76 L118 76 L110 68 L100 68" />
-            <path d="M122 110 L112 100 L112 82" />
-            <path d="M98 0 L98 12 L90 20" />
-          </g>
+          {(() => {
+            const traces = [
+              "M0 30 L14 30 L22 38 L22 56",
+              "M0 70 L10 70 L18 62 L28 62",
+              "M6 110 L16 100 L16 80",
+              "M30 0 L30 10 L38 18",
+              "M128 36 L114 36 L106 44 L106 58",
+              "M128 76 L118 76 L110 68 L100 68",
+              "M122 110 L112 100 L112 82",
+              "M98 0 L98 12 L90 20",
+            ];
+            return (
+              <>
+                <g stroke="#22d3ee" strokeWidth="1.3" fill="none" opacity="0.85" strokeLinejoin="round">
+                  {traces.map((d) => (
+                    <path key={d} d={d} />
+                  ))}
+                </g>
+                {/* energia correndo pelas trilhas */}
+                <g stroke="#ecfeff" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeDasharray="3 9">
+                  {traces.map((d, i) => (
+                    <path key={`f${d}`} d={d} className="cg-anim-aura-flow" style={{ "--cg-delay": `${-i * 0.2}s` } as React.CSSProperties} />
+                  ))}
+                </g>
+              </>
+            );
+          })()}
           {[
             [22, 56],
             [28, 62],
@@ -1530,9 +1730,11 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [100, 68],
             [112, 82],
             [90, 20],
-          ].map(([x, y]) => (
+          ].map(([x, y], i) => (
             <g key={`${x}-${y}`}>
-              <circle cx={x} cy={y} r="3.5" fill="#67e8f9" opacity="0.35" />
+              <Anim c="blink" d={-i * 0.3} dur={1.2}>
+                <circle cx={x} cy={y} r="3.5" fill="#67e8f9" opacity="0.5" />
+              </Anim>
               <circle cx={x} cy={y} r="1.8" fill="#ecfeff" stroke="#22d3ee" strokeWidth="0.8" />
             </g>
           ))}
@@ -1543,19 +1745,24 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             <g key={`chip${x}`}>
               <rect x={x} y={y} width="10" height="10" rx="1" fill="#0e7490" stroke="#67e8f9" strokeWidth="0.8" />
               <path d={`M${x + 2.5} ${y} L${x + 2.5} ${y - 2} M${x + 5} ${y} L${x + 5} ${y - 2} M${x + 7.5} ${y} L${x + 7.5} ${y - 2} M${x + 2.5} ${y + 10} L${x + 2.5} ${y + 12} M${x + 5} ${y + 10} L${x + 5} ${y + 12} M${x + 7.5} ${y + 10} L${x + 7.5} ${y + 12}`} stroke="#67e8f9" strokeWidth="0.8" />
+              <Anim c="blink" dur={0.9}>
+                <circle cx={x + 5} cy={y + 5} r="1.4" fill="#a5f3fc" />
+              </Anim>
             </g>
           ))}
         </g>
       )}
       {aura === "codigo-matrix" && (
         <g fontFamily="monospace" fontSize="6.5" fontWeight="bold" textAnchor="middle">
-          {MATRIX_COLUMNS.map(([x, y0, n]) =>
-            Array.from({ length: n }, (_, j) => (
-              <text key={`${x}-${j}`} x={x} y={y0 + j * 7.5} fill={j === n - 1 ? "#dcfce7" : "#4ade80"} opacity={0.3 + (0.7 * (j + 1)) / n}>
-                {(x + j * 5) % 3 ? "1" : "0"}
-              </text>
-            )),
-          )}
+          {MATRIX_COLUMNS.map(([x, y0, n], c) => (
+            <Anim key={x} c="scroll" d={-c * 0.37} dur={2.2 + (c % 4) * 0.45}>
+              {Array.from({ length: n }, (_, j) => (
+                <text key={`${x}-${j}`} x={x} y={y0 + j * 7.5} fill={j === n - 1 ? "#dcfce7" : "#4ade80"} opacity={0.3 + (0.7 * (j + 1)) / n}>
+                  {(x + j * 5) % 3 ? "1" : "0"}
+                </text>
+              ))}
+            </Anim>
+          ))}
         </g>
       )}
       {aura === "grade-neon" && (
@@ -1568,20 +1775,29 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             <clipPath id={`${gradientId}c`}>
               <circle cx="64" cy="44" r="43" />
             </clipPath>
+            <clipPath id={`${gradientId}g`}>
+              <rect x="0" y="84" width="128" height="44" />
+            </clipPath>
           </defs>
           {/* sol listrado se pondo no horizonte (grande pra aparecer em volta da cabeça) */}
-          <circle cx="64" cy="44" r="43" fill={`url(#${gradientId}s)`} />
+          <Anim c="pulse" dur={4} origin="64px 44px">
+            <circle cx="64" cy="44" r="43" fill={`url(#${gradientId}s)`} />
+          </Anim>
           <g clipPath={`url(#${gradientId}c)`} fill="#1e1b4b">
             <rect x="0" y="54" width="128" height="2" />
             <rect x="0" y="62" width="128" height="2.5" />
             <rect x="0" y="69" width="128" height="3" />
             <rect x="0" y="76" width="128" height="3.5" />
           </g>
-          {/* grade neon em perspectiva */}
+          {/* grade neon em perspectiva, andando na direção de quem olha */}
           <rect x="0" y="84" width="128" height="44" fill="#1e1b4b" opacity="0.85" />
           <g stroke="#e879f9" strokeWidth="1" opacity="0.9">
             <path d="M0 84 L128 84" strokeWidth="1.6" stroke="#f0abfc" />
-            <path d="M0 89 L128 89 M0 96 L128 96 M0 105 L128 105 M0 117 L128 117" />
+            <g clipPath={`url(#${gradientId}g)`}>
+              <Anim c="grid" dur={0.9}>
+                <path d="M0 84 L128 84 M0 92 L128 92 M0 100 L128 100 M0 108 L128 108 M0 116 L128 116 M0 124 L128 124" />
+              </Anim>
+            </g>
             <path d="M64 84 L-60 128 M64 84 L-20 128 M64 84 L20 128 M64 84 L108 128 M64 84 L148 128 M64 84 L188 128" />
           </g>
           {[
@@ -1590,32 +1806,40 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [104, 12],
             [118, 30],
             [8, 44],
-          ].map(([x, y]) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.4} dur={1.8}>
+              <circle cx={x} cy={y} r="0.9" fill="#fff" opacity="0.8" />
+            </Anim>
           ))}
         </g>
       )}
       {aura === "neve" && (
         <g>
           {[
-            [18, 22, 4],
-            [36, 10, 3],
-            [102, 14, 4.5],
-            [112, 44, 3],
-            [14, 56, 3.5],
-            [108, 78, 4],
-            [22, 90, 3],
-            [90, 6, 2.5],
-            [8, 38, 2.5],
-            [120, 100, 2.5],
-          ].map(([x, y, r]) => (
-            <Snowflake key={`${x}-${y}`} x={x} y={y} r={r} />
+            [18, 4],
+            [36, 3],
+            [102, 4.5],
+            [112, 3],
+            [14, 3.5],
+            [108, 4],
+            [26, 3],
+            [90, 2.5],
+            [8, 2.5],
+            [120, 2.5],
+            [60, 3],
+            [74, 2.5],
+          ].map(([x, r], i) => (
+            <Anim key={x} c="fall" d={-i * 0.85} dur={6 + (i % 4)}>
+              <Anim c="drift" d={-i * 0.6} dur={1.8 + (i % 3) * 0.5}>
+                <Snowflake x={x} y={0} r={r} />
+              </Anim>
+            </Anim>
           ))}
         </g>
       )}
       {aura === "luzes" && (
         <g>
-          {/* fio com lâmpadas coloridas contornando o personagem */}
+          {/* fio com lâmpadas coloridas contornando o personagem, piscando alternado */}
           <path d="M-2 40 C18 52 30 26 44 20 C54 14 74 14 84 20 C98 26 110 52 130 40" stroke="#14532d" strokeWidth="1.4" fill="none" />
           <path d="M4 92 C14 80 20 70 16 58 M124 92 C114 80 108 70 112 58" stroke="#14532d" strokeWidth="1.4" fill="none" />
           {[
@@ -1632,10 +1856,12 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [12, 80, "#3b82f6"],
             [112, 64, "#22c55e"],
             [116, 80, "#ef4444"],
-          ].map(([x, y, color]) => (
+          ].map(([x, y, color], i) => (
             <g key={`${x}-${y}`}>
-              <circle cx={x} cy={y} r="5.5" fill={color as string} opacity="0.35" />
-              <ellipse cx={x} cy={Number(y) + 1.5} rx="2" ry="3" fill={color as string} />
+              <Anim c="blink" d={i % 2 ? -0.6 : 0} dur={1.2}>
+                <circle cx={x} cy={y} r="5.5" fill={color as string} opacity="0.45" />
+                <ellipse cx={x} cy={Number(y) + 1.5} rx="2" ry="3" fill={color as string} />
+              </Anim>
               <rect x={Number(x) - 1.3} y={Number(y) - 2.5} width="2.6" height="2" fill="#475569" />
             </g>
           ))}
@@ -1643,16 +1869,24 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
       )}
       {aura === "aurora" && (
         <g fill="none" strokeLinecap="round">
-          <path d="M-6 26 C14 6 34 36 56 18 C78 0 98 30 134 10" stroke="#4ade80" strokeWidth="9" opacity="0.5" />
-          <path d="M-6 38 C18 20 38 48 60 30 C82 12 104 42 134 24" stroke="#22d3ee" strokeWidth="6" opacity="0.45" />
-          <path d="M-6 48 C20 34 40 58 64 42 C88 26 108 52 134 38" stroke="#a78bfa" strokeWidth="5" opacity="0.4" />
+          <Anim c="wave" dur={6}>
+            <path d="M-6 26 C14 6 34 36 56 18 C78 0 98 30 134 10" stroke="#4ade80" strokeWidth="9" opacity="0.5" />
+          </Anim>
+          <Anim c="wave" d={-2} dur={7}>
+            <path d="M-6 38 C18 20 38 48 60 30 C82 12 104 42 134 24" stroke="#22d3ee" strokeWidth="6" opacity="0.45" />
+          </Anim>
+          <Anim c="wave" d={-4} dur={8}>
+            <path d="M-6 48 C20 34 40 58 64 42 C88 26 108 52 134 38" stroke="#a78bfa" strokeWidth="5" opacity="0.4" />
+          </Anim>
           {[
             [16, 70],
             [110, 66],
             [24, 96],
             [104, 94],
-          ].map(([x, y]) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r="1.3" fill="#fff" stroke="none" />
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.5} dur={2}>
+              <circle cx={x} cy={y} r="1.3" fill="#fff" stroke="none" />
+            </Anim>
           ))}
         </g>
       )}
@@ -1660,36 +1894,69 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
         // Evento de Natal (Fase 2): a Estrela Polar dourada no alto, com a aurora dançando atrás.
         <g>
           <g fill="none" strokeLinecap="round">
-            <path d="M-6 44 C14 22 36 50 58 30 C80 10 102 40 134 18" stroke="#4ade80" strokeWidth="8" opacity="0.45" />
-            <path d="M-6 56 C18 38 40 64 62 46 C84 28 106 56 134 34" stroke="#f472b6" strokeWidth="5" opacity="0.4" />
-            <path d="M-6 66 C20 52 42 74 66 58 C90 42 110 66 134 50" stroke="#38bdf8" strokeWidth="4" opacity="0.35" />
+            <Anim c="wave" dur={6}>
+              <path d="M-6 44 C14 22 36 50 58 30 C80 10 102 40 134 18" stroke="#4ade80" strokeWidth="8" opacity="0.45" />
+            </Anim>
+            <Anim c="wave" d={-2.5} dur={7}>
+              <path d="M-6 56 C18 38 40 64 62 46 C84 28 106 56 134 34" stroke="#f472b6" strokeWidth="5" opacity="0.4" />
+            </Anim>
+            <Anim c="wave" d={-4.5} dur={8}>
+              <path d="M-6 66 C20 52 42 74 66 58 C90 42 110 66 134 50" stroke="#38bdf8" strokeWidth="4" opacity="0.35" />
+            </Anim>
           </g>
-          <circle cx="64" cy="13" r="14" fill="#fde68a" opacity="0.35" />
+          <Anim c="pulse" dur={2.4} origin="64px 13px">
+            <circle cx="64" cy="13" r="14" fill="#fde68a" opacity="0.35" />
+          </Anim>
+          <Anim c="blink" dur={1.6}>
+            <path d="M64 -4 L64 30 M47 13 L81 13" stroke="#fffbeb" strokeWidth="0.7" opacity="0.8" />
+          </Anim>
           <path d={starPath(64, 13, 11, 4)} fill="#fde047" stroke="#f59e0b" strokeWidth="1" strokeLinejoin="round" />
           <path d={starPath(64, 13, 6, 2.2)} fill="#fffbeb" transform="rotate(36 64 13)" />
-          <path d="M64 -2 L64 28 M49 13 L79 13" stroke="#fffbeb" strokeWidth="0.7" opacity="0.8" />
-          <Snowflake x={14} y={80} r={4} />
-          <Snowflake x={114} y={76} r={3.5} />
-          <Snowflake x={22} y={106} r={3} />
+          {[
+            [14, 4],
+            [114, 3.5],
+            [22, 3],
+            [100, 3],
+          ].map(([x, r], i) => (
+            <Anim key={x} c="fall" d={-i * 1.6} dur={7}>
+              <Anim c="drift" d={-i * 0.7} dur={2.2}>
+                <Snowflake x={x} y={30} r={r} />
+              </Anim>
+            </Anim>
+          ))}
           {[
             [34, 20],
             [96, 22],
             [10, 60],
             [118, 58],
             [108, 104],
-          ].map(([x, y]) => (
-            <Sparkle key={`${x}-${y}`} x={x} y={y} r={1.6} />
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.45} dur={1.8}>
+              <Sparkle x={x} y={y} r={1.6} />
+            </Anim>
           ))}
         </g>
       )}
       {aura === "raios" && (
         <g>
-          <StormCloud x={24} y={20} s={1.1} />
-          <StormCloud x={104} y={16} s={1} />
-          <Bolt x={22} y={30} s={1.3} />
-          <Bolt x={106} y={25} s={1.2} />
-          <Bolt x={14} y={70} s={0.9} />
-          <Bolt x={112} y={66} s={1} />
+          <Anim c="drift" dur={6}>
+            <StormCloud x={24} y={20} s={1.1} />
+          </Anim>
+          <Anim c="drift" d={-3} dur={7}>
+            <StormCloud x={104} y={16} s={1} />
+          </Anim>
+          {(
+            [
+              [22, 30, 1.3],
+              [106, 25, 1.2],
+              [14, 70, 0.9],
+              [112, 66, 1],
+            ] as [number, number, number][]
+          ).map(([x, y, s], i) => (
+            <Anim key={`${x}-${y}`} c="flash" d={-i * 0.9} dur={3.2 + i * 0.4}>
+              <Bolt x={x} y={y} s={s} />
+            </Anim>
+          ))}
         </g>
       )}
       {aura === "poseidon" && (
@@ -1699,42 +1966,58 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
             [92, 100],
             [8, 72],
             [96, 76],
-          ].map(([x, y]) => (
-            <path
-              key={`${x}-${y}`}
-              d={`M${x} ${y} C${x + 5} ${y - 7} ${x + 11} ${y - 7} ${x + 14} ${y - 2} C${x + 11} ${y - 4} ${x + 8} ${y - 2} ${x + 9} ${y + 1} M${x + 14} ${y - 2} C${x + 18} ${y + 3} ${x + 24} ${y + 3} ${x + 28} ${y - 2}`}
-              stroke="#e0f2fe"
-              strokeWidth="2.2"
-            />
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="drift" d={-i * 1.2} dur={2.4}>
+              <path
+                d={`M${x} ${y} C${x + 5} ${y - 7} ${x + 11} ${y - 7} ${x + 14} ${y - 2} C${x + 11} ${y - 4} ${x + 8} ${y - 2} ${x + 9} ${y + 1} M${x + 14} ${y - 2} C${x + 18} ${y + 3} ${x + 24} ${y + 3} ${x + 28} ${y - 2}`}
+                stroke="#e0f2fe"
+                strokeWidth="2.2"
+              />
+            </Anim>
           ))}
           {[
-            [26, 40, 2.4],
-            [102, 44, 2],
-            [20, 54, 1.6],
-            [108, 30, 1.6],
-            [34, 20, 1.4],
-          ].map(([x, y, r]) => (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} stroke="#a5f3fc" strokeWidth="1" />
+            [26, 60, 2.4],
+            [102, 64, 2],
+            [20, 74, 1.6],
+            [108, 50, 1.6],
+            [34, 40, 1.4],
+            [90, 44, 1.8],
+          ].map(([x, y, r], i) => (
+            <Anim key={`${x}-${y}`} c="rise" d={-i * 0.6} dur={3.4}>
+              <Anim c="wiggle" d={-i * 0.4} dur={1.3}>
+                <circle cx={x} cy={y} r={r} stroke="#a5f3fc" strokeWidth="1" />
+              </Anim>
+            </Anim>
           ))}
         </g>
       )}
       {aura === "olimpo" && (
-        <g stroke="#fde68a" strokeLinecap="round" opacity="0.75">
-          {Array.from({ length: 16 }, (_, i) => {
-            const a = (i / 16) * Math.PI * 2;
-            return <line key={i} x1={64 + Math.cos(a) * 44} y1={58 + Math.sin(a) * 44} x2={64 + Math.cos(a) * 66} y2={58 + Math.sin(a) * 66} strokeWidth={i % 2 ? 2 : 3.5} />;
-          })}
-        </g>
+        <Anim c="pulse" dur={4} origin="64px 58px">
+          <g stroke="#fde68a" strokeLinecap="round" opacity="0.75">
+            {Array.from({ length: 16 }, (_, i) => {
+              const a = (i / 16) * Math.PI * 2;
+              return (
+                <Anim key={i} c="blink" d={i % 2 ? -1.5 : 0} dur={3}>
+                  <line x1={64 + Math.cos(a) * 44} y1={58 + Math.sin(a) * 44} x2={64 + Math.cos(a) * 66} y2={58 + Math.sin(a) * 66} strokeWidth={i % 2 ? 2 : 3.5} />
+                </Anim>
+              );
+            })}
+          </g>
+        </Anim>
       )}
       {aura === "ra" && (
         <g>
-          <circle cx="64" cy="50" r="40" fill="#f59e0b" opacity="0.45" />
-          <g stroke="#fde047" strokeLinecap="round" opacity="0.8">
-            {Array.from({ length: 20 }, (_, i) => {
-              const a = (i / 20) * Math.PI * 2;
-              return <line key={i} x1={64 + Math.cos(a) * 42} y1={50 + Math.sin(a) * 42} x2={64 + Math.cos(a) * (i % 2 ? 54 : 62)} y2={50 + Math.sin(a) * (i % 2 ? 54 : 62)} strokeWidth="2.5" />;
-            })}
-          </g>
+          <Anim c="pulse" dur={3} origin="64px 50px">
+            <circle cx="64" cy="50" r="40" fill="#f59e0b" opacity="0.45" />
+          </Anim>
+          <Anim c="spin" dur={60} origin="64px 50px">
+            <g stroke="#fde047" strokeLinecap="round" opacity="0.8">
+              {Array.from({ length: 20 }, (_, i) => {
+                const a = (i / 20) * Math.PI * 2;
+                return <line key={i} x1={64 + Math.cos(a) * 42} y1={50 + Math.sin(a) * 42} x2={64 + Math.cos(a) * (i % 2 ? 54 : 62)} y2={50 + Math.sin(a) * (i % 2 ? 54 : 62)} strokeWidth="2.5" />;
+              })}
+            </g>
+          </Anim>
         </g>
       )}
       {aura === "areia" && (
@@ -1744,99 +2027,233 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           <path d="M92 112 L112 86 L132 112 Z" fill="#b45309" opacity="0.85" />
           <path d="M112 86 L132 112 L120 112 Z" fill="#78350f" opacity="0.6" />
           <g stroke="#fef3c7" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.7">
-            <path d="M8 40 C20 34 30 38 36 32" />
-            <path d="M92 30 C100 24 112 28 120 22" />
-            <path d="M6 60 C14 56 22 60 28 55" />
-            <path d="M100 58 C108 54 116 58 124 52" />
+            {["M8 40 C20 34 30 38 36 32", "M92 30 C100 24 112 28 120 22", "M6 60 C14 56 22 60 28 55", "M100 58 C108 54 116 58 124 52"].map((d, i) => (
+              <Anim key={d} c="drift" d={-i * 0.8} dur={2.2}>
+                <path d={d} />
+              </Anim>
+            ))}
           </g>
+          {[
+            [10, 76],
+            [118, 72],
+            [30, 20],
+            [100, 16],
+            [16, 100],
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="drift" d={-i * 0.5} dur={1.6}>
+              <circle cx={x} cy={y} r="1" fill="#fde68a" />
+            </Anim>
+          ))}
         </g>
       )}
       {aura === "hieroglifos" && (
         <g>
-          <Ankh x={20} y={40} s={1.1} />
-          <EyeGlyph x={106} y={34} s={1.1} />
-          <Ankh x={108} y={78} s={0.9} />
-          <EyeGlyph x={20} y={84} s={0.9} />
-          <path d="M34 16 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
-          <path d="M84 12 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <Anim c="bob" dur={3}>
+            <Anim c="blink" dur={2.4}>
+              <Ankh x={20} y={40} s={1.1} />
+            </Anim>
+          </Anim>
+          <Anim c="bob" d={-1} dur={3.4}>
+            <Anim c="blink" d={-1.2} dur={2.4}>
+              <EyeGlyph x={106} y={34} s={1.1} />
+            </Anim>
+          </Anim>
+          <Anim c="bob" d={-2} dur={3.2}>
+            <Ankh x={108} y={78} s={0.9} />
+          </Anim>
+          <Anim c="bob" d={-0.5} dur={2.8}>
+            <EyeGlyph x={20} y={84} s={0.9} />
+          </Anim>
+          <Anim c="blink" dur={2}>
+            <path d="M34 16 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          </Anim>
+          <Anim c="blink" d={-1} dur={2}>
+            <path d="M84 12 l3 -3 l3 3 l3 -3 l3 3" stroke="#fcd34d" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          </Anim>
         </g>
       )}
-      {aura === "assombrada" && (
-        <g>
-          <Ghost x={20} y={46} s={1.1} />
-          <Ghost x={108} y={38} s={0.9} />
-          <Ghost x={24} y={92} s={0.8} />
-          <Ghost x={104} y={86} s={1} />
-          <Ghost x={40} y={14} s={0.7} />
-        </g>
-      )}
+      {aura === "assombrada" &&
+        (
+          [
+            [20, 46, 1.1],
+            [108, 38, 0.9],
+            [24, 92, 0.8],
+            [104, 86, 1],
+            [40, 14, 0.7],
+          ] as [number, number, number][]
+        ).map(([x, y, s], i) => (
+          <Anim key={`${x}-${y}`} c="drift" d={-i * 0.9} dur={3.6}>
+            <Anim c="bob" d={-i * 0.6} dur={2.2}>
+              <Anim c="blink" d={-i * 0.8} dur={4}>
+                <Ghost x={x} y={y} s={s} />
+              </Anim>
+            </Anim>
+          </Anim>
+        ))}
       {aura === "lua-sangrenta" && (
         <g>
-          <circle cx="98" cy="24" r="17" fill="#dc2626" opacity="0.9" />
-          <circle cx="92" cy="20" r="3" fill="#b91c1c" opacity="0.6" />
-          <circle cx="103" cy="30" r="2.2" fill="#b91c1c" opacity="0.6" />
-          <Bat x={22} y={30} s={1.3} />
-          <Bat x={34} y={16} s={0.9} />
-          <Bat x={110} y={60} s={1} />
+          <Anim c="pulse" dur={3.6} origin="98px 24px">
+            <circle cx="98" cy="24" r="22" fill="#f87171" opacity="0.25" />
+            <circle cx="98" cy="24" r="17" fill="#dc2626" opacity="0.9" />
+            <circle cx="92" cy="20" r="3" fill="#b91c1c" opacity="0.6" />
+            <circle cx="103" cy="30" r="2.2" fill="#b91c1c" opacity="0.6" />
+          </Anim>
+          {(
+            [
+              ["moon-bat-a", 0, 1.1],
+              ["moon-bat-b", -2, 1],
+              ["moon-bat-c", -4, 0.9],
+              ["moon-bat-a", -3, 0.8],
+              ["moon-bat-b", -5, 1.2],
+            ] as ["moon-bat-a" | "moon-bat-b" | "moon-bat-c", number, number][]
+          ).map(([path, d, s], i) => (
+            <g key={i} transform="translate(98 24)">
+              <Anim c={path} d={d} dur={6}>
+                <FlyingBat s={s} d={-i * 0.7} />
+              </Anim>
+            </g>
+          ))}
         </g>
       )}
       {aura === "morcegos" && (
+        // a revoada cruzando o céu atrás do personagem, pros dois lados
         <g>
-          <Bat x={18} y={40} s={1.4} />
-          <Bat x={32} y={18} s={1} />
-          <Bat x={96} y={14} s={1.2} />
-          <Bat x={112} y={44} s={1.1} />
-          <Bat x={20} y={80} s={0.9} />
-          <Bat x={108} y={82} s={1.3} />
+          {(
+            [
+              [20, 1.4, 0, 8, "fly"],
+              [44, 1, -3, 9, "fly"],
+              [92, 1.2, -6, 7.5, "fly"],
+              [30, 1.1, -1.5, 8.5, "fly-back"],
+              [70, 0.9, -5, 9.5, "fly-back"],
+              [106, 1.3, -2.5, 7, "fly-back"],
+              [12, 0.8, -7, 10, "fly-back"],
+            ] as [number, number, number, number, "fly" | "fly-back"][]
+          ).map(([y, s, d, dur, dir], i) => (
+            <g key={i} transform={`translate(64 ${y})`}>
+              <Anim c={dir} d={d} dur={dur}>
+                <FlyingBat s={s} d={-i * 0.45} />
+              </Anim>
+            </g>
+          ))}
         </g>
       )}
-      {aura === "abobora" && (
-        <g>
-          <MiniPumpkin x={18} y={44} s={1.2} />
-          <MiniPumpkin x={110} y={40} s={1} />
-          <MiniPumpkin x={22} y={90} s={0.9} />
-          <MiniPumpkin x={106} y={88} s={1.2} />
-          <MiniPumpkin x={34} y={14} s={0.8} />
-          <MiniPumpkin x={94} y={12} s={0.8} />
-        </g>
-      )}
+      {aura === "abobora" &&
+        (
+          [
+            [18, 44, 1.2],
+            [110, 40, 1],
+            [22, 90, 0.9],
+            [106, 88, 1.2],
+            [34, 14, 0.8],
+            [94, 12, 0.8],
+          ] as [number, number, number][]
+        ).map(([x, y, s], i) => (
+          <Anim key={`${x}-${y}`} c="bob" d={-i * 0.5} dur={2.6}>
+            <Anim c="wobble" d={-i * 0.3} dur={3}>
+              <MiniPumpkin x={x} y={y} s={s} />
+            </Anim>
+            <Anim c="blink" d={-i * 0.2} dur={0.7}>
+              <circle cx={x} cy={y + 1} r={2.2 * s} fill="#fde047" opacity="0.5" />
+            </Anim>
+          </Anim>
+        ))}
       {aura === "fogo" && (
-        <g fill="#f97316" opacity="0.85">
-          <path d="M26 92 C18 70 30 60 26 42 C36 54 38 46 40 36 C48 52 40 66 44 80 Z" />
-          <path d="M102 92 C110 70 98 60 102 42 C92 54 90 46 88 36 C80 52 88 66 84 80 Z" />
-          <path d="M50 22 C48 12 56 8 56 0 C62 8 60 14 64 18 C66 10 72 8 72 2 C78 12 76 20 78 24 Z" fill="#fbbf24" opacity="0.7" />
+        <g>
+          <g fill="#f97316" opacity="0.85">
+            <Anim c="flicker" dur={0.8}>
+              <path d="M26 92 C18 70 30 60 26 42 C36 54 38 46 40 36 C48 52 40 66 44 80 Z" />
+            </Anim>
+            <Anim c="flicker" d={-0.4} dur={0.9}>
+              <path d="M102 92 C110 70 98 60 102 42 C92 54 90 46 88 36 C80 52 88 66 84 80 Z" />
+            </Anim>
+            <Anim c="flicker" d={-0.2} dur={0.7}>
+              <path d="M50 22 C48 12 56 8 56 0 C62 8 60 14 64 18 C66 10 72 8 72 2 C78 12 76 20 78 24 Z" fill="#fbbf24" opacity="0.7" />
+            </Anim>
+          </g>
+          {/* brasas subindo */}
+          {[
+            [24, 80],
+            [34, 70],
+            [100, 78],
+            [92, 66],
+            [16, 96],
+            [112, 94],
+            [60, 30],
+            [70, 26],
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="rise" d={-i * 0.35} dur={2.2 + (i % 3) * 0.4}>
+              <Anim c="wiggle" d={-i * 0.25} dur={0.9}>
+                <circle cx={x} cy={y} r={i % 2 ? 1.2 : 1.7} fill={i % 3 ? "#fde047" : "#fb923c"} />
+              </Anim>
+            </Anim>
+          ))}
         </g>
       )}
       {aura === "gelo" && (
-        <g fill="#e0f2fe" opacity="0.85">
-          <path d="M22 60 L30 50 L34 62 Z" />
-          <path d="M104 58 L96 48 L94 62 Z" />
-          <path d="M30 30 L38 24 L38 36 Z" />
-          <path d="M98 30 L90 24 L90 36 Z" />
-          <path d="M64 2 L69 12 L59 12 Z" />
+        <g>
+          <g fill="#e0f2fe" opacity="0.85">
+            {["M22 60 L30 50 L34 62 Z", "M104 58 L96 48 L94 62 Z", "M30 30 L38 24 L38 36 Z", "M98 30 L90 24 L90 36 Z", "M64 2 L69 12 L59 12 Z"].map((d, i) => (
+              <Anim key={d} c="blink" d={-i * 0.5} dur={2.4}>
+                <path d={d} />
+              </Anim>
+            ))}
+          </g>
+          {[
+            [16, 3],
+            [44, 2.5],
+            [88, 3],
+            [116, 2.5],
+          ].map(([x, r], i) => (
+            <Anim key={x} c="fall" d={-i * 1.8} dur={8}>
+              <Anim c="drift" d={-i * 0.5} dur={2.4}>
+                <Snowflake x={x} y={0} r={r} />
+              </Anim>
+            </Anim>
+          ))}
         </g>
       )}
-      {(aura === "estrelas" || aura === "arcana") &&
-        [
-          [22, 40, 2.2],
-          [104, 34, 2],
-          [30, 18, 1.6],
-          [98, 70, 1.8],
-          [18, 76, 1.4],
-          [110, 90, 1.4],
-          [42, 8, 1.3],
-          [88, 10, 1.6],
-        ].map(([x, y, r]) =>
-          aura === "estrelas" ? (
-            <path
-              key={`${x}-${y}`}
-              d={`M${x} ${y - r * 2} L${x + r * 0.6} ${y - r * 0.6} L${x + r * 2} ${y} L${x + r * 0.6} ${y + r * 0.6} L${x} ${y + r * 2} L${x - r * 0.6} ${y + r * 0.6} L${x - r * 2} ${y} L${x - r * 0.6} ${y - r * 0.6} Z`}
-              fill="#fef9c3"
-            />
-          ) : (
-            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#f5d0fe" opacity="0.9" />
-          ),
-        )}
+      {(aura === "estrelas" || aura === "arcana") && (
+        <g>
+          {aura === "estrelas" && <ShootingStar x={100} y={20} d={-2} dur={5.5} />}
+          {[
+            [22, 40, 2.2],
+            [104, 34, 2],
+            [30, 18, 1.6],
+            [98, 70, 1.8],
+            [18, 76, 1.4],
+            [110, 90, 1.4],
+            [42, 8, 1.3],
+            [88, 10, 1.6],
+          ].map(([x, y, r], i) =>
+            aura === "estrelas" ? (
+              <Anim key={`${x}-${y}`} c="blink" d={-i * 0.35} dur={1.6 + (i % 3) * 0.4}>
+                <path
+                  d={`M${x} ${y - r * 2} L${x + r * 0.6} ${y - r * 0.6} L${x + r * 2} ${y} L${x + r * 0.6} ${y + r * 0.6} L${x} ${y + r * 2} L${x - r * 0.6} ${y + r * 0.6} L${x - r * 2} ${y} L${x - r * 0.6} ${y - r * 0.6} Z`}
+                  fill="#fef9c3"
+                />
+              </Anim>
+            ) : (
+              <Anim key={`${x}-${y}`} c="bob" d={-i * 0.5} dur={2.6}>
+                <Anim c="blink" d={-i * 0.3} dur={1.8}>
+                  <circle cx={x} cy={y} r={r} fill="#f5d0fe" opacity="0.9" />
+                </Anim>
+              </Anim>
+            ),
+          )}
+        </g>
+      )}
+      {aura === "arcana" && (
+        // círculo mágico com runas girando devagar
+        <Anim c="spin-rev" dur={40}>
+          <circle cx="64" cy="60" r="62" fill="none" stroke="#e9d5ff" strokeWidth="0.8" opacity="0.7" />
+          {Array.from({ length: 8 }, (_, i) => {
+            const a = (i / 8) * Math.PI * 2;
+            const x = 64 + Math.cos(a) * 62;
+            const y = 60 + Math.sin(a) * 62;
+            return <path key={i} d={`M${x - 2.5} ${y} L${x} ${y - 3} L${x + 2.5} ${y} L${x} ${y + 3} Z`} fill="#f0abfc" />;
+          })}
+        </Anim>
+      )}
     </g>
   );
 }

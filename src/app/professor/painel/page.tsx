@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useShop, useGifts, useSubmissions } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useShop, useGifts, useSubmissions, useTeacherMessages } from "@/engine/store";
+import StudentMessagesInbox from "@/components/StudentMessagesInbox";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
 import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
@@ -32,6 +33,7 @@ export default function PainelProfessorPage() {
   const { items: shopItems } = useShop();
   const { give } = useGifts();
   const { submissions } = useSubmissions();
+  const { messages: teacherMessages } = useTeacherMessages();
   // Tipo da missão nova: quiz (perguntas) ou entrega (resposta aberta/arquivos, corrigida pelo professor).
   const [newKind, setNewKind] = useState<MissionKind>("quiz");
   const [editorTarget, setEditorTarget] = useState<Mission | "new" | null>(null);
@@ -215,6 +217,13 @@ export default function PainelProfessorPage() {
         students={students}
         missions={missions}
         reviewerName={`Professor ${teacher.name}`}
+      />
+
+      <StudentMessagesInbox
+        messages={teacherMessages.filter((m) => m.teacherId === teacher.id)}
+        students={students}
+        missions={missions}
+        replier={{ id: teacher.id, name: `Professor ${teacher.name}` }}
       />
 
       <BroadcastComposer students={students} senderId={teacher.id} />

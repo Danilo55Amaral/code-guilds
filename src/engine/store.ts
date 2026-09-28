@@ -63,6 +63,15 @@ import {
 } from "./friends";
 import { Offer, listOffersTo, listOffersFrom, createOffer, acceptOffer, withdrawOffer, deleteOffersOf } from "./market";
 import { GiftItem, Giver, giveItemTo } from "./gifts";
+import {
+  TeacherMessage,
+  TeacherMessageTopic,
+  deleteTeacherMessagesOf,
+  listTeacherMessages,
+  markTeacherMessageRead,
+  replyToStudent,
+  sendToTeacher,
+} from "./teacherMessages";
 import { Submission, deleteSubmissionsOf, deleteSubmissionsOfMission, listSubmissions, reviewSubmission, submitTask } from "./submissions";
 import { Trade, listTradesTo, listTradesFrom, proposeTrade, acceptTrade, declineTrade, cancelTrade, cancelTradesBetween, deleteTradesOf } from "./trades";
 import { subscribe, emitChange } from "./events";
@@ -145,6 +154,7 @@ export function useStudents() {
     deleteOffersOf(id);
     deleteTradesOf(id);
     deleteSubmissionsOf(id);
+    deleteTeacherMessagesOf(id);
     deleteFriendsOf(id);
     removeStudent(id);
     deleteMessagesOf(id);
@@ -596,6 +606,38 @@ export function useSubmissions() {
   }, []);
 
   return { submissions, ready, submit, review };
+}
+
+/** Mensagens dos alunos pro professor (engine/teacherMessages.ts): o aluno escreve, o professor lê e responde. */
+export function useTeacherMessages() {
+  const [messages, setMessages] = useState<TeacherMessage[]>([]);
+  const [ready, setReady] = useState(false);
+
+  const sync = useCallback(() => {
+    setMessages(listTeacherMessages());
+    setReady(true);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  const send = useCallback((data: { studentId: string; topic: TeacherMessageTopic; missionId?: string; body: string }) => {
+    const result = sendToTeacher(data);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  const markRead = useCallback((id: string) => {
+    markTeacherMessageRead(id);
+    emitChange();
+  }, []);
+
+  const reply = useCallback((id: string, text: string, replier: { id: string; name: string }) => {
+    const result = replyToStudent(id, text, replier);
+    if (result.ok) emitChange();
+    return result;
+  }, []);
+
+  return { messages, ready, send, markRead, reply };
 }
 
 /** Presentes do professor/ADM (engine/gifts.ts): dar um item pra um aluno, pra turma toda ou pra uma casa. */
