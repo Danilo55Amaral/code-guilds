@@ -38,12 +38,13 @@ export interface MultiverseWorld {
 /** Os portais da sala (os 5 primeiros mundos). */
 export const MULTIVERSE_WORLDS: MultiverseWorld[] = [
   {
-    id: "nebulosa",
-    name: "Nebulosa de Código",
+    id: "dragao",
+    name: "Domínio do Dragão Ancestral",
     tagline: "Mundo 1",
-    lore: "Uma nebulosa rosa e violeta onde as estrelas nascem de linhas de código. Dizem que cada algoritmo perfeito acende uma estrela nova.",
-    glyph: "🌌",
-    colors: ["#7c3aed", "#ec4899", "#fdf4ff"],
+    lore: "Um céu que gira como um redemoinho sobre a Pirâmide Dourada. Ali vive Vaelzhar, o dragão que já existia antes da primeira estrela e que domina todas as magias do multiverso.",
+    glyph: "🐉",
+    colors: ["#0f766e", "#fbbf24", "#f0fdfa"],
+    href: "/multiverso/dragao",
   },
   {
     id: "cristal",
@@ -85,6 +86,25 @@ export function openMultiversePatch(student: Student, itemId: string): Partial<S
   if (!item?.multiverse) return null;
   const { inventory, equipped } = removeItem(student, itemId);
   return { inventory, equipped, multiverseAccess: new Date().toISOString() };
+}
+
+// A viagem do aluno: depois que o passe é gasto, ele pode andar entre a sala e os mundos
+// abertos. Fica só na memória da página: sair da sala ou recarregar fecha o portal.
+let travelerId: string | null = null;
+
+/** O aluno atravessou o portal (o passe acabou de ser gasto). */
+export function startMultiverseVisit(studentId: string) {
+  travelerId = studentId;
+}
+
+/** O aluno ainda está viajando pelo multiverso (voltando de um mundo pra sala, ou indo pra um mundo)? */
+export function isOnMultiverseVisit(studentId: string): boolean {
+  return travelerId === studentId;
+}
+
+/** Saiu da sala: o portal se fecha. */
+export function endMultiverseVisit() {
+  travelerId = null;
 }
 
 /** Entrou na sala: o passe é gasto (sair ou recarregar fecha o portal). */

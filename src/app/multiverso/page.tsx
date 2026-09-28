@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useStudents, useTeachers } from "@/engine/store";
-import { MULTIVERSE_WORLDS, MultiverseWorld, spendMultiverseAccessPatch } from "@/engine/multiverse";
+import { MULTIVERSE_WORLDS, MultiverseWorld, endMultiverseVisit, isOnMultiverseVisit, spendMultiverseAccessPatch, startMultiverseVisit } from "@/engine/multiverse";
 import { isSoundMuted, playCosmicAmbience, setSoundMuted } from "@/engine/sfx";
 import { pauseMusic, resumeMusic } from "@/engine/music";
 import { BlackHole, Nebulae, PortalVortex, Starfield } from "@/components/multiverse/CosmicArt";
@@ -15,7 +15,9 @@ import { BlackHole, Nebulae, PortalVortex, Starfield } from "@/components/multiv
 //
 // Quem entra: professor/ADM sempre (?modo=mestre, pelo botão dos painéis); o
 // aluno só com o passe de uma 🌀 Chave do Multiverso usada no Inventário. O
-// passe é gasto ao entrar: sair (ou recarregar a página) fecha o portal.
+// passe é gasto ao entrar: sair (ou recarregar a página) fecha o portal. Os
+// portais abertos levam aos mundos; voltar de um mundo (?chegada=mundo) não
+// gasta chave nem repete o salto pelo hiperespaço.
 // ============================================================================
 
 type Mode = "carregando" | "mestre" | "aluno" | "fechado";
@@ -47,13 +49,19 @@ export default function MultiversoPage() {
     if (!ready || !teachersReady || mode !== "carregando") return;
     const params = new URLSearchParams(window.location.search);
     if (params.get("volta") === "admin") setBackTo("/admin/painel");
+    if (params.get("chegada") === "mundo") setIntro(false);
     if (params.get("modo") === "mestre" && currentTeacher) {
       setMode("mestre");
       return;
     }
     if (activeStudent?.multiverseAccess) {
       setMode("aluno");
+      startMultiverseVisit(activeStudent.id);
       patchActive(spendMultiverseAccessPatch());
+      return;
+    }
+    if (activeStudent && isOnMultiverseVisit(activeStudent.id)) {
+      setMode("aluno");
       return;
     }
     setMode("fechado");
@@ -62,13 +70,13 @@ export default function MultiversoPage() {
   // Entrada: o salto pelo hiperespaço (quem pede menos movimento pula direto).
   useEffect(() => {
     if (mode !== "mestre" && mode !== "aluno") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (!intro || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setIntro(false);
       return;
     }
     const timer = window.setTimeout(() => setIntro(false), INTRO_MS);
     return () => window.clearTimeout(timer);
-  }, [mode]);
+  }, [mode, intro]);
 
   // Som: a música do castelo pausa; o zumbido cósmico toca se o som estiver ligado.
   useEffect(() => {
@@ -99,7 +107,17 @@ export default function MultiversoPage() {
       setConfirmExit(true);
       return;
     }
+    if (mode === "aluno") endMultiverseVisit();
     router.push(mode === "mestre" ? backTo : "/academia/inventario");
+  }
+
+  /** Atravessa um portal aberto (o Modo Mestre leva junto o ?modo=mestre&volta=...). */
+  function travel(world: MultiverseWorld) {
+    if (!world.href) return;
+    const params = new URLSearchParams(window.location.search);
+    params.delete("chegada");
+    const query = params.toString();
+    router.push(query ? `${world.href}?${query}` : world.href);
   }
 
   if (mode === "carregando") return <div className="fixed inset-0" style={{ background: "#030014" }} />;
@@ -280,8 +298,12 @@ export default function MultiversoPage() {
             <h2 className="text-2xl font-black text-white">{selected.name}</h2>
             <p className="mt-3 text-sm text-slate-300">{selected.lore}</p>
             {selected.href ? (
-              <button onClick={() => router.push(selected.href!)} className="mt-5 rounded-full px-6 py-2.5 text-sm font-black text-cg-ink" style={{ background: `linear-gradient(90deg, ${selected.colors[1]}, ${selected.colors[2]})` }}>
-                Atravessar o portal →
+              <button
+                onClick={() => travel(selected)}
+                className="mt-5 rounded-full px-6 py-2.5 text-sm font-black text-cg-ink shadow-lg transition-transform hover:scale-105"
+                style={{ background: `linear-gradient(90deg, ${selected.colors[1]}, ${selected.colors[2]})`, boxShadow: `0 0 30px -4px ${selected.colors[1]}` }}
+              >
+                {selected.glyph} Atravessar o portal →
               </button>
             ) : (
               <p className="mt-5 rounded-2xl border border-white/15 bg-black/40 px-4 py-3 text-xs text-slate-300">

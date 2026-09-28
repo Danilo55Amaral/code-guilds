@@ -866,3 +866,286 @@ export function playCosmicAmbience(): () => void {
     }, 900);
   };
 }
+
+// ============================================================================
+// MUNDO 1 — DOMÍNIO DO DRAGÃO ANCESTRAL: o vento do céu em redemoinho, o
+// rugido de Vaelzhar (com um eco que atravessa universos), o bater das asas
+// passando perto e o estalo da magia (buraco negro + relâmpagos).
+// ============================================================================
+
+/** Desliga uma cena aos poucos (fade de `seconds`) e fecha o contexto. */
+function fadeAndClose(ctx: AudioContext, master: GainNode, seconds = 0.8) {
+  if (ctx.state === "closed") return;
+  const now = ctx.currentTime;
+  master.gain.cancelScheduledValues(now);
+  master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), now);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + seconds);
+  window.setTimeout(() => {
+    if (ctx.state !== "closed") ctx.close();
+  }, seconds * 1000 + 100);
+}
+
+/** Fecha a cena sozinha depois de `ms` (ou antes, se chamarem a função devolvida). */
+function autoClose(ctx: AudioContext, ms: number): () => void {
+  const close = closeScene(ctx);
+  const timer = window.setTimeout(close, ms);
+  return () => {
+    window.clearTimeout(timer);
+    close();
+  };
+}
+
+/** Fundo do mundo do dragão: vento uivando no redemoinho + um grave antigo e um coro distante. */
+export function playDragonAmbience(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.42);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t);
+  master.gain.exponentialRampToValueAtTime(0.6, t + 3);
+  master.connect(out);
+
+  // vento: ruído num filtro estreito que sobe e desce devagar
+  const wind = ctx.createBufferSource();
+  wind.buffer = noiseBuffer(ctx, 4);
+  wind.loop = true;
+  const windFilter = ctx.createBiquadFilter();
+  windFilter.type = "bandpass";
+  windFilter.Q.value = 2.5;
+  windFilter.frequency.value = 520;
+  const windLfo = ctx.createOscillator();
+  windLfo.frequency.value = 0.08;
+  const windDepth = ctx.createGain();
+  windDepth.gain.value = 340;
+  windLfo.connect(windDepth).connect(windFilter.frequency);
+  const windGain = ctx.createGain();
+  windGain.gain.value = 0.2;
+  wind.connect(windFilter).connect(windGain).connect(master);
+  wind.start(t);
+  windLfo.start(t);
+
+  // grave antigo: Ré bem grave + quinta, com o filtro respirando
+  const low = ctx.createBiquadFilter();
+  low.type = "lowpass";
+  low.frequency.value = 170;
+  const lowLfo = ctx.createOscillator();
+  lowLfo.frequency.value = 0.05;
+  const lowDepth = ctx.createGain();
+  lowDepth.gain.value = 90;
+  lowLfo.connect(lowDepth).connect(low.frequency);
+  lowLfo.start(t);
+  const lowGain = ctx.createGain();
+  lowGain.gain.value = 0.32;
+  low.connect(lowGain).connect(master);
+  [36.7, 36.95, 55].forEach((freq) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.value = freq;
+    osc.connect(low);
+    osc.start(t);
+  });
+
+  // coro místico lá longe (Ré menor), cada voz entrando e saindo no seu ritmo
+  [293.7, 349.2, 440, 587.3].forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const gain = ctx.createGain();
+    gain.gain.value = 0;
+    const trem = ctx.createOscillator();
+    trem.frequency.value = 0.06 + i * 0.045;
+    const tremDepth = ctx.createGain();
+    tremDepth.gain.value = 0.012;
+    trem.connect(tremDepth).connect(gain.gain);
+    osc.connect(gain).connect(master);
+    osc.start(t);
+    trem.start(t);
+  });
+
+  return () => fadeAndClose(ctx, master);
+}
+
+/**
+ * O rugido do Dragão Ancestral (~3.5s): rosnado grave com a garganta tremendo, o bramido
+ * (ruído passando por "formantes", como a boca abrindo), um sub que faz o chão tremer e um eco
+ * longo que vai sumindo, como se atravessasse outros universos.
+ */
+export function playDragonRoar(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.85);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const dur = 3.4;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, t);
+  master.gain.exponentialRampToValueAtTime(1, t + 0.35);
+  master.gain.setValueAtTime(1, t + 1.2);
+  master.gain.exponentialRampToValueAtTime(0.7, t + 2.3);
+  master.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  master.connect(out);
+
+  // eco que atravessa universos
+  const delay = ctx.createDelay(1.5);
+  delay.delayTime.value = 0.46;
+  const echoFilter = ctx.createBiquadFilter();
+  echoFilter.type = "lowpass";
+  echoFilter.frequency.value = 1300;
+  const feedback = ctx.createGain();
+  feedback.gain.value = 0.45;
+  const echoOut = ctx.createGain();
+  echoOut.gain.value = 0.55;
+  master.connect(delay);
+  delay.connect(echoFilter);
+  echoFilter.connect(feedback).connect(delay);
+  echoFilter.connect(echoOut).connect(out);
+
+  // distorção: deixa o rugido áspero
+  const shaper = ctx.createWaveShaper();
+  const curve = new Float32Array(1024);
+  const k = 38;
+  for (let i = 0; i < curve.length; i++) {
+    const x = (i * 2) / curve.length - 1;
+    curve[i] = ((1 + k) * x) / (1 + k * Math.abs(x));
+  }
+  shaper.curve = curve;
+  const shaped = ctx.createGain();
+  shaped.gain.value = 0.35;
+  shaper.connect(shaped).connect(master);
+
+  // rosnado: dentes-de-serra com vibrato rápido (a garganta tremendo)
+  const flutter = ctx.createOscillator();
+  flutter.frequency.value = 27;
+  const flutterDepth = ctx.createGain();
+  flutterDepth.gain.value = 13;
+  flutter.connect(flutterDepth);
+  flutter.start(t);
+  flutter.stop(t + dur);
+  const growl = ctx.createGain();
+  growl.gain.value = 0.45;
+  growl.connect(shaper);
+  [0.985, 1, 1.03, 2.01].forEach((m) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(58 * m, t);
+    osc.frequency.exponentialRampToValueAtTime(94 * m, t + 0.45);
+    osc.frequency.exponentialRampToValueAtTime(80 * m, t + 1.9);
+    osc.frequency.exponentialRampToValueAtTime(44 * m, t + dur);
+    flutterDepth.connect(osc.frequency);
+    osc.connect(growl);
+    osc.start(t);
+    osc.stop(t + dur);
+  });
+
+  // bramido: ruído por dois filtros que abrem e fecham como uma boca
+  const breath = ctx.createBufferSource();
+  breath.buffer = noiseBuffer(ctx, dur + 0.1);
+  (
+    [
+      [320, 760, 430, 4, 0.9],
+      [900, 1600, 780, 5, 0.5],
+    ] as const
+  ).forEach(([from, peak, end, q, vol]) => {
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.Q.value = q;
+    filter.frequency.setValueAtTime(from, t);
+    filter.frequency.exponentialRampToValueAtTime(peak, t + 0.5);
+    filter.frequency.exponentialRampToValueAtTime(end, t + dur);
+    const gain = ctx.createGain();
+    gain.gain.value = vol;
+    breath.connect(filter).connect(gain).connect(shaper);
+  });
+  breath.start(t);
+  breath.stop(t + dur + 0.1);
+
+  // sub: o chão tremendo
+  const sub = ctx.createOscillator();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(46, t);
+  sub.frequency.exponentialRampToValueAtTime(30, t + dur);
+  const subGain = ctx.createGain();
+  subGain.gain.value = 0.7;
+  sub.connect(subGain).connect(master);
+  sub.start(t);
+  sub.stop(t + dur);
+
+  return autoClose(ctx, 8000);
+}
+
+/** As asas do dragão passando pertinho de quem olha (duas batidas). */
+export function playDragonWhoosh(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.7);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  playWhoosh(ctx, out, t);
+  playWhoosh(ctx, out, t + 0.5);
+  playBoom(ctx, out, t + 0.1);
+  return autoClose(ctx, 2500);
+}
+
+/** O dragão pousando na pirâmide: um baque grave. */
+export function playDragonLanding(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.7);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  playBoom(ctx, out, ctx.currentTime + 0.05);
+  return autoClose(ctx, 2000);
+}
+
+/**
+ * A magia do dragão (~5.5s): o buraco negro nascendo (um grave que incha), a energia subindo
+ * e os relâmpagos estalando nas mãos.
+ */
+export function playArcaneSurge(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.55);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  // buraco negro: grave inchando
+  const hole = ctx.createOscillator();
+  hole.type = "sine";
+  hole.frequency.setValueAtTime(70, t);
+  hole.frequency.exponentialRampToValueAtTime(34, t + 5);
+  const holeGain = ctx.createGain();
+  holeGain.gain.setValueAtTime(0.0001, t);
+  holeGain.gain.exponentialRampToValueAtTime(0.7, t + 1.4);
+  holeGain.gain.exponentialRampToValueAtTime(0.0001, t + 5.4);
+  hole.connect(holeGain).connect(out);
+  hole.start(t);
+  hole.stop(t + 5.5);
+
+  playRiser(ctx, out, t, t + 1.4);
+
+  // estalos elétricos: rajadas curtas de ruído agudo em horas aleatórias
+  const crackle = noiseBuffer(ctx, 0.08);
+  for (let i = 0; i < 46; i++) {
+    const at = t + 1.2 + Math.random() * 4;
+    const src = ctx.createBufferSource();
+    src.buffer = crackle;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "highpass";
+    filter.frequency.value = 1800 + Math.random() * 2500;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.15 + Math.random() * 0.3, at + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.05 + Math.random() * 0.05);
+    src.connect(filter).connect(gain).connect(out);
+    src.start(at);
+    src.stop(at + 0.1);
+  }
+
+  // brilho mágico: um acorde agudo (Ré, Fá, Lá) que aparece e some
+  [86, 89, 93].forEach((midi, i) => playChime(ctx, out, midi, t + 1.3 + i * 0.12, 2.4, 0.07));
+
+  return autoClose(ctx, 7000);
+}
