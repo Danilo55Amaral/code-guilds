@@ -11,6 +11,15 @@ npm run dev
 
 Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ainda não tem conta clica em "Criar conta" e passa por: cadastro → escolha de casa → criação de avatar → academia.
 
+## Back end (API)
+
+A API fica na pasta [`api/`](api/README.md): Fastify + Kysely + PostgreSQL (Docker em desenvolvimento, Neon em produção), com login seguro (senhas com Argon2, sessões em cookie `httpOnly`), permissões de aluno, professor e ADM e limite de tentativas de login. A documentação completa (como rodar, banco, migrations, rotas, deploy gratuito no Render) está em [`api/README.md`](api/README.md).
+
+- **Fase 1 (API)**: professores, alunos, login, sessões e permissões.
+- **Fase 2 (site usando a API)**: as contas saíram do localStorage. Login, cadastro, perfil do aluno (casa, avatar, primeiro acesso), professores e a gestão de alunos nos painéis falam com a API (`src/engine/accounts.ts` + `src/services/api.ts`). O progresso do jogo (XP, moedas, inventário...) e o resto (missões, loja, mensagens, amigos, trocas) ainda ficam no navegador, até as fases 3 e 4.
+- Pra rodar: API no ar (`npm run dev` em `api/`) e o `.env.local` do site com `API_URL=http://localhost:3333` (o `next.config.js` repassa `/api/*` pra ela). Detalhes em [`api/README.md`](api/README.md#fase-2-o-site-usando-a-api).
+- O trabalho do back end está na branch `feat/backend`; a `main` segue como a demonstração só com localStorage.
+
 ## Fluxo completo
 
 1. `/entrar` — tela de login com duas abas: **Entrar** (login + senha) e **Criar conta** (nome, e-mail, turma, **professor**, login, senha). Vários alunos podem ter conta no mesmo navegador
@@ -24,7 +33,7 @@ Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ain
 9. `/professor` → `/professor/painel` — login e painel do professor: cada professor só vê e altera os próprios alunos e as próprias missões
 10. `/admin` → `/admin/painel` — login e Painel ADM (mesmas credenciais do Professor Danilo): professores, alunos e missões de toda a plataforma
 
-**Login do Professor Danilo / ADM (demo):** `danilo@codeguilds.com` / `prof123`, ou o código mestre `KAIROIS2024` nos dois campos. Outros professores são cadastrados pelo ADM e entram com o e-mail e a senha definidos lá.
+**Login do ADM:** na branch `feat/backend` as contas são da API: o ADM é criado pelo `npm run seed` da pasta `api/` (e-mail e senha do `api/.env`) e não existe mais código mestre. Outros professores são cadastrados pelo ADM e entram com o e-mail e a senha definidos lá. (Na `main`, a versão só com localStorage, continua valendo `danilo@codeguilds.com` / `prof123` ou o código mestre `KAIROIS2024`.)
 
 ## Estrutura
 
@@ -285,7 +294,7 @@ public/
 
 ## O que ainda não existe (próximos passos sugeridos)
 
-- Persistência real (hoje é 100% localStorage, por dispositivo/navegador — sem backend, sem sincronização entre alunos/professor; uma missão criada pelo professor num navegador não aparece pros alunos em outro dispositivo)
+- Persistência real no site (hoje é 100% localStorage, por dispositivo/navegador; uma missão criada pelo professor num navegador não aparece pros alunos em outro dispositivo). A API já existe (pasta `api/`, fase 1); falta ligar o site a ela (fase 2 em diante, ver `api/README.md`)
 - Mais missões/quizzes de exemplo
 - Autenticação real (o login de aluno e de professor aqui são simplificados: as senhas ficam em texto puro no localStorage, justamente pro professor conseguir ver — serve pra demonstração, não pra produção)
 

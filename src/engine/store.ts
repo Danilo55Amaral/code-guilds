@@ -1,32 +1,29 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Student,
-  listStudents,
-  getActiveStudentId,
-  setActiveStudentId,
-  getStudent,
-  createStudent,
-  removeStudent,
-  updateStudent,
-  reassignStudents,
-  login as loginStudent,
-  applyMissionReward,
-} from "./students";
+import { Student, listStudents, getActiveStudentId, getStudent, updateStudent, applyMissionReward } from "./students";
 import { Mission, hasPassed, isTaskMission } from "./missions";
 import { listMissions, createMission, updateMission, deleteMission, reassignMissions } from "./missionsStore";
+import { Teacher, listTeachers, getTeacherSessionId } from "./teachers";
 import {
-  Teacher,
-  listTeachers,
-  getTeacherSessionId,
-  setTeacherSessionId,
+  SignUpData,
+  StudentAccountPatch,
+  TeacherData,
+  createTeacherAccount,
+  deleteStudentAccount,
+  deleteTeacherAccount,
+  finishTeacherTutorial,
+  isSessionChecked,
+  logout as logoutAccount,
+  refreshAccounts,
+  setStudentPassword,
+  studentLogin,
+  studentSignUp,
+  syncOwnProfile,
   teacherLogin,
-  createTeacher,
-  updateTeacher,
-  removeTeacher,
-  markTeacherTutorialDone,
-} from "./teachers";
+  updateStudentAccount,
+  updateTeacherAccount,
+} from "./accounts";
 import {
   Message,
   MessageKind,
@@ -101,6 +98,11 @@ function useSyncOnChange(sync: () => void) {
   }, [sync]);
 }
 
+/**
+ * Alunos (cache das contas da API + progresso do jogo neste navegador), o
+ * aluno logado e as ações de conta. Login, cadastro e as mudanças de conta
+ * feitas pelo professor falam com a API, então devolvem uma Promise.
+ */
 export function useStudents() {
   const [students, setStudents] = useState<Student[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -109,68 +111,71 @@ export function useStudents() {
   const sync = useCallback(() => {
     setStudents(listStudents());
     setActiveId(getActiveStudentId());
-    setReady(true);
+    // só fica pronto depois de a API confirmar a sessão (ver isSessionChecked)
+    setReady(isSessionChecked());
   }, []);
 
   useSyncOnChange(sync);
 
-  const signUp = useCallback((data: { name: string; email: string; turma: string; username: string; password: string; teacherId: string }) => {
-    const s = createStudent(data);
-    emitChange();
-    return s;
+  // Confere a sessão e as listas com a API (no máximo a cada 5s, entre todas as telas)
+  useEffect(() => {
+    void refreshAccounts();
   }, []);
 
-  // Lê o aluno ativo direto do localStorage no momento da escrita, em vez de
+  const signUp = useCallback((data: SignUpData) => studentSignUp(data), []);
+
+  const login = useCallback((username: string, password: string) => studentLogin(username, password), []);
+
+  // Lê o aluno ativo direto do cache no momento da escrita, em vez de
   // confiar no estado local — evita salvar no aluno errado caso outra parte
-  // da tela tenha trocado o aluno ativo há pouco.
+  // da tela tenha trocado o aluno ativo há pouco. Se o patch mexer no perfil
+  // (avatar, casa, primeiro acesso, tutorial), a mudança também vai pra API.
   const patchActive = useCallback((patch: Partial<Student>) => {
     const id = getActiveStudentId();
     if (!id) return;
+    const before = getStudent(id);
     updateStudent(id, patch);
     emitChange();
+    if (before) syncOwnProfile(before, patch);
   }, []);
 
-  // Usado pelo painel do professor, que altera alunos que não são o ativo.
+  // Progresso do jogo de outro aluno (ex.: o professor tira um item do
+  // inventário). A conta do aluno (nome, login, casa...) muda pelo updateAccount.
   const patchStudent = useCallback((id: string, patch: Partial<Student>) => {
     updateStudent(id, patch);
     emitChange();
   }, []);
 
-  const login = useCallback((username: string, password: string) => {
-    const result = loginStudent(username, password);
-    if (result.ok) emitChange();
-    return result;
-  }, []);
+  /** Professor/ADM: altera a conta do aluno na API. Devolve o erro, ou null. */
+  const updateAccount = useCallback((id: string, patch: StudentAccountPatch) => updateStudentAccount(id, patch), []);
 
-  const selectStudent = useCallback((id: string) => {
-    setActiveStudentId(id);
-    emitChange();
-  }, []);
+  /** Professor/ADM: define uma senha nova pro aluno. Devolve o erro, ou null. */
+  const setPassword = useCallback((id: string, password: string) => setStudentPassword(id, password), []);
 
-  // Usado pelo professor. Se o aluno excluído era o ativo neste navegador,
-  // removeStudent já o desloga — não troca pra outro aluno, senão o próximo
-  // a abrir a Academia cairia na conta de outra pessoa.
-  const deleteStudent = useCallback((id: string) => {
+  // Usado pelo professor: exclui a conta na API e limpa o que o aluno tinha
+  // neste navegador. Se ele era o aluno ativo, removeStudent já o desloga.
+  const deleteStudent = useCallback(async (id: string): Promise<string | null> => {
+    const error = await deleteStudentAccount(id);
+    if (error) return error;
     deleteOffersOf(id);
     deleteTradesOf(id);
     deleteSubmissionsOf(id);
     deleteTeacherMessagesOf(id);
     deleteFriendsOf(id);
-    removeStudent(id);
     deleteMessagesOf(id);
     emitChange();
+    return null;
   }, []);
 
   const logout = useCallback(() => {
-    setActiveStudentId(null);
-    emitChange();
+    void logoutAccount();
   }, []);
 
   const refresh = sync;
 
   const activeStudent = students.find((s) => s.id === activeId) ?? null;
 
-  return { students, activeStudent, activeId, ready, signUp, login, patchActive, patchStudent, selectStudent, deleteStudent, logout, refresh };
+  return { students, activeStudent, activeId, ready, signUp, login, patchActive, patchStudent, updateAccount, setPassword, deleteStudent, logout, refresh };
 }
 
 export function useMissions() {
@@ -294,7 +299,7 @@ export function useBroadcasts(senderId: string) {
   return { broadcasts, broadcast };
 }
 
-/** Professores cadastrados, o professor logado (sessão) e o CRUD usado pelo Painel ADM. */
+/** Professores (cache da API), o professor logado (sessão) e o CRUD usado pelo Painel ADM. */
 export function useTeachers() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -303,48 +308,39 @@ export function useTeachers() {
   const sync = useCallback(() => {
     setTeachers(listTeachers());
     setSessionId(getTeacherSessionId());
-    setReady(true);
+    setReady(isSessionChecked());
   }, []);
 
   useSyncOnChange(sync);
 
-  const login = useCallback((email: string, password: string, adminOnly = false) => {
-    const result = teacherLogin(email, password, adminOnly);
-    if (result.ok) emitChange();
-    return result;
+  useEffect(() => {
+    void refreshAccounts();
   }, []);
+
+  const login = useCallback((email: string, password: string, adminOnly = false) => teacherLogin(email, password, adminOnly), []);
 
   const logout = useCallback(() => {
-    setTeacherSessionId(null);
-    emitChange();
+    void logoutAccount();
   }, []);
 
-  const addTeacher = useCallback((data: { name: string; email: string; password: string }) => {
-    const t = createTeacher(data);
-    emitChange();
-    return t;
-  }, []);
+  const addTeacher = useCallback((data: TeacherData) => createTeacherAccount(data), []);
 
-  const editTeacher = useCallback((id: string, patch: { name?: string; email?: string; password?: string }) => {
-    updateTeacher(id, patch);
-    emitChange();
-  }, []);
+  const editTeacher = useCallback((id: string, data: TeacherData) => updateTeacherAccount(id, data), []);
 
-  // Os alunos e as missões do professor excluído passam pro professor escolhido
-  // (heirId) — ninguém fica sem professor nem missão fica sem dono.
-  const deleteTeacher = useCallback((id: string, heirId: string) => {
-    if (id === heirId) return;
-    reassignStudents(id, heirId);
+  // Os alunos (na API) e as missões e eventos (neste navegador) do professor
+  // excluído passam pro professor escolhido (heirId) — ninguém fica sem
+  // professor nem missão fica sem dono.
+  const deleteTeacher = useCallback(async (id: string, heirId: string): Promise<string | null> => {
+    if (id === heirId) return "Escolha outro professor para receber os alunos.";
+    const error = await deleteTeacherAccount(id, heirId);
+    if (error) return error;
     reassignMissions(id, heirId);
     deleteEventRunsOf(id);
-    removeTeacher(id);
     emitChange();
+    return null;
   }, []);
 
-  const finishTutorial = useCallback((id: string) => {
-    markTeacherTutorialDone(id);
-    emitChange();
-  }, []);
+  const finishTutorial = useCallback((id: string) => finishTeacherTutorial(id), []);
 
   const currentTeacher = teachers.find((t) => t.id === sessionId) ?? null;
 

@@ -10,6 +10,8 @@ function Label({ children }: { children: React.ReactNode }) {
 /**
  * Cadastro/edição de professor no Painel ADM. Ao excluir, os alunos e as
  * missões do professor passam pra outro professor escolhido aqui.
+ * A senha nunca aparece (a API só guarda o hash): na edição, deixar o campo
+ * em branco mantém a senha atual.
  */
 export default function TeacherEditor({
   existingTeacher,
@@ -24,22 +26,33 @@ export default function TeacherEditor({
   teachers: Teacher[];
   studentCount: number;
   missionCount: number;
-  /** Devolve a mensagem de erro, ou null se salvou. */
-  onSave: (data: { name: string; email: string; password: string }) => string | null;
-  /** Não é passado pro ADM nem num cadastro novo. */
-  onDelete?: (heirId: string) => void;
+  /** Salva na API; devolve a mensagem de erro, ou null se salvou. */
+  onSave: (data: { name: string; email: string; password: string }) => Promise<string | null>;
+  /** Não é passado pro ADM nem num cadastro novo. Devolve a mensagem de erro, ou null se excluiu. */
+  onDelete?: (heirId: string) => Promise<string | null>;
   onClose: () => void;
 }) {
   const [name, setName] = useState(existingTeacher?.name ?? "");
   const [email, setEmail] = useState(existingTeacher?.email ?? "");
-  const [password, setPassword] = useState(existingTeacher?.password ?? "");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const heirOptions = teachers.filter((t) => t.id !== existingTeacher?.id);
   const [heirId, setHeirId] = useState(heirOptions.find((t) => t.isAdmin)?.id ?? heirOptions[0]?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  function handleSave() {
-    const problem = onSave({ name, email, password });
+  async function handleSave() {
+    setBusy(true);
+    const problem = await onSave({ name, email, password });
+    setBusy(false);
+    setError(problem);
+  }
+
+  async function handleDelete() {
+    if (!onDelete) return;
+    setBusy(true);
+    const problem = await onDelete(heirId);
+    setBusy(false);
     setError(problem);
   }
 
@@ -66,8 +79,15 @@ export default function TeacherEditor({
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ada@codeguilds.com" className="cg-input" />
             </div>
             <div>
-              <Label>Senha</Label>
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder={`mín. ${MIN_TEACHER_PASSWORD_LENGTH} caracteres`} className="cg-input" />
+              <Label>{existingTeacher ? "Nova senha (opcional)" : "Senha"}</Label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder={existingTeacher ? "deixe em branco para manter a atual" : `mín. ${MIN_TEACHER_PASSWORD_LENGTH} caracteres`}
+                autoComplete="new-password"
+                className="cg-input"
+              />
             </div>
             {existingTeacher?.isAdmin && (
               <p className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-2 text-[11px] text-violet-200">
@@ -97,9 +117,9 @@ export default function TeacherEditor({
                 <p className="mb-3 text-xs text-slate-400">Este professor não tem alunos nem missões.</p>
               )}
               <button
-                onClick={() => (confirmDelete ? onDelete(heirId) : setConfirmDelete(true))}
+                onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
                 onBlur={() => setConfirmDelete(false)}
-                disabled={!heirId}
+                disabled={!heirId || busy}
                 className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-30 ${
                   confirmDelete ? "border-rose-400 bg-rose-400/20 text-rose-200" : "border-rose-500/30 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10"
                 }`}
@@ -116,10 +136,10 @@ export default function TeacherEditor({
           </button>
           <button
             onClick={handleSave}
-            disabled={!name.trim() || !email.trim() || !password}
+            disabled={!name.trim() || !email.trim() || (!existingTeacher && !password) || busy}
             className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30"
           >
-            {existingTeacher ? "Salvar" : "Cadastrar professor"}
+            {busy ? "Salvando…" : existingTeacher ? "Salvar" : "Cadastrar professor"}
           </button>
         </div>
       </div>

@@ -7,7 +7,7 @@ import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useSh
 import StudentMessagesInbox from "@/components/StudentMessagesInbox";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
-import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
@@ -27,7 +27,7 @@ import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, 
 export default function PainelProfessorPage() {
   const router = useRouter();
   const { currentTeacher, ready: teachersReady, logout: teacherLogout, finishTutorial } = useTeachers();
-  const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
+  const { students: allStudents, ready, patchStudent, updateAccount, setPassword, deleteStudent } = useStudents();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
   const { items: shopItems } = useShop();
@@ -120,31 +120,40 @@ export default function PainelProfessorPage() {
     sendMessage({ studentId: selectedStudent.id, senderId: teacher.id, ...data });
   }
 
-  function handleUpdateProfile(profile: StudentProfile): string | null {
+  // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
+  // devolve a mensagem de erro (ou null) pra ficha do aluno mostrar.
+
+  async function handleUpdateProfile(profile: StudentProfile): Promise<string | null> {
     if (!selectedStudent) return null;
     const error = validateStudentProfile(profile);
     if (error) return error;
-    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
-    return null;
+    return updateAccount(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
   }
 
-  function handleChangeHouse(houseId: HouseId) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
-  }
-
-  function handleUpdateCredentials(username: string, password: string): string | null {
+  // Se o aluno ainda estava escolhendo a casa, a API já o passa pra etapa do avatar
+  async function handleChangeHouse(houseId: HouseId): Promise<string | null> {
     if (!selectedStudent) return null;
-    const error = validateCredentials(username, password, selectedStudent.id);
-    if (error) return error;
-    patchStudent(selectedStudent.id, { username: normalizeUsername(username), password });
-    return null;
+    return updateAccount(selectedStudent.id, { houseId });
   }
 
-  function handleDeleteStudent() {
-    if (!selectedStudent) return;
-    deleteStudent(selectedStudent.id);
-    setSelectedStudentId(null);
+  // Senha em branco = mantém a atual (só vale se o aluno já tem senha)
+  async function handleUpdateCredentials(username: string, password: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = validateCredentials(username, password, selectedStudent.hasPassword);
+    if (error) return error;
+    const login = normalizeUsername(username);
+    if (login !== selectedStudent.username) {
+      const loginError = await updateAccount(selectedStudent.id, { username: login });
+      if (loginError) return loginError;
+    }
+    return password ? setPassword(selectedStudent.id, password) : null;
+  }
+
+  async function handleDeleteStudent(): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = await deleteStudent(selectedStudent.id);
+    if (!error) setSelectedStudentId(null);
+    return error;
   }
 
   function closeTutorial() {

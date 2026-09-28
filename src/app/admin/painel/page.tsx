@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions } from "@/engine/store";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
-import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
@@ -33,7 +33,7 @@ const ALL_TEACHERS = "todos";
 export default function PainelAdminPage() {
   const router = useRouter();
   const { teachers, currentTeacher, ready: teachersReady, logout, addTeacher, editTeacher, deleteTeacher } = useTeachers();
-  const { students, ready, patchStudent, deleteStudent } = useStudents();
+  const { students, ready, patchStudent, updateAccount, setPassword, deleteStudent } = useStudents();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { items: shopItems } = useShop();
   const { give } = useGifts();
@@ -82,21 +82,24 @@ export default function PainelAdminPage() {
 
   // ---- professores ----
 
-  function handleSaveTeacher(data: { name: string; email: string; password: string }): string | null {
+  // Cadastro, edição e exclusão acontecem na API; o editor mostra o erro que voltar.
+  async function handleSaveTeacher(data: { name: string; email: string; password: string }): Promise<string | null> {
     const existing = teacherTarget && teacherTarget !== "new" ? teacherTarget : null;
-    const error = validateTeacher(data, existing?.id);
+    const error = validateTeacher(data, !!existing);
     if (error) return error;
-    if (existing) editTeacher(existing.id, data);
-    else addTeacher(data);
+    const apiError = existing ? await editTeacher(existing.id, data) : await addTeacher(data);
+    if (apiError) return apiError;
     setTeacherTarget(null);
     return null;
   }
 
-  function handleDeleteTeacher(heirId: string) {
-    if (!teacherTarget || teacherTarget === "new") return;
-    deleteTeacher(teacherTarget.id, heirId);
+  async function handleDeleteTeacher(heirId: string): Promise<string | null> {
+    if (!teacherTarget || teacherTarget === "new") return null;
+    const error = await deleteTeacher(teacherTarget.id, heirId);
+    if (error) return error;
     if (teacherFilter === teacherTarget.id) setTeacherFilter(ALL_TEACHERS);
     setTeacherTarget(null);
+    return null;
   }
 
   // ---- missões ----
@@ -158,36 +161,45 @@ export default function PainelAdminPage() {
     sendMessage({ studentId: selectedStudent.id, senderId: admin.id, ...data });
   }
 
-  function handleUpdateProfile(profile: StudentProfile): string | null {
+  // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
+  // devolve a mensagem de erro (ou null) pra ficha do aluno mostrar.
+
+  async function handleUpdateProfile(profile: StudentProfile): Promise<string | null> {
     if (!selectedStudent) return null;
     const error = validateStudentProfile(profile);
     if (error) return error;
-    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
-    return null;
+    return updateAccount(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
   }
 
-  function handleChangeHouse(houseId: HouseId) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
-  }
-
-  function handleUpdateCredentials(username: string, password: string): string | null {
+  // Se o aluno ainda estava escolhendo a casa, a API já o passa pra etapa do avatar
+  async function handleChangeHouse(houseId: HouseId): Promise<string | null> {
     if (!selectedStudent) return null;
-    const error = validateCredentials(username, password, selectedStudent.id);
+    return updateAccount(selectedStudent.id, { houseId });
+  }
+
+  // Senha em branco = mantém a atual (só vale se o aluno já tem senha)
+  async function handleUpdateCredentials(username: string, password: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = validateCredentials(username, password, selectedStudent.hasPassword);
     if (error) return error;
-    patchStudent(selectedStudent.id, { username: normalizeUsername(username), password });
-    return null;
+    const login = normalizeUsername(username);
+    if (login !== selectedStudent.username) {
+      const loginError = await updateAccount(selectedStudent.id, { username: login });
+      if (loginError) return loginError;
+    }
+    return password ? setPassword(selectedStudent.id, password) : null;
   }
 
-  function handleChangeTeacher(teacherId: string) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { teacherId });
+  async function handleChangeTeacher(teacherId: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return updateAccount(selectedStudent.id, { teacherId });
   }
 
-  function handleDeleteStudent() {
-    if (!selectedStudent) return;
-    deleteStudent(selectedStudent.id);
-    setSelectedStudentId(null);
+  async function handleDeleteStudent(): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = await deleteStudent(selectedStudent.id);
+    if (!error) setSelectedStudentId(null);
+    return error;
   }
 
   function handleLogout() {

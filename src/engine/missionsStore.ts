@@ -5,10 +5,18 @@
 // navegador, o localStorage é semeado com as 4 missões padrão.
 // Cada missão pertence a um professor (teacherId); as padrão e as salvas
 // antes de existir professor ficam com o professor padrão (Danilo).
+// Com o back end, o "professor padrão" é o ADM da API: as missões com o id
+// antigo (t_danilo) passam pra ele assim que o site sabe quem é o ADM.
 // ============================================================================
 
 import { Mission, MISSIONS as SEED_MISSIONS, normalizeRewardItem } from "./missions";
-import { DEFAULT_TEACHER_ID } from "./teachers";
+import { DEFAULT_TEACHER_ID, getAdminTeacherId } from "./teachers";
+
+/** Dono de uma missão: as sem professor ou do professor-semente ficam com o ADM. */
+function ownerOf(teacherId: string | undefined): string {
+  const id = teacherId ?? DEFAULT_TEACHER_ID;
+  return id === DEFAULT_TEACHER_ID ? getAdminTeacherId() ?? DEFAULT_TEACHER_ID : id;
+}
 
 const MISSIONS_KEY = "cg-missions";
 
@@ -30,13 +38,13 @@ function readAll(): Mission[] {
     const raw = window.localStorage.getItem(MISSIONS_KEY);
     if (!raw) {
       writeAll(DEFAULT_MISSIONS);
-      return DEFAULT_MISSIONS;
+      return DEFAULT_MISSIONS.map((m) => ({ ...m, teacherId: ownerOf(m.teacherId) }));
     }
     // Missões salvas antes de o item ter valor/XP ganham os padrões da raridade;
-    // as de antes de existir professor ficam com o professor padrão.
+    // as de antes de existir professor ficam com o professor padrão (o ADM).
     return (JSON.parse(raw) as Mission[]).map((m) => ({
       ...m,
-      teacherId: m.teacherId ?? DEFAULT_TEACHER_ID,
+      teacherId: ownerOf(m.teacherId),
       rewardItem: normalizeRewardItem(m.rewardItem),
     }));
   } catch {

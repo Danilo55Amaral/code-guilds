@@ -74,15 +74,16 @@ export default function StudentDetails({
   onGrantItem: (item: GiftItem) => void;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
-  onDeleteStudent: () => void;
-  /** Troca login/senha; devolve a mensagem de erro, ou null se salvou. */
-  onUpdateCredentials: (username: string, password: string) => string | null;
+  /** Exclui o aluno na API; devolve a mensagem de erro, ou null se excluiu. */
+  onDeleteStudent: () => Promise<string | null>;
+  /** Troca o login e, se vier, a senha (em branco = mantém); devolve a mensagem de erro, ou null se salvou. */
+  onUpdateCredentials: (username: string, password: string) => Promise<string | null>;
   /** Troca nome, e-mail e turma; devolve a mensagem de erro, ou null se salvou. */
-  onUpdateProfile: (profile: StudentProfile) => string | null;
-  onChangeHouse: (houseId: HouseId) => void;
+  onUpdateProfile: (profile: StudentProfile) => Promise<string | null>;
+  onChangeHouse: (houseId: HouseId) => Promise<string | null>;
   /** Só o Painel ADM passa: permite trocar o professor do aluno. */
   teachers?: Teacher[];
-  onChangeTeacher?: (teacherId: string) => void;
+  onChangeTeacher?: (teacherId: string) => Promise<string | null>;
   /** Itens da Loja que dá pra doar (o professor não vê os fora da vitrine nem os de espaço). */
   shopItems: ShopItem[];
   /** Painel ADM: pode doar qualquer item da Loja. */
@@ -98,10 +99,13 @@ export default function StudentDetails({
   const [sentMsg, setSentMsg] = useState<string | null>(null);
   const messagesPager = usePagination(messages, MESSAGES_PER_PAGE);
   const [confirmDeleteStudent, setConfirmDeleteStudent] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  // Erro da API ao excluir, trocar de casa ou trocar de professor
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [editingAccess, setEditingAccess] = useState(false);
   const [newUsername, setNewUsername] = useState(student.username);
-  const [newPassword, setNewPassword] = useState(student.password);
+  // A senha atual nunca aparece (a API só guarda o hash): aqui só se digita uma nova
+  const [newPassword, setNewPassword] = useState("");
   const [accessError, setAccessError] = useState<string | null>(null);
   const [accessSaved, setAccessSaved] = useState(false);
   const [editingProfile, setEditingProfile] = useState(false);
@@ -111,11 +115,26 @@ export default function StudentDetails({
 
   const [houseSaved, setHouseSaved] = useState<string | null>(null);
 
-  function handleChangeHouse(houseId: HouseId) {
+  async function handleChangeHouse(houseId: HouseId) {
     if (houseId === student.houseId) return;
-    onChangeHouse(houseId);
+    const error = await onChangeHouse(houseId);
+    setAccountError(error);
+    if (error) return;
     setHouseSaved(`${student.name} agora é da ${getHouse(houseId).name}.`);
     setTimeout(() => setHouseSaved(null), 3000);
+  }
+
+  async function handleChangeTeacher(teacherId: string) {
+    if (!onChangeTeacher || teacherId === student.teacherId) return;
+    setAccountError(await onChangeTeacher(teacherId));
+  }
+
+  async function handleDeleteStudent() {
+    setBusy(true);
+    const error = await onDeleteStudent();
+    setBusy(false);
+    setAccountError(error);
+    setConfirmDeleteStudent(false);
   }
 
   function startEditingProfile() {
@@ -124,8 +143,10 @@ export default function StudentDetails({
     setEditingProfile(true);
   }
 
-  function saveProfile() {
-    const error = onUpdateProfile(profile);
+  async function saveProfile() {
+    setBusy(true);
+    const error = await onUpdateProfile(profile);
+    setBusy(false);
     setProfileError(error);
     if (error) return;
     setEditingProfile(false);
@@ -135,13 +156,15 @@ export default function StudentDetails({
 
   function startEditingAccess() {
     setNewUsername(student.username);
-    setNewPassword(student.password);
+    setNewPassword("");
     setAccessError(null);
     setEditingAccess(true);
   }
 
-  function saveAccess() {
-    const error = onUpdateCredentials(newUsername, newPassword);
+  async function saveAccess() {
+    setBusy(true);
+    const error = await onUpdateCredentials(newUsername, newPassword);
+    setBusy(false);
     setAccessError(error);
     if (error) return;
     setEditingAccess(false);
@@ -188,8 +211,9 @@ export default function StudentDetails({
               📨 Enviar mensagem
             </button>
             <button
-              onClick={() => (confirmDeleteStudent ? onDeleteStudent() : setConfirmDeleteStudent(true))}
+              onClick={() => (confirmDeleteStudent ? handleDeleteStudent() : setConfirmDeleteStudent(true))}
               onBlur={() => setConfirmDeleteStudent(false)}
+              disabled={busy}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
                 confirmDeleteStudent ? "border-rose-400 bg-rose-400/20 text-rose-200" : "border-rose-500/30 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10"
               }`}
@@ -203,6 +227,7 @@ export default function StudentDetails({
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {accountError && <p className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-xs text-rose-200">{accountError}</p>}
           {confirmDeleteStudent && (
             <p className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/5 px-4 py-3 text-xs text-rose-200">
               Excluir apaga {student.name} da plataforma, junto com inventário, progresso e mensagens. Não dá pra desfazer.
@@ -285,7 +310,7 @@ export default function StudentDetails({
                 <InfoRow label="Professor">
                   <select
                     value={student.teacherId}
-                    onChange={(e) => onChangeTeacher(e.target.value)}
+                    onChange={(e) => handleChangeTeacher(e.target.value)}
                     className="rounded-lg border border-slate-700 bg-cg-sunken px-2 py-1 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
                   >
                     {teachers.map((t) => (
@@ -388,8 +413,8 @@ export default function StudentDetails({
                   <button onClick={() => setEditingProfile(false)} className="cg-btn-secondary !px-4 !py-2 text-xs">
                     Cancelar
                   </button>
-                  <button onClick={saveProfile} className="cg-btn-primary !px-4 !py-2 text-xs">
-                    Salvar dados
+                  <button onClick={saveProfile} disabled={busy} className="cg-btn-primary !px-4 !py-2 text-xs disabled:opacity-50">
+                    {busy ? "Salvando…" : "Salvar dados"}
                   </button>
                 </div>
               </div>
@@ -418,15 +443,23 @@ export default function StudentDetails({
               <div className="flex flex-col gap-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Login" className="cg-input" />
-                  <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Nova senha" className="cg-input" />
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder={student.hasPassword ? "Nova senha (em branco = mantém)" : "Senha (obrigatória)"}
+                    autoComplete="new-password"
+                    className="cg-input"
+                  />
                 </div>
+                <p className="text-[11px] text-slate-500">Por segurança, ninguém vê a senha do aluno. Se ele esquecer, defina uma nova aqui.</p>
                 {accessError && <p className="text-xs text-rose-300">{accessError}</p>}
                 <div className="flex justify-end gap-2">
                   <button onClick={() => setEditingAccess(false)} className="cg-btn-secondary !px-4 !py-2 text-xs">
                     Cancelar
                   </button>
-                  <button onClick={saveAccess} className="cg-btn-primary !px-4 !py-2 text-xs">
-                    Salvar acesso
+                  <button onClick={saveAccess} disabled={busy} className="cg-btn-primary !px-4 !py-2 text-xs disabled:opacity-50">
+                    {busy ? "Salvando…" : "Salvar acesso"}
                   </button>
                 </div>
               </div>
@@ -436,13 +469,8 @@ export default function StudentDetails({
                   <span className="font-mono">{student.username}</span>
                 </InfoRow>
                 <InfoRow label="Senha">
-                  {student.password ? (
-                    <span className="inline-flex items-center gap-2">
-                      <span className="font-mono">{showPassword ? student.password : "•".repeat(student.password.length)}</span>
-                      <button onClick={() => setShowPassword((v) => !v)} title={showPassword ? "Esconder senha" : "Mostrar senha"} className="text-xs opacity-70 hover:opacity-100">
-                        {showPassword ? "🙈" : "👁"}
-                      </button>
-                    </span>
+                  {student.hasPassword ? (
+                    <span className="text-slate-300">🔒 Definida (só o aluno sabe)</span>
                   ) : (
                     <span className="text-amber-300">⚠️ Sem senha — clique em Alterar para definir</span>
                   )}
