@@ -3,14 +3,15 @@
 //
 // A API é a dona das CONTAS: login, cadastro, sessão (cookie httpOnly),
 // professores e o perfil do aluno (nome, e-mail, turma, login, professor,
-// casa, avatar, etapa do primeiro acesso e tutorial). O PROGRESSO DO JOGO
-// (nível, XP, moedas, inventário, missões feitas...) continua no navegador
-// até as próximas fases.
+// casa, avatar, etapa do primeiro acesso e tutorial). Desde a fase 3, também
+// é dona do PROGRESSO DO JOGO (nível, XP, moedas, inventário, missões feitas),
+// das missões, da Loja, das amizades, das ofertas, das trocas e da agenda dos eventos.
 //
-// Tudo que a API devolve vai pros mesmos localStorage de antes ("cg-teachers"
-// e "cg-students"), que viraram um cache: as telas continuam lendo na hora,
-// sem esperar a rede, e o refreshAccounts() atualiza o cache em segundo
-// plano. Toda escrita termina com emitChange(), igual ao resto do engine,
+// Tudo que a API devolve vai pros mesmos localStorage de antes ("cg-teachers",
+// "cg-students" e, desde a fase 3, "cg-missions", "cg-shop", "cg-friends",
+// "cg-offers", "cg-trades" e "cg-event-runs"), que viraram um cache: as
+// telas continuam lendo na hora, sem esperar a rede, e o refreshFromApi()
+// atualiza o cache em segundo plano. Toda escrita termina com emitChange(), igual ao resto do engine,
 // então os hooks do store.ts se atualizam sozinhos.
 // ============================================================================
 
@@ -29,6 +30,13 @@ import {
   updateStudent,
 } from "./students";
 import { Teacher, TeacherLoginResult, forgetTeacher, getTeacher, saveTeachers, setTeacherSessionId } from "./teachers";
+import { Mission } from "./missions";
+import { saveMissions } from "./missionsStore";
+import { ShopItemFromApi, saveShopItems } from "./shop";
+import { FriendLink, saveFriendLinks } from "./friends";
+import { Offer, saveOffers } from "./market";
+import { Trade, saveTrades } from "./trades";
+import { EventRuns, saveEventRuns } from "./eventSchedule";
 import type { HouseId } from "./houses";
 
 type MeResponse = { role: "professor"; teacher: Teacher } | { role: "aluno"; student: StudentAccount };
@@ -65,13 +73,13 @@ export function isSessionChecked(): boolean {
 }
 
 /**
- * Busca na API quem está logado e as listas que essa pessoa pode ver, e
- * atualiza o cache. Chamado pelos hooks ao abrir as telas (no máximo a cada
+ * Busca na API quem está logado e as listas que essa pessoa pode ver (alunos,
+ * professores e missões), e atualiza o cache. Chamado pelos hooks ao abrir as telas (no máximo a cada
  * 5 segundos, a não ser com `force`) e depois de login, cadastro e edições.
  */
-export function refreshAccounts(force = false): Promise<void> {
+export function refreshFromApi(force = false): Promise<void> {
   // Já tem uma em andamento: com `force`, roda outra logo depois dela (ela pode ser de antes de um login)
-  if (refreshing) return force ? refreshing.then(() => refreshAccounts(true)) : refreshing;
+  if (refreshing) return force ? refreshing.then(() => refreshFromApi(true)) : refreshing;
   if (!force && sessionChecked && Date.now() - lastRefreshAt < REFRESH_INTERVAL_MS) return Promise.resolve();
   lastRefreshAt = Date.now();
   refreshing = syncWithApi().finally(() => {
@@ -101,15 +109,22 @@ async function syncWithApi() {
     if (me?.role === "professor") {
       setTeacherSessionId(me.teacher.id);
       setActiveStudentId(null);
+      forgetStudentSocial();
       saveTeachers([me.teacher], false);
-      const [{ students }, teachers] = await Promise.all([
+      const [{ students }, teachers, { missions }, { items }, { runs }] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students"),
         me.teacher.isAdmin ? api.get<{ teachers: Teacher[] }>("/teachers/admin") : api.get<{ teachers: Teacher[] }>("/teachers"),
+        api.get<{ missions: Mission[] }>("/missions"),
+        api.get<{ items: ShopItemFromApi[] }>("/shop"),
+        api.get<{ runs: EventRuns }>("/events/runs"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
       setVisibleStudentIds(students.map((s) => s.id));
       saveTeachers(teachers.teachers, true);
+      saveMissions(missions);
+      saveShopItems(items);
+      saveEventRuns(runs);
       return;
     }
 
@@ -117,14 +132,26 @@ async function syncWithApi() {
       setActiveStudentId(me.student.id);
       setTeacherSessionId(null);
       saveStudentAccounts([me.student]);
-      const [{ students }, { teachers }] = await Promise.all([
+      const [{ students }, { teachers }, { missions }, { items }, { friendships }, offers, trades, { runs }] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students/community"),
         api.get<{ teachers: Teacher[] }>("/teachers"),
+        api.get<{ missions: Mission[] }>("/missions"),
+        api.get<{ items: ShopItemFromApi[] }>("/shop"),
+        api.get<{ friendships: FriendLink[] }>("/friends"),
+        api.get<{ received: Offer[]; sent: Offer[] }>("/offers"),
+        api.get<{ received: Trade[]; sent: Trade[] }>("/trades"),
+        api.get<{ runs: EventRuns }>("/events/runs"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
       setVisibleStudentIds(students.map((s) => s.id));
       saveTeachers(teachers, true);
+      saveMissions(missions);
+      saveShopItems(items);
+      saveFriendLinks(friendships);
+      saveOffers([...offers.received, ...offers.sent]);
+      saveTrades([...trades.received, ...trades.sent]);
+      saveEventRuns(runs);
       return;
     }
 
@@ -132,6 +159,8 @@ async function syncWithApi() {
     // professores (a tela de cadastro do aluno precisa dela).
     setTeacherSessionId(null);
     setActiveStudentId(null);
+    forgetStudentSocial();
+    saveEventRuns({});
     const { teachers } = await api.get<{ teachers: Teacher[] }>("/teachers");
     if (outdated()) return;
     saveTeachers(teachers, true);
@@ -140,12 +169,19 @@ async function syncWithApi() {
   }
 }
 
+/** Amizades, ofertas e trocas só existem pro aluno logado: sem aluno, o cache fica vazio. */
+function forgetStudentSocial() {
+  saveFriendLinks([]);
+  saveOffers([]);
+  saveTrades([]);
+}
+
 // Quando a pessoa volta pra aba (depois de usar outro programa ou outra aba),
 // o site confere de novo com a API: um aluno novo aparece pro professor, uma
 // sessão encerrada em outro lugar sai daqui.
 if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") void refreshAccounts();
+    if (document.visibilityState === "visible") void refreshFromApi();
   });
 }
 
@@ -162,7 +198,7 @@ export async function studentLogin(username: string, password: string): Promise<
     setTeacherSessionId(null);
     setActiveStudentId(student.id);
     emitChange();
-    void refreshAccounts(true);
+    void refreshFromApi(true);
     return { ok: true, student: getStudent(student.id)! };
   } catch (error) {
     return { ok: false, error: describeError(error) };
@@ -178,16 +214,16 @@ export interface SignUpData {
   teacherId: string;
 }
 
-/** Cadastro do aluno: a API cria a conta e já deixa ele logado. Ele ganha o presente de boas-vindas. */
+/** Cadastro do aluno: a API cria a conta (já com o presente de boas-vindas) e deixa ele logado. */
 export async function studentSignUp(data: SignUpData): Promise<LoginResult> {
   try {
     const { student } = await api.post<{ student: StudentAccount }>("/students", data);
     markSessionChanged();
-    saveStudentAccounts([student], true);
+    saveStudentAccounts([student]);
     setTeacherSessionId(null);
     setActiveStudentId(student.id);
     emitChange();
-    void refreshAccounts(true);
+    void refreshFromApi(true);
     return { ok: true, student: getStudent(student.id)! };
   } catch (error) {
     return { ok: false, error: describeError(error) };
@@ -214,7 +250,7 @@ export async function teacherLogin(email: string, password: string, adminOnly = 
     setActiveStudentId(null);
     setTeacherSessionId(teacher.id);
     emitChange();
-    void refreshAccounts(true);
+    void refreshFromApi(true);
     return { ok: true, teacher };
   } catch (error) {
     return { ok: false, error: describeError(error) };

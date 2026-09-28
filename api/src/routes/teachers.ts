@@ -149,7 +149,7 @@ export async function teachersRoutes(app: FastifyInstance) {
     })
 
     // Excluindo um professor (só o ADM).
-    // Os alunos do professor excluído passam para o professor escolhido em
+    // Os alunos e as missões do professor excluído passam para o professor escolhido em
     // ?heirId=... (o "herdeiro"); sem ele, passam para o ADM que fez a exclusão.
     // A transação garante que as duas coisas acontecem juntas: ou move os
     // alunos E exclui o professor, ou (se algo der errado) não faz nada.
@@ -188,6 +188,12 @@ export async function teachersRoutes(app: FastifyInstance) {
         await db.transaction().execute(async (trx) => {
             await trx
                 .updateTable('students')
+                .set({ teacherId: heirId })
+                .where('teacherId', '=', id)
+                .execute()
+
+            await trx
+                .updateTable('missions')
                 .set({ teacherId: heirId })
                 .where('teacherId', '=', id)
                 .execute()

@@ -4,7 +4,6 @@
 // digita nada. Cada mensagem guarda apenas o id do balão, e a tela só mostra
 // balões que existem no catálogo, então nenhum texto livre aparece na
 // conversa, nem mexendo no localStorage.
-// Mesmo padrão de CRUD em localStorage dos outros engines.
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -283,7 +282,7 @@ export interface FriendLink {
   toId: string;
   status: "pendente" | "aceito";
   createdAt: string;
-  acceptedAt?: string;
+  acceptedAt?: string | null;
 }
 
 /** A situação entre o aluno logado e outro aluno. */
@@ -306,8 +305,28 @@ function write<T>(key: string, items: T[]) {
   window.localStorage.setItem(key, JSON.stringify(items));
 }
 
+// Desde a fase 3 do back end, os pedidos e as amizades são da API (tabela
+// friendships): aqui fica só o cache ("cg-friends") dos vínculos do aluno
+// logado. As chamadas (pedir, aceitar, recusar, desfazer) ficam em
+// engine/socialApi.ts. A conversa continua neste navegador até a fase 4.
+
 export function listFriendLinks(): FriendLink[] {
   return read<FriendLink>(FRIENDS_KEY);
+}
+
+/** Troca o cache pelos vínculos que a API devolveu. */
+export function saveFriendLinks(links: FriendLink[]) {
+  write(FRIENDS_KEY, links);
+}
+
+/** Um vínculo novo ou alterado (pedido, amizade aceita) que a API confirmou. */
+export function rememberFriendLink(link: FriendLink) {
+  write(FRIENDS_KEY, [...listFriendLinks().filter((l) => l.id !== link.id), link]);
+}
+
+/** Um vínculo que a API apagou (pedido recusado/cancelado, amizade desfeita). */
+export function forgetFriendLink(linkId: string) {
+  write(FRIENDS_KEY, listFriendLinks().filter((l) => l.id !== linkId));
 }
 
 function linkBetween(links: FriendLink[], a: string, b: string): FriendLink | undefined {
@@ -325,39 +344,8 @@ export function areFriends(a: string, b: string): boolean {
   return linkBetween(listFriendLinks(), a, b)?.status === "aceito";
 }
 
-export type FriendRequestResult = { ok: true; accepted: boolean } | { ok: false; error: string };
-
-/**
- * Manda um pedido de amizade. Se o outro aluno já tinha mandado um pedido pra
- * este, os dois viram amigos na hora (`accepted: true`).
- */
-export function sendFriendRequest(fromId: string, toId: string): FriendRequestResult {
-  if (fromId === toId) return { ok: false, error: "Você não pode mandar um pedido pra você mesmo." };
-  const links = listFriendLinks();
-  const existing = linkBetween(links, fromId, toId);
-  if (existing?.status === "aceito") return { ok: false, error: "Vocês já são amigos." };
-  if (existing && existing.fromId === fromId) return { ok: false, error: "Você já mandou um pedido pra esse aluno." };
-  if (existing) {
-    acceptFriendRequest(existing.id);
-    return { ok: true, accepted: true };
-  }
-  const link: FriendLink = { id: `f_${Date.now()}_${Math.round(Math.random() * 9999)}`, fromId, toId, status: "pendente", createdAt: new Date().toISOString() };
-  write(FRIENDS_KEY, [...links, link]);
-  return { ok: true, accepted: false };
-}
-
-export function acceptFriendRequest(linkId: string) {
-  write(FRIENDS_KEY, listFriendLinks().map((l) => (l.id === linkId ? { ...l, status: "aceito" as const, acceptedAt: new Date().toISOString() } : l)));
-}
-
-/** Recusar (quem recebeu) ou cancelar (quem mandou): o pedido some, e dá pra mandar outro depois. */
-export function deleteFriendRequest(linkId: string) {
-  write(FRIENDS_KEY, listFriendLinks().filter((l) => l.id !== linkId));
-}
-
-/** Desfaz a amizade e apaga a conversa dos dois. */
-export function removeFriend(a: string, b: string) {
-  write(FRIENDS_KEY, listFriendLinks().filter((l) => !((l.fromId === a && l.toId === b) || (l.fromId === b && l.toId === a))));
+/** Amizade desfeita: a conversa dos dois some deste navegador. */
+export function deleteChatBetween(a: string, b: string) {
   write(CHATS_KEY, listChatMessages().filter((m) => !isBetween(m, a, b)));
 }
 

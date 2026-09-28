@@ -5,14 +5,17 @@
 //
 // O aluno envia → a entrega fica "pendente" até o professor (ou o ADM)
 // corrigir. Aprovada: o aluno ganha a recompensa da missão (XP, moedas e item)
-// e a missão conta como concluída. "Refazer": o aluno recebe o comentário e
-// pode enviar de novo (cada envio é uma tentativa nova, com o histórico).
+// e a missão conta como concluída; desde a fase 3 do back end, quem dá a
+// recompensa é a API (rota /missions/:id/approve). "Refazer": o aluno recebe o
+// comentário e pode enviar de novo (cada envio é uma tentativa nova, com o
+// histórico). As entregas e os arquivos vão pro servidor na fase 5.
 // ============================================================================
 
 import { Mission, SUBMISSION_FILE_TYPES, SubmissionFileKind, fileKindOf, isTaskMission } from "./missions";
-import { applyMissionReward, getStudent, updateStudent } from "./students";
+import { getStudent } from "./students";
 import { PENDING_ITEM_NOTE, SYSTEM_SENDER_ID, missionRewardMessage, sendMessage, taskApprovedNote, taskRedoMessage } from "./messages";
 import { deleteFiles, saveFile } from "./fileStore";
+import { approveTask } from "./gameApi";
 
 export type SubmissionStatus = "pendente" | "aprovada" | "refazer";
 
@@ -152,16 +155,17 @@ export async function submitTask(data: { mission: Mission; studentId: string; te
 }
 
 /**
- * O professor (ou o ADM) corrige: aprovar dá a recompensa da missão ao aluno;
- * "refazer" devolve com o comentário (obrigatório) pro aluno tentar de novo.
+ * O professor (ou o ADM) corrige: aprovar dá a recompensa da missão ao aluno
+ * (quem dá é a API; se ela recusar, a entrega continua pendente); "refazer"
+ * devolve com o comentário (obrigatório) pro aluno tentar de novo.
  */
-export function reviewSubmission(
+export async function reviewSubmission(
   submissionId: string,
   decision: "aprovada" | "refazer",
   feedback: string,
   mission: Mission,
   reviewerName: string,
-): SubmissionResult {
+): Promise<SubmissionResult> {
   const submission = readAll().find((s) => s.id === submissionId);
   if (!submission) return { ok: false, error: "Essa entrega não existe mais." };
   if (submission.status !== "pendente") return { ok: false, error: "Essa entrega já foi corrigida." };
@@ -170,24 +174,17 @@ export function reviewSubmission(
   const student = getStudent(submission.studentId);
   if (!student) return { ok: false, error: "Aluno não encontrado." };
 
+  const approval = decision === "aprovada" ? await approveTask(mission.id, student.id) : null;
+  if (approval && !approval.ok) return approval;
+
   writeAll(
     readAll().map((s) =>
       s.id === submissionId ? { ...s, status: decision, feedback: comment || undefined, reviewedAt: new Date().toISOString(), reviewerName } : s,
     ),
   );
 
-  if (decision === "aprovada") {
-    if (!student.completedMissionIds.includes(mission.id)) {
-      const { student: rewarded } = applyMissionReward(student, mission);
-      updateStudent(student.id, {
-        level: rewarded.level,
-        xp: rewarded.xp,
-        coins: rewarded.coins,
-        inventory: rewarded.inventory,
-        pendingItems: rewarded.pendingItems,
-        completedMissionIds: rewarded.completedMissionIds,
-      });
-      const waiting = rewarded.pendingItems.length > student.pendingItems.length;
+  if (approval) {
+    if (approval.rewarded) {
       sendMessage({
         studentId: student.id,
         senderId: SYSTEM_SENDER_ID,
@@ -195,7 +192,7 @@ export function reviewSubmission(
         body:
           missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
           taskApprovedNote({ reviewerName, feedback: comment }) +
-          (waiting ? PENDING_ITEM_NOTE : ""),
+          (approval.itemWaiting ? PENDING_ITEM_NOTE : ""),
       });
     }
   } else {

@@ -17,15 +17,22 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
   const friends = useFriends(activeStudent?.id ?? null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Um pedido por vez (evita dois cliques rápidos mandarem o mesmo pedido)
+  const [busy, setBusy] = useState(false);
 
   if (!activeStudent || activeStudent.id === other.id || !friends.ready) return null;
   const status = friends.statusWith(other.id);
   const link = friends.linkWith(other.id);
   const firstName = other.name.split(" ")[0];
 
-  function sendRequest() {
-    const result = friends.request(other.id);
+  /** Roda a ação na API e mostra o erro, se houver. */
+  async function run(action: () => Promise<{ ok: true } | { ok: false; error: string }>) {
+    if (busy) return;
+    setBusy(true);
+    const result = await action();
+    setBusy(false);
     setError(result.ok ? null : result.error);
+    setConfirmRemove(false);
   }
 
   function openChat() {
@@ -38,8 +45,9 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
       {status === "nenhum" && (
         <>
           <button
-            onClick={sendRequest}
-            className="w-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500 px-4 py-2.5 text-sm font-black text-cg-onaccent shadow-lg shadow-pink-500/30 transition-transform hover:scale-[1.02]"
+            onClick={() => run(() => friends.request(other.id))}
+            disabled={busy}
+            className="w-full rounded-full bg-gradient-to-r from-pink-500 to-violet-500 px-4 py-2.5 text-sm font-black text-cg-onaccent shadow-lg shadow-pink-500/30 transition-transform hover:scale-[1.02] disabled:opacity-50"
           >
             🤝 Enviar pedido de amizade
           </button>
@@ -50,7 +58,7 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
       {status === "enviado" && link && (
         <>
           <p className="text-sm font-semibold text-pink-200">⏳ Pedido enviado! Esperando {firstName} responder.</p>
-          <button onClick={() => friends.dismiss(link)} className="mt-2 text-xs text-slate-400 underline hover:text-white">
+          <button onClick={() => run(() => friends.dismiss(link))} disabled={busy} className="mt-2 text-xs text-slate-400 underline hover:text-white">
             Cancelar pedido
           </button>
         </>
@@ -60,10 +68,18 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
         <>
           <p className="text-sm font-semibold text-pink-200">🤝 {firstName} te mandou um pedido de amizade!</p>
           <div className="mt-2 flex gap-2">
-            <button onClick={() => friends.accept(link)} className="flex-1 rounded-full bg-emerald-500 px-4 py-2 text-sm font-black text-cg-onaccent transition-transform hover:scale-[1.02]">
+            <button
+              onClick={() => run(() => friends.accept(link))}
+              disabled={busy}
+              className="flex-1 rounded-full bg-emerald-500 px-4 py-2 text-sm font-black text-cg-onaccent transition-transform hover:scale-[1.02] disabled:opacity-50"
+            >
               ✅ Aceitar
             </button>
-            <button onClick={() => friends.dismiss(link)} className="flex-1 rounded-full border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-slate-400">
+            <button
+              onClick={() => run(() => friends.dismiss(link))}
+              disabled={busy}
+              className="flex-1 rounded-full border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-slate-400 disabled:opacity-50"
+            >
               Recusar
             </button>
           </div>
@@ -86,11 +102,12 @@ export default function FriendActions({ other, onChat }: { other: Student; onCha
             🔄 Propor troca de itens
           </button>
           <button
-            onClick={() => (confirmRemove ? friends.unfriend(other.id) : setConfirmRemove(true))}
+            onClick={() => (confirmRemove ? run(() => friends.unfriend(other.id)) : setConfirmRemove(true))}
+            disabled={busy}
             onBlur={() => setConfirmRemove(false)}
             className={`mt-2 text-xs underline ${confirmRemove ? "text-rose-300" : "text-slate-500 hover:text-slate-300"}`}
           >
-            {confirmRemove ? "Confirmar: desfazer a amizade e apagar a conversa?" : "Desfazer amizade"}
+            {confirmRemove ? "Confirmar: desfazer a amizade, cancelar as trocas e apagar a conversa?" : "Desfazer amizade"}
           </button>
         </>
       )}

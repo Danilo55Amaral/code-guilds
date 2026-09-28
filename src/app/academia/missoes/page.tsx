@@ -32,6 +32,8 @@ export default function MissoesPage() {
   const [taskMission, setTaskMission] = useState<Mission | null>(null);
   const { submissions } = useSubmissions();
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
+  // Erro da API ao registrar a tentativa (ex.: sem internet): a recompensa não foi dada
+  const [attemptError, setAttemptError] = useState<string | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
   const [filter, setFilter] = useState<StatusFilter>("todas");
   const [search, setSearch] = useState("");
@@ -72,17 +74,31 @@ export default function MissoesPage() {
 
   const alreadyCompleted = activeMission ? completedIds.includes(activeMission.id) : false;
 
-  function handleComplete(correctCount: number) {
+  // As respostas vão pra API, que corrige e dá a recompensa. Revisão ou nota
+  // abaixo de 60% não dão nada (a missão continua ativa pra tentar de novo).
+  // A cena de nível abre logo depois que a tela de recompensas fecha.
+  async function handleComplete(_correctCount: number, answers: Record<string, string>) {
     if (!activeMission) return;
-    // Revisão ou nota abaixo de 60% não dão nada (a missão continua ativa pra tentar de novo).
-    // A cena de nível abre logo depois que a tela de recompensas fecha.
-    const levelUpResult = attemptMission(activeMission, correctCount);
-    if (levelUpResult) setLevelUp(levelUpResult);
+    const mission = activeMission;
     setActiveMission(null);
+    const result = await attemptMission(mission, answers);
+    if (result && "error" in result) {
+      setAttemptError(`Não deu pra registrar "${mission.title}": ${result.error}`);
+      return;
+    }
+    if (result) setLevelUp(result);
   }
 
   return (
     <div>
+      {attemptError && (
+        <p className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+          {attemptError}{" "}
+          <button onClick={() => setAttemptError(null)} className="font-semibold underline">
+            Fechar
+          </button>
+        </p>
+      )}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-white">Missões</h1>
 

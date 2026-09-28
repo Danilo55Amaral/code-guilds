@@ -10,6 +10,19 @@ export function normalizeUsername(raw: string): string {
         .replace(/[^a-z0-9._-]/g, '')
 }
 
+// Id de missão a partir do título: "Loops com For!" vira "loops-com-for"
+// (a mesma regra do site, em src/engine/missionsStore.ts)
+export function slugify(text: string): string {
+    const base = text
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-+|-+$)/g, '')
+
+    return base || `missao-${Date.now()}`
+}
+
 // E-mail sempre minúsculo e sem espaços nas pontas
 export function normalizeEmail(raw: string): string {
     return raw.trim().toLowerCase()

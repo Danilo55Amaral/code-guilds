@@ -4,12 +4,14 @@
 // hora ou vir da Loja, de uma missão ou de um evento (components/GiftItemPicker).
 // Cada aluno recebe o próprio exemplar e a mensagem 🎁 Presente; com o
 // inventário cheio, o item fica esperando espaço (nada se perde).
+//
+// Desde a fase 3 do back end, quem entrega o item é a API (rota /gifts), com
+// a regra grantItem de students.ts. A chamada fica em engine/gameApi.ts e as
+// mensagens saem no store.ts, depois que a API confirma.
 // ============================================================================
 
 import { Cosmetic } from "./avatar";
 import { Rarity } from "./missions";
-import { getStudent, grantItem, updateStudent } from "./students";
-import { PENDING_ITEM_NOTE, itemGiftMessage, sendMessage } from "./messages";
 
 export interface GiftItem {
   name: string;
@@ -32,26 +34,4 @@ export interface Giver {
 export interface GiftResult {
   delivered: number; // quantos alunos receberam
   waiting: number; // quantos estavam com o inventário cheio (o item ficou esperando espaço)
-}
-
-/** Dá o item pra cada aluno da lista (cada um ganha o seu) e manda a mensagem de presente. */
-export function giveItemTo(studentIds: string[], item: GiftItem, giver: Giver): GiftResult {
-  let delivered = 0;
-  let waiting = 0;
-  for (const id of Array.from(new Set(studentIds))) {
-    const student = getStudent(id);
-    if (!student) continue;
-    const granted = grantItem(student, item);
-    const isWaiting = granted.pendingItems.length > student.pendingItems.length;
-    updateStudent(id, { inventory: granted.inventory, pendingItems: granted.pendingItems });
-    sendMessage({
-      studentId: id,
-      senderId: giver.id,
-      kind: "presente",
-      body: itemGiftMessage({ studentName: student.name, item, giverName: giver.name, giverRole: giver.role }) + (isWaiting ? PENDING_ITEM_NOTE : ""),
-    });
-    delivered += 1;
-    if (isWaiting) waiting += 1;
-  }
-  return { delivered, waiting };
 }

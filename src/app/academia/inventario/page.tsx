@@ -2,24 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { openMultiversePatch } from "@/engine/multiverse";
-import { useStudents, useMissions, useOffers, useFriends, useTrades } from "@/engine/store";
-import {
-  InventoryItem,
-  xpToNextLevel,
-  consumeItem,
-  removeItem,
-  sellItemToSystem,
-  equipItem,
-  unequipItem,
-  isEquipped,
-  wornAvatar,
-  applySpaceItem,
-  claimPendingItems,
-  freeSlots,
-  inventoryCapacity,
-  BASE_INVENTORY_SLOTS,
-} from "@/engine/students";
+import { useStudents, useMissions, useOffers, useFriends, useTrades, useGameActions } from "@/engine/store";
+import { InventoryItem, xpToNextLevel, isEquipped, wornAvatar, freeSlots, inventoryCapacity, BASE_INVENTORY_SLOTS } from "@/engine/students";
+import type { GameResult } from "@/engine/gameApi";
+import type { Offer } from "@/engine/market";
+import type { Trade } from "@/engine/trades";
 import { COSMETIC_SLOT_LABELS } from "@/engine/avatar";
 import { getHouse } from "@/engine/houses";
 import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components/GameUI";
@@ -38,12 +25,18 @@ import { PaginationFooter, usePagination } from "@/components/Pagination";
 // O inventário tem limite de espaços (20 + os ganhos com itens de espaço);
 // o que o aluno ganha com ele cheio fica em "📦 Esperando espaço".
 // ?trocar=<id do amigo> abre a troca direto com esse amigo (vem do perfil).
+// Usar, vender, descartar, equipar, guardar itens, as ofertas e as trocas são
+// pedidos à API (quem decide é o servidor); a tela mostra o resultado quando
+// ela responde.
 // ============================================================================
 
 const ITEMS_PER_PAGE = 12;
 
 export default function InventarioPage() {
-  const { activeStudent, students, patchActive } = useStudents();
+  const { activeStudent, students } = useStudents();
+  const game = useGameActions();
+  // Uma ação por vez: evita que dois cliques rápidos mandem o mesmo pedido duas vezes
+  const [busy, setBusy] = useState(false);
   const { missions: allMissions } = useMissions();
   const { received, sent, offer, accept, withdraw } = useOffers(activeStudent?.id ?? null);
   const trades = useTrades(activeStudent?.id ?? null);
@@ -84,108 +77,125 @@ export default function InventarioPage() {
     setTimeout(() => setNotice(null), 3500);
   }
 
-  function consume(item: InventoryItem) {
-    const result = consumeItem(me, item.id);
-    if (!result) return;
-    patchActive(result.student);
-    flash(`✨ Você usou ${item.name} e ganhou +${result.xpGained} XP!`);
-    if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
+  /** Roda uma ação na API, uma de cada vez; se der erro, mostra a mensagem. */
+  async function act<T extends object>(request: () => Promise<GameResult<T>>): Promise<({ ok: true } & T) | null> {
+    if (busy) return null;
+    setBusy(true);
+    const result = await request();
+    setBusy(false);
+    if (!result.ok) {
+      flash(result.error, "erro");
+      return null;
+    }
+    return result;
+  }
+
+  async function consume(item: InventoryItem) {
+    const result = await act(() => game.activateItem(item.id));
+    if (!result || result.effect.kind !== "xp") return;
+    const effect = result.effect;
+    flash(`✨ Você usou ${item.name} e ganhou +${effect.xpGained} XP!`);
+    if (effect.leveledUp) setLevelUp({ from: effect.fromLevel, to: effect.newLevel });
   }
 
   /** Usa a Chave do Multiverso: a chave some e o aluno atravessa o portal pra Sala do Multiverso. */
-  function openPortal(item: InventoryItem) {
+  async function openPortal(item: InventoryItem) {
     if (confirmPortalId !== item.id) {
       setConfirmPortalId(item.id);
       return;
     }
-    const patch = openMultiversePatch(me, item.id);
-    if (!patch) return;
-    patchActive(patch);
+    const result = await act(() => game.activateItem(item.id));
     setConfirmPortalId(null);
-    router.push("/multiverso");
+    if (result) router.push("/multiverso");
   }
 
-  function expandInventory(item: InventoryItem) {
-    const result = applySpaceItem(me, item.id);
-    if (!result) return;
-    patchActive(result.student);
+  async function expandInventory(item: InventoryItem) {
+    const result = await act(() => game.activateItem(item.id));
+    if (!result || result.effect.kind !== "espaco") return;
+    const { slotsGained, claimed } = result.effect;
     flash(
-      `📦 Seu inventário cresceu +${result.slotsGained} espaços! Agora cabem ${inventoryCapacity(result.student)} itens.` +
-        (result.claimed > 0 ? ` ${result.claimed} ${result.claimed === 1 ? "item que esperava espaço foi guardado" : "itens que esperavam espaço foram guardados"}.` : ""),
+      `📦 Seu inventário cresceu +${slotsGained} espaços! Agora cabem ${capacity + slotsGained} itens.` +
+        (claimed > 0 ? ` ${claimed} ${claimed === 1 ? "item que esperava espaço foi guardado" : "itens que esperavam espaço foram guardados"}.` : ""),
     );
   }
 
-  function claim(itemId?: string) {
-    const updated = claimPendingItems(me, itemId);
-    const moved = updated.inventory.length - me.inventory.length;
-    if (moved === 0) {
-      flash("Não há espaço livre no inventário. Use um item de espaço, venda ou descarte algum item.", "erro");
-      return;
-    }
-    patchActive({ inventory: updated.inventory, pendingItems: updated.pendingItems });
-    flash(`📥 ${moved} ${moved === 1 ? "item guardado" : "itens guardados"} no inventário.`);
+  async function claim(itemId?: string) {
+    const result = await act(() => game.claimWaitingItems(itemId));
+    if (!result) return;
+    flash(`📥 ${result.moved} ${result.moved === 1 ? "item guardado" : "itens guardados"} no inventário.`);
   }
 
-  function equip(item: InventoryItem) {
+  async function equip(item: InventoryItem) {
     const replaced = item.cosmetic && me.equipped[item.cosmetic.slot];
     const replacedName = replaced ? me.inventory.find((i) => i.id === replaced)?.name : null;
-    patchActive(equipItem(me, item.id));
+    if (!(await act(() => game.equipCosmetic(item.id)))) return;
     flash(`👕 ${item.name} equipado no seu avatar!${replacedName ? ` (${replacedName} foi retirado)` : ""}`);
   }
 
-  function unequip(item: InventoryItem) {
-    patchActive(unequipItem(me, item.id));
+  async function unequip(item: InventoryItem) {
+    if (!(await act(() => game.unequipCosmetic(item.id)))) return;
     flash(`↩ ${item.name} foi retirado do avatar — continua no seu inventário.`);
   }
 
-  function deleteItem(item: InventoryItem) {
+  async function deleteItem(item: InventoryItem) {
     if (confirmDeleteId !== item.id) {
       setConfirmDeleteId(item.id);
       return;
     }
-    patchActive(removeItem(me, item.id));
     setConfirmDeleteId(null);
+    if (!(await act(() => game.discardItem(item.id)))) return;
     flash(`🗑 ${item.name} foi descartado.`);
   }
 
-  function sellToSystem(item: InventoryItem) {
-    patchActive(sellItemToSystem(me, item.id));
+  async function sellToSystem(item: InventoryItem) {
+    const result = await act(() => game.sellItem(item.id));
+    if (!result) return;
     setSelling(null);
-    flash(`💰 Você vendeu ${item.name} por ${item.value} moedas.`);
+    flash(`💰 Você vendeu ${item.name} por ${result.coinsGained} moedas.`);
   }
 
-  function offerTo(item: InventoryItem, buyerId: string, price: number): string | null {
-    const result = offer({ sellerId: me.id, buyerId, itemId: item.id, price });
+  /** Janela de venda: devolve o erro pra janela mostrar, ou null se a oferta foi enviada. */
+  async function offerTo(item: InventoryItem, buyerId: string, price: number): Promise<string | null> {
+    const result = await offer({ buyerId, itemId: item.id, price });
     if (!result.ok) return result.error;
     setSelling(null);
     flash(`🤝 Oferta enviada: ${item.name} para ${nameOf(buyerId)} por ${price} moedas.`);
     return null;
   }
 
-  function proposeTrade(friendId: string, offeredIds: string[], requestedIds: string[]): string | null {
-    const result = trades.propose({ fromId: me.id, toId: friendId, offeredIds, requestedIds });
+  /** Janela de troca: devolve o erro pra janela mostrar, ou null se a proposta foi enviada. */
+  async function proposeTrade(friendId: string, offeredIds: string[], requestedIds: string[]): Promise<string | null> {
+    const result = await trades.propose({ toId: friendId, offeredIds, requestedIds });
     if (!result.ok) return result.error;
     setTrading(null);
     flash(`🔄 Proposta de troca enviada para ${nameOf(friendId)}! Seus itens ficam guardados até a resposta.`);
     return null;
   }
 
-  function acceptTrade(tradeId: string, friendId: string) {
-    const result = trades.accept(tradeId);
-    if (!result.ok) {
-      flash(result.error, "erro");
-      return;
-    }
-    flash(`🔄 Troca feita com ${nameOf(friendId)}! Os itens novos já estão no seu inventário.`);
+  async function acceptTrade(trade: Trade) {
+    if (!(await act(() => trades.accept(trade)))) return;
+    flash(`🔄 Troca feita com ${nameOf(trade.fromId)}! Os itens novos já estão no seu inventário.`);
   }
 
-  function buy(offerId: string, itemName: string, price: number) {
-    const result = accept(offerId);
-    if (!result.ok) {
-      flash(result.error, "erro");
-      return;
-    }
-    flash(`🎉 Você comprou ${itemName} por ${price} moedas!`);
+  async function declineTrade(trade: Trade) {
+    if (!(await act(() => trades.decline(trade)))) return;
+    flash(`Você recusou a troca de ${nameOf(trade.fromId)}. Os itens voltaram pra quem propôs.`);
+  }
+
+  async function cancelTrade(tradeId: string) {
+    if (!(await act(() => trades.cancel(tradeId)))) return;
+    flash("Proposta cancelada. Seus itens voltaram pro inventário.");
+  }
+
+  async function buy(o: Offer) {
+    if (!(await act(() => accept(o)))) return;
+    flash(`🎉 Você comprou ${o.item.name} por ${o.price} moedas!`);
+  }
+
+  /** Recusar uma oferta recebida ou cancelar uma oferta feita. */
+  async function dropOffer(o: Offer) {
+    if (!(await act(() => withdraw(o.id)))) return;
+    flash(o.sellerId === me.id ? `Oferta cancelada. ${o.item.name} voltou pro seu inventário.` : `Você recusou a oferta de ${nameOf(o.sellerId)}.`);
   }
 
   return (
@@ -246,11 +256,8 @@ export default function InventarioPage() {
                 me={me}
                 mine={false}
                 friend={students.find((s) => s.id === t.fromId)}
-                onAccept={() => acceptTrade(t.id, t.fromId)}
-                onDecline={() => {
-                  trades.decline(t.id);
-                  flash(`Você recusou a troca de ${nameOf(t.fromId)}. Os itens voltaram pra quem propôs.`);
-                }}
+                onAccept={() => acceptTrade(t)}
+                onDecline={() => declineTrade(t)}
               />
             ))}
           </div>
@@ -293,14 +300,14 @@ export default function InventarioPage() {
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
                     <button
-                      onClick={() => buy(o.id, o.item.name, o.price)}
-                      disabled={!canAfford}
+                      onClick={() => buy(o)}
+                      disabled={!canAfford || busy}
                       title={canAfford ? undefined : free === 0 ? "Inventário cheio" : `Faltam ${o.price - me.coins} moedas`}
                       className="cg-btn-primary !px-3 !py-1.5 text-xs disabled:cursor-not-allowed disabled:opacity-30"
                     >
                       {canAfford ? "Comprar" : free === 0 ? "Inventário cheio" : `Faltam ${o.price - me.coins} moedas`}
                     </button>
-                    <button onClick={() => withdraw(o.id)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
+                    <button onClick={() => dropOffer(o)} disabled={busy} className="cg-btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40">
                       Recusar
                     </button>
                   </div>
@@ -507,10 +514,7 @@ export default function InventarioPage() {
                 me={me}
                 mine
                 friend={students.find((s) => s.id === t.toId)}
-                onCancel={() => {
-                  trades.cancel(t.id);
-                  flash("Proposta cancelada. Seus itens voltaram pro inventário.");
-                }}
+                onCancel={() => cancelTrade(t.id)}
               />
             ))}
           </div>
@@ -536,7 +540,7 @@ export default function InventarioPage() {
                     </span>
                   </span>
                 </p>
-                <button onClick={() => withdraw(o.id)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
+                <button onClick={() => dropOffer(o)} disabled={busy} className="cg-btn-secondary !px-3 !py-1.5 text-xs disabled:opacity-40">
                   Cancelar oferta
                 </button>
               </div>

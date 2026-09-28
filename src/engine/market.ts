@@ -1,18 +1,21 @@
 // ============================================================================
-// MARKET — venda de itens entre alunos. Mesmo padrão de CRUD em localStorage
-// de students.ts/messages.ts.
+// MARKET — venda de itens entre alunos.
 //
 // Vender pra um colega vira uma OFERTA: o item sai do inventário do vendedor e
 // fica guardado na oferta até o comprador decidir. Comprar desconta as moedas
 // do comprador, paga o vendedor e entrega o item; recusar (ou o vendedor
 // cancelar) devolve o item pro vendedor. Assim ninguém recebe item nem perde
 // moedas sem concordar, e o mesmo item não pode ser vendido duas vezes.
-// Quando a compra fecha, comprador e vendedor recebem uma mensagem automática.
+//
+// Desde a fase 3 do back end, as ofertas são da API (tabela offers) e quem
+// decide é o servidor. Este arquivo ficou com as regras puras (a API importa
+// elas) e o cache ("cg-offers") das ofertas do aluno logado. As chamadas à
+// API ficam em engine/gameApi.ts. As mensagens de compra e venda saem no
+// store.ts, depois que a API confirma.
 // ============================================================================
 
-import { InventoryItem, freeSlots, getStudent, inventoryFullError, storeItems, updateStudent, removeItem } from "./students";
+import { InventoryItem, Student, freeSlots, inventoryFullError, removeItem, storeItems } from "./students";
 import { normalizeRewardItem } from "./missions";
-import { SYSTEM_SENDER_ID, sendMessage, purchaseMessage, saleMessage } from "./messages";
 
 export interface Offer {
   id: string;
@@ -24,6 +27,9 @@ export interface Offer {
 }
 
 export type MarketResult = { ok: true } | { ok: false; error: string };
+
+/** Maior preço que um aluno pode pedir numa oferta. */
+export const MAX_OFFER_PRICE = 100000;
 
 const OFFERS_KEY = "cg-offers";
 
@@ -43,6 +49,21 @@ function writeAll(offers: Offer[]) {
   window.localStorage.setItem(OFFERS_KEY, JSON.stringify(offers));
 }
 
+/** Troca o cache pelas ofertas que a API devolveu. */
+export function saveOffers(offers: Offer[]) {
+  writeAll(offers);
+}
+
+/** Oferta nova que a API confirmou. */
+export function rememberOffer(offer: Offer) {
+  writeAll([...readAll().filter((o) => o.id !== offer.id), offer]);
+}
+
+/** Oferta que saiu (comprada, recusada ou cancelada). */
+export function forgetOffer(offerId: string) {
+  writeAll(readAll().filter((o) => o.id !== offerId));
+}
+
 /** Ofertas que o aluno recebeu (pode comprar/recusar), mais recentes primeiro. */
 export function listOffersTo(studentId: string): Offer[] {
   return readAll()
@@ -57,91 +78,39 @@ export function listOffersFrom(studentId: string): Offer[] {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function createOffer(data: { sellerId: string; buyerId: string; itemId: string; price: number }): MarketResult {
-  const seller = getStudent(data.sellerId);
-  const buyer = getStudent(data.buyerId);
-  if (!seller || !buyer) return { ok: false, error: "Aluno não encontrado." };
-  if (seller.id === buyer.id) return { ok: false, error: "Você não pode vender pra você mesmo." };
-  const item = seller.inventory.find((i) => i.id === data.itemId);
+/** Aluno excluído: as ofertas dele saem do cache (a API já devolveu os itens). */
+export function deleteOffersOf(studentId: string) {
+  writeAll(readAll().filter((o) => o.buyerId !== studentId && o.sellerId !== studentId));
+}
+
+// ============================================================================
+// REGRAS — usadas pela API pra decidir cada passo. Não salvam nada.
+// ============================================================================
+
+export type TakeOfferItemResult = { ok: true; seller: Student; item: InventoryItem } | { ok: false; error: string };
+
+/** Criar a oferta: confere o preço e tira o item do vendedor (se estava equipado, sai do avatar). */
+export function takeItemForOffer(seller: Student, itemId: string, price: number): TakeOfferItemResult {
+  const item = seller.inventory.find((i) => i.id === itemId);
   if (!item) return { ok: false, error: "Esse item não está mais no seu inventário." };
-  const price = Math.round(data.price);
-  if (!Number.isFinite(price) || price < 0) return { ok: false, error: "Preço inválido." };
-
-  // o item fica "guardado" na oferta até o comprador decidir
-  const { inventory, equipped } = removeItem(seller, item.id); // se estava equipado, sai do avatar
-  updateStudent(seller.id, { inventory, equipped });
-  writeAll([
-    ...readAll(),
-    {
-      id: `o_${Date.now()}_${Math.round(Math.random() * 9999)}`,
-      sellerId: seller.id,
-      buyerId: buyer.id,
-      item,
-      price,
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-  return { ok: true };
+  if (!Number.isInteger(price) || price < 0 || price > MAX_OFFER_PRICE) return { ok: false, error: "Preço inválido." };
+  return { ok: true, seller: removeItem(seller, itemId), item };
 }
 
-function returnItemToSeller(offer: Offer) {
-  const seller = getStudent(offer.sellerId);
-  // sem espaço, o item devolvido fica esperando espaço (nada se perde)
-  if (seller) {
-    const back = storeItems(seller, [offer.item]);
-    updateStudent(seller.id, { inventory: back.inventory, pendingItems: back.pendingItems });
-  }
-}
+export type AcceptOfferResult = { ok: true; buyer: Student; seller: Student | null } | { ok: false; error: string };
 
-export function acceptOffer(offerId: string): MarketResult {
-  const offer = readAll().find((o) => o.id === offerId);
-  if (!offer) return { ok: false, error: "Essa oferta não existe mais." };
-  const buyer = getStudent(offer.buyerId);
-  const seller = getStudent(offer.sellerId);
-  if (!buyer) return { ok: false, error: "Comprador não encontrado." };
+/** Aceitar a oferta: o comprador paga e recebe o item; o vendedor (se ainda existe) recebe as moedas. */
+export function acceptOfferFor(buyer: Student, seller: Student | null, offer: Pick<Offer, "item" | "price">): AcceptOfferResult {
   if (buyer.coins < offer.price) return { ok: false, error: `Moedas insuficientes — faltam ${offer.price - buyer.coins}.` };
   if (freeSlots(buyer) < 1) return { ok: false, error: inventoryFullError(buyer) };
-
-  updateStudent(buyer.id, {
-    coins: buyer.coins - offer.price,
-    inventory: [...buyer.inventory, { ...offer.item, obtainedAt: new Date().toISOString() }],
-  });
-  if (seller) updateStudent(seller.id, { coins: seller.coins + offer.price });
-  writeAll(readAll().filter((o) => o.id !== offerId));
-
-  // Os dois lados recebem a confirmação na caixa de mensagens (e no sino).
-  sendMessage({
-    studentId: buyer.id,
-    senderId: SYSTEM_SENDER_ID,
-    kind: "compra",
-    body: purchaseMessage({ item: offer.item, sellerName: seller?.name ?? "um colega", price: offer.price }),
-  });
-  if (seller) {
-    sendMessage({
-      studentId: seller.id,
-      senderId: SYSTEM_SENDER_ID,
-      kind: "venda",
-      body: saleMessage({ item: offer.item, buyerName: buyer.name, price: offer.price }),
-    });
-  }
-  return { ok: true };
+  return {
+    ok: true,
+    buyer: { ...buyer, coins: buyer.coins - offer.price, inventory: [...buyer.inventory, { ...offer.item, obtainedAt: new Date().toISOString() }] },
+    seller: seller ? { ...seller, coins: seller.coins + offer.price } : null,
+  };
 }
 
-/** Recusar (comprador) e cancelar (vendedor) dão no mesmo: o item volta pro vendedor. */
-export function withdrawOffer(offerId: string) {
-  const offer = readAll().find((o) => o.id === offerId);
-  if (!offer) return;
-  returnItemToSeller(offer);
-  writeAll(readAll().filter((o) => o.id !== offerId));
-}
-
-/**
- * Usado quando o aluno é excluído: ofertas que ele recebeu devolvem o item pro
- * vendedor; ofertas que ele fez somem junto com ele.
- */
-export function deleteOffersOf(studentId: string) {
-  readAll()
-    .filter((o) => o.buyerId === studentId && o.sellerId !== studentId)
-    .forEach(returnItemToSeller);
-  writeAll(readAll().filter((o) => o.buyerId !== studentId && o.sellerId !== studentId));
+/** Recusar (comprador) ou cancelar (vendedor): o item volta pro vendedor (sem espaço, fica esperando espaço). */
+export function returnOfferItem(seller: Student, offer: Pick<Offer, "item">): Student {
+  return storeItems(seller, [offer.item]);
 }

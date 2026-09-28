@@ -2,13 +2,16 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../database";
 import { AuthUser, ensureAuthenticated, ensureTeacher } from "../middlewares/auth";
-import { existsOrError, notExistsError, ValidationError } from "../validation/validations";
+import { existsOrError, notExistsError, NotFoundError, ValidationError } from "../validation/validations";
+import { updateProgress } from "../services/progress";
+import { returnEscrowOfDeletedStudent } from "../services/escrow";
 import { normalizeUsername } from "../utils/normalize";
 import { hashPassword } from "../utils/password";
 import { studentsQuery } from "../utils/queries";
 import { HOUSES, MIN_PASSWORD_LENGTH, MIN_USERNAME_LENGTH, ONBOARDING_STEPS } from "../utils/rules";
 import { createSession } from "../utils/session";
 import { Json } from "../types/database";
+import { removeItem, welcomeItem } from "../../../src/engine/students";
 
 type StudentOwner = { id: string, teacherId: string }
 
@@ -72,6 +75,8 @@ export async function studentsRoutes(app: FastifyInstance) {
                 turma,
                 username: login,
                 passwordHash: await hashPassword(password),
+                // o presente de boas-vindas (o mesmo do site)
+                inventory: JSON.stringify([welcomeItem()]) as Json,
             })
             .returning('id')
             .executeTakeFirstOrThrow()
@@ -109,10 +114,12 @@ export async function studentsRoutes(app: FastifyInstance) {
     // Consultando a comunidade da Academia: todos os alunos, só com os dados
     // públicos (sem e-mail, turma, login nem senha). É o que o aluno usa pra
     // ver os pontos das casas, o ranking, os amigos e com quem negociar.
+    // O inventário e os visuais equipados vêm junto: o perfil de um colega
+    // mostra os itens dele, e o avatar "vestido" depende do que está equipado.
     app.get('/community', { preHandler: ensureAuthenticated }, async () => {
         const students = await db
             .selectFrom('students')
-            .select(['id', 'teacherId', 'name', 'houseId', 'avatar', 'level', 'xp', 'coins', 'onboardingStep', 'createdAt'])
+            .select(['id', 'teacherId', 'name', 'houseId', 'avatar', 'level', 'xp', 'coins', 'inventory', 'equipped', 'onboardingStep', 'createdAt'])
             .orderBy('createdAt', 'asc')
             .execute()
 
@@ -276,8 +283,43 @@ export async function studentsRoutes(app: FastifyInstance) {
         return reply.status(200).send()
     })
 
+    // Tirando um item do inventário do aluno (o professor dele ou o ADM).
+    // Se era um visual equipado, sai do avatar também.
+    app.delete('/:id/items/:itemId', { preHandler: ensureTeacher }, async (request, reply) => {
+        const removeItemParamsSchema = z.object({
+            id: z.uuid(),
+            itemId: z.string().min(1),
+        })
+
+        const { id, itemId } = removeItemParamsSchema.parse(request.params)
+
+        const student = await db.selectFrom('students').select(['id', 'teacherId']).where('id', '=', id).executeTakeFirst()
+
+        if (!student) {
+            return reply.status(404).send({ message: 'Aluno não encontrado!' })
+        }
+
+        if (!canManageStudent(request.user!, student)) {
+            return reply.status(403).send({ message: 'Você não tem acesso a esse aluno.' })
+        }
+
+        await updateProgress(id, (current) => {
+            if (!current.inventory.some((i) => i.id === itemId)) {
+                throw new NotFoundError('Esse item não está no inventário do aluno.')
+            }
+
+            return { student: removeItem(current, itemId) }
+        })
+
+        const updated = await studentsQuery().where('id', '=', id).executeTakeFirst()
+
+        return { student: updated }
+    })
+
     // Excluindo um aluno (o professor dele ou o ADM).
-    // As sessões do aluno são apagadas junto (on delete cascade).
+    // As sessões, amizades, ofertas e propostas de troca FEITAS por ele são
+    // apagadas junto (on delete cascade). As ofertas e propostas que ele
+    // RECEBEU devolvem os itens pra quem ofereceu, antes de ele sair.
     app.delete('/:id', { preHandler: ensureTeacher }, async (request, reply) => {
         const deleteStudentParamsSchema = z.object({
             id: z.uuid(),
@@ -295,7 +337,10 @@ export async function studentsRoutes(app: FastifyInstance) {
             return reply.status(403).send({ message: 'Você não tem acesso a esse aluno.' })
         }
 
-        await db.deleteFrom('students').where('id', '=', id).execute()
+        await db.transaction().execute(async (trx) => {
+            await returnEscrowOfDeletedStudent(trx, id)
+            await trx.deleteFrom('students').where('id', '=', id).execute()
+        })
 
         return reply.status(200).send()
     })

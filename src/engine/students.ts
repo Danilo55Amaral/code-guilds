@@ -1,14 +1,17 @@
 // ============================================================================
 // STUDENTS — alunos, avatar, progressão (XP/nível/moedas) e inventário.
 //
-// Desde a ligação com o back end (pasta api/), a CONTA do aluno é da API:
-// cadastro, login, senha e o perfil (nome, e-mail, turma, login, professor,
-// casa, avatar e etapa do primeiro acesso). Quem fala com a API é o
-// engine/accounts.ts. Aqui o localStorage ("cg-students") guarda:
-//   - uma cópia do perfil que a API devolveu (cache, pras telas lerem na hora);
-//   - o PROGRESSO DO JOGO (nível, XP, moedas, inventário, missões feitas,
-//     visuais equipados...), que por enquanto continua neste navegador e vai
-//     pro servidor nas próximas fases do back end.
+// Desde a ligação com o back end (pasta api/), o aluno é da API: a conta
+// (cadastro, login, senha, perfil) e, desde a fase 3, o PROGRESSO DO JOGO
+// (nível, XP, moedas, inventário, missões feitas, visuais equipados...).
+// Quem fala com a API é o engine/accounts.ts (contas) e o engine/gameApi.ts
+// (ações do jogo). O localStorage ("cg-students") virou um cache do que a
+// API devolveu, pras telas lerem na hora.
+//
+// As funções de regra deste arquivo (addXp, storeItems, consumeItem,
+// applyMissionReward...) são as MESMAS que a API usa pra decidir cada ação:
+// a API importa este arquivo. Por isso elas precisam continuar puras (sem
+// React e sem depender do navegador fora dos "typeof window").
 // Vários alunos podem estar no mesmo navegador, com um "aluno ativo" por vez
 // (o id dele fica no sessionStorage, espelhando o cookie de login da API).
 // A senha nunca fica no site: o aluno só tem o hasPassword (true/false).
@@ -176,7 +179,11 @@ export function getStudent(id: string): Student | undefined {
 // jogo de quem já está no cache é mantido.
 // ============================================================================
 
-/** Um aluno como a API manda (a comunidade manda só os dados públicos, sem e-mail, turma e login). */
+/**
+ * Um aluno como a API manda. O próprio aluno e o professor recebem tudo; a
+ * comunidade manda só os dados públicos (sem e-mail, turma, login, itens
+ * esperando espaço, missões feitas e eventos).
+ */
 export interface StudentAccount {
   id: string;
   teacherId: string;
@@ -193,6 +200,13 @@ export interface StudentAccount {
   username?: string;
   tutorialDone?: boolean;
   hasPassword?: boolean;
+  inventory?: InventoryItem[];
+  pendingItems?: InventoryItem[];
+  equipped?: Student["equipped"];
+  completedMissionIds?: string[];
+  events?: Record<string, EventProgress>;
+  bonusSlots?: number;
+  multiverseAccess?: string | null;
 }
 
 /** Presente de boas-vindas que todo aluno ganha ao criar a conta. */
@@ -209,7 +223,7 @@ export function welcomeItem(): InventoryItem {
   };
 }
 
-/** Progresso inicial de um aluno que ainda não tinha nada neste navegador. */
+/** Progresso inicial de um aluno que ainda não estava no cache (a API manda o de verdade). */
 type LocalProgress = Pick<Student, "level" | "xp" | "coins" | "inventory" | "completedMissionIds" | "equipped" | "events" | "bonusSlots" | "pendingItems">;
 
 function newLocalProgress(account: StudentAccount): LocalProgress {
@@ -227,19 +241,30 @@ function newLocalProgress(account: StudentAccount): LocalProgress {
 }
 
 /**
- * Guarda no cache os alunos que a API devolveu. Quem já estava no cache
- * mantém o progresso do jogo (e os dados que a API não mandou, como o e-mail
- * de um colega); quem é novo começa do zero. `withWelcomeItem` dá o presente
- * de boas-vindas (só no cadastro).
+ * Guarda no cache os alunos que a API devolveu. Tudo que a API mandou vale
+ * (inclusive o progresso do jogo, que é do servidor); o que ela não mandou
+ * (ex.: o e-mail ou as missões feitas de um colega, na lista da comunidade)
+ * continua o que o cache já tinha.
  */
-export function saveStudentAccounts(accounts: StudentAccount[], withWelcomeItem = false) {
+export function saveStudentAccounts(accounts: StudentAccount[]) {
   const byId = new Map(readAll().map((s) => [s.id, s]));
   for (const account of accounts) {
     const old = byId.get(account.id);
-    const progress = old ?? { ...newLocalProgress(account), ...(withWelcomeItem && { inventory: [welcomeItem()] }) };
+    const base = old ?? newLocalProgress(account);
     byId.set(account.id, {
       ...(old ?? {}),
-      ...progress,
+      ...base,
+      level: account.level ?? base.level,
+      xp: account.xp ?? base.xp,
+      coins: account.coins ?? base.coins,
+      inventory: (account.inventory ?? base.inventory).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+      pendingItems: (account.pendingItems ?? base.pendingItems).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+      equipped: account.equipped ?? base.equipped,
+      completedMissionIds: account.completedMissionIds ?? base.completedMissionIds,
+      events: account.events ?? base.events,
+      bonusSlots: account.bonusSlots ?? base.bonusSlots,
+      // null = a API disse que não tem passe; undefined = a API não mandou (fica o do cache)
+      multiverseAccess: account.multiverseAccess === undefined ? old?.multiverseAccess : account.multiverseAccess ?? undefined,
       id: account.id,
       teacherId: account.teacherId,
       name: account.name,

@@ -33,6 +33,9 @@ import { DifficultyBadge, RarityBadge } from "./GameUI";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Iniciar, liberar fase ou encerrar (na API): devolve a mensagem de erro, ou null se deu certo. */
+type RunAction = (eventId: EventId) => Promise<string | null>;
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR");
 }
@@ -166,15 +169,18 @@ function EventPanel({
   missions: Mission[];
   students: Student[];
   ranking: { students: Student[]; missions: Mission[] };
-  onStart: (eventId: EventId) => void;
-  onEnd: (eventId: EventId) => void;
-  onReleasePhase: (eventId: EventId) => void;
+  onStart: RunAction;
+  onEnd: RunAction;
+  onReleasePhase: RunAction;
 }) {
   const visual = EVENT_VISUALS[event.id];
   const { Art } = visual;
   const [confirmEnd, setConfirmEnd] = useState(false);
   const [confirmRelease, setConfirmRelease] = useState(false);
   const [showRanking, setShowRanking] = useState(false);
+  // Iniciar/liberar/encerrar falam com a API: uma ação por vez, e o erro aparece no card
+  const [runBusy, setRunBusy] = useState(false);
+  const [runError, setRunError] = useState<string | null>(null);
   const status = run?.status ?? "nao-iniciado";
   const statusMeta = EVENT_STATUS_META[status];
   const phases = eventPhases(event);
@@ -190,13 +196,20 @@ function EventPanel({
   const finished = students.filter((s) => eventFinishedAt(s, event)).length;
   const emptyPhases = phases.filter((p) => !eventList.some((m) => missionPhase(m) === p.number));
 
+  async function changeRun(action: RunAction) {
+    if (runBusy) return;
+    setRunBusy(true);
+    setRunError(await action(event.id));
+    setRunBusy(false);
+  }
+
   function endEvent() {
     if (!confirmEnd) {
       setConfirmEnd(true);
       return;
     }
-    onEnd(event.id);
     setConfirmEnd(false);
+    void changeRun(onEnd);
   }
 
   function releaseNext() {
@@ -204,8 +217,8 @@ function EventPanel({
       setConfirmRelease(true);
       return;
     }
-    onReleasePhase(event.id);
     setConfirmRelease(false);
+    void changeRun(onReleasePhase);
   }
 
   return (
@@ -251,10 +264,15 @@ function EventPanel({
               {confirmEnd ? "Confirmar: encerrar agora?" : "⏹ Encerrar evento"}
             </button>
           ) : (
-            <button onClick={() => onStart(event.id)} className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] ${visual.buttonClass}`}>
+            <button
+              onClick={() => changeRun(onStart)}
+              disabled={runBusy}
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] disabled:opacity-50 ${visual.buttonClass}`}
+            >
               {status === "encerrado" ? "▶ Reabrir evento" : "▶ Iniciar evento"}
             </button>
           )}
+          {runError && <p className="w-full text-xs text-rose-300">{runError}</p>}
         </div>
 
         <p className="max-w-3xl text-sm text-slate-300">{event.summary}</p>
@@ -392,9 +410,9 @@ export default function EventMissionsManager({
   students: Student[];
   /** Quem entra no ranking de cada evento (professor: a turma dele; ADM: a plataforma toda). */
   ranking: { students: Student[]; missions: Mission[] };
-  onStart: (eventId: EventId) => void;
-  onEnd: (eventId: EventId) => void;
-  onReleasePhase: (eventId: EventId) => void;
+  onStart: RunAction;
+  onEnd: RunAction;
+  onReleasePhase: RunAction;
   /** Só o Painel ADM passa: a escolha do professor. */
   headerRight?: React.ReactNode;
 }) {

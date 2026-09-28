@@ -12,13 +12,15 @@ export default function QuizModal({
 }: {
   mission: Mission;
   onClose: () => void;
-  onComplete: (correctCount: number) => void;
+  /** `answers` = a opção escolhida em cada pergunta ({ idDaPergunta: idDaOpção }): quem corrige de verdade é a API. */
+  onComplete: (correctCount: number, answers: Record<string, string>) => void;
   /** true quando o aluno já concluiu essa missão antes — deixa rever as perguntas, mas sem gerar recompensa de novo. */
   viewOnly?: boolean;
 }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [correctCount, setCorrectCount] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
   const [finished, setFinished] = useState(false);
 
   const total = mission.questions.length;
@@ -30,6 +32,7 @@ export default function QuizModal({
   function selectOption(id: string) {
     if (answered) return;
     setSelected(id);
+    setAnswers((a) => ({ ...a, [question.id]: id }));
     if (id === question.correctOptionId) setCorrectCount((c) => c + 1);
   }
 
@@ -46,6 +49,7 @@ export default function QuizModal({
     setIndex(0);
     setSelected(null);
     setCorrectCount(0);
+    setAnswers({});
     setFinished(false);
   }
 
@@ -66,7 +70,7 @@ export default function QuizModal({
             <p className="mt-6 rounded-xl border border-slate-800 bg-cg-sunken p-4 text-xs text-slate-500">
               Você já concluiu esta missão antes, então não ganha XP, moedas nem item de novo — isso aqui foi só revisão.
             </p>
-            <button onClick={() => onComplete(correctCount)} className="cg-btn-primary mt-6 w-full">
+            <button onClick={() => onComplete(correctCount, answers)} className="cg-btn-primary mt-6 w-full">
               Voltar às Missões
             </button>
           </div>
@@ -83,14 +87,14 @@ export default function QuizModal({
           percent={percent}
           needed={needed}
           onRetry={retry}
-          onBack={() => onComplete(correctCount)}
+          onBack={() => onComplete(correctCount, answers)}
         />
       );
     }
 
     // ---------- Aprovado (60% ou mais): cena do baú ----------
     return (
-      <VictoryScreen mission={mission} correctCount={correctCount} total={total} percent={percent} onBack={() => onComplete(correctCount)} />
+      <VictoryScreen mission={mission} correctCount={correctCount} total={total} percent={percent} onBack={() => onComplete(correctCount, answers)} />
     );
   }
 

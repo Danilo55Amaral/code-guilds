@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns, useShop, useSubmissions } from "@/engine/store";
-import { eventRewardKey, resolveEventItem } from "@/engine/eventItems";
+import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns, useSubmissions, useGameActions } from "@/engine/store";
 import { Mission, RewardItem, isTaskMission, requiredCorrect } from "@/engine/missions";
 import { latestSubmissionIn } from "@/engine/submissions";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
@@ -14,10 +13,8 @@ import {
   currentPhase,
   eventMissionsFor,
   eventPhases,
-  finishPhase,
   getEvent,
   getPhase,
-  introSeenPatch,
   phaseLock,
   phaseProgress,
 } from "@/engine/specialEvents";
@@ -45,11 +42,11 @@ import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 export default function EventoPage() {
   const params = useParams<{ eventId: string }>();
   const event = getEvent(params.eventId);
-  const { activeStudent, students, patchActive } = useStudents();
+  const { activeStudent, students } = useStudents();
+  const game = useGameActions();
   const { missions: allMissions, ready } = useMissions();
   const { send } = useMessages(activeStudent?.id ?? null);
   const attemptMission = useMissionAttempt();
-  const { items: shopItems } = useShop();
   const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
   const [scene, setScene] = useState<{ kind: "intro" | "outro"; phase: number } | null>(null);
   // Fase escolhida na trilha (null = a fase em que o aluno está).
@@ -59,6 +56,8 @@ export default function EventoPage() {
   const [taskMission, setTaskMission] = useState<Mission | null>(null);
   const { submissions } = useSubmissions();
   const [levelUp, setLevelUp] = useState<{ from: number; to: number } | null>(null);
+  // Erro da API ao registrar a tentativa: a recompensa não foi dada
+  const [attemptError, setAttemptError] = useState<string | null>(null);
   const [viewingReward, setViewingReward] = useState<RewardItem | null>(null);
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
 
@@ -112,43 +111,65 @@ export default function EventoPage() {
   const noun = progressNounFor(visual, phaseNum);
   const nextPhase = phased && !isLastPhase ? getPhase(ev, phaseNum + 1) : null;
 
-  function handleComplete(correctCount: number) {
+  // As respostas vão pra API, que corrige e dá a recompensa (igual à tela de Missões)
+  async function handleComplete(_correctCount: number, answers: Record<string, string>) {
     if (!activeMission) return;
-    const levelUpResult = attemptMission(activeMission, correctCount);
-    if (levelUpResult) setLevelUp(levelUpResult);
+    const mission = activeMission;
     setActiveMission(null);
+    const result = await attemptMission(mission, answers);
+    if (result && "error" in result) {
+      setAttemptError(`Não deu pra registrar "${mission.title}": ${result.error}`);
+      return;
+    }
+    if (result) setLevelUp(result);
   }
 
-  // Fechar a abertura marca como vista; fechar o final (vendo até o fim ou pulando) entrega a recompensa da fase.
-  function closeScene() {
+  // Fechar a abertura marca como vista; fechar o final (vendo até o fim ou
+  // pulando) pede a recompensa da fase à API, que confere as missões e entrega
+  // XP, moedas e o item (com as alterações que o ADM fez na Loja).
+  async function closeScene() {
     if (!scene) return;
-    if (scene.kind === "intro") patchActive(introSeenPatch(me, ev, scene.phase));
-    const sceneMissions = eventMissionsFor(allMissions, ev.id, me.teacherId, scene.phase);
-    if (scene.kind === "outro" && canFinishPhase(me, sceneMissions, ev, scene.phase)) {
-      const finished = getPhase(ev, scene.phase);
-      const { reward } = finished;
-      // o item da recompensa com as alterações que o ADM fez na Loja
-      const rewardItem = resolveEventItem(eventRewardKey(ev.id, scene.phase), reward.item, shopItems);
-      const result = finishPhase(me, ev, scene.phase, rewardItem);
-      patchActive(result.student);
-      const waiting = result.student.pendingItems.length > me.pendingItems.length;
-      send({
-        studentId: me.id,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "missao",
-        body:
-          (scene.phase === phases.length
-            ? eventRewardMessage({ event: ev, item: rewardItem, xp: reward.xp, coins: reward.coins })
-            : eventPhaseRewardMessage({ event: ev, phase: finished, totalPhases: phases.length, item: rewardItem, xp: reward.xp, coins: reward.coins })) + (waiting ? PENDING_ITEM_NOTE : ""),
-      });
-      if (result.leveledUp) setLevelUp({ from: me.level, to: result.newLevel });
-      setSelectedPhase(null);
-    }
+    const closed = scene;
     setScene(null);
+    if (closed.kind === "intro") {
+      if (!phaseProgress(me, ev, closed.phase).introSeenAt) {
+        const seen = await game.markEventIntroSeen(ev.id, closed.phase);
+        if (!seen.ok) setAttemptError(seen.error);
+      }
+      return;
+    }
+    const sceneMissions = eventMissionsFor(allMissions, ev.id, me.teacherId, closed.phase);
+    if (!canFinishPhase(me, sceneMissions, ev, closed.phase)) return;
+    const result = await game.finishEventPhase(ev.id, closed.phase);
+    if (!result.ok) {
+      setAttemptError(`Não deu pra concluir a fase: ${result.error}`);
+      return;
+    }
+    const finished = getPhase(ev, closed.phase);
+    send({
+      studentId: me.id,
+      senderId: SYSTEM_SENDER_ID,
+      kind: "missao",
+      body:
+        (closed.phase === phases.length
+          ? eventRewardMessage({ event: ev, item: result.item, xp: result.xp, coins: result.coins })
+          : eventPhaseRewardMessage({ event: ev, phase: finished, totalPhases: phases.length, item: result.item, xp: result.xp, coins: result.coins })) +
+        (result.itemWaiting ? PENDING_ITEM_NOTE : ""),
+    });
+    if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
+    setSelectedPhase(null);
   }
 
   return (
     <div>
+      {attemptError && (
+        <p className="mb-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200">
+          {attemptError}{" "}
+          <button onClick={() => setAttemptError(null)} className="font-semibold underline">
+            Fechar
+          </button>
+        </p>
+      )}
       <Link href="/academia/eventos" className="mb-3 inline-block text-xs font-medium text-slate-400 hover:text-white">
         ← Salão dos Eventos
       </Link>

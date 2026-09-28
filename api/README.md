@@ -23,6 +23,7 @@
 - [Testando as rotas](#testando-as-rotas)
 - [Ligação com o site (Next.js)](#ligação-com-o-site-nextjs)
 - [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)
+- [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -37,8 +38,10 @@ DevTools. Esta API resolve isso guardando os dados num banco PostgreSQL de verda
 seguro e com o servidor decidindo o que cada um pode fazer.
 
 A **fase 1** criou a API: professores, alunos, login, sessões e permissões. A **fase 2**
-ligou o site a ela (as contas saem do localStorage). As próximas fases (missões, loja,
-inventário, trocas, eventos...) estão no fim deste documento.
+ligou o site a ela (as contas saem do localStorage). A **fase 3** levou o jogo para o
+servidor: progresso, missões, Loja, inventário, presentes, amizades, Mercado, trocas e
+eventos, com a API decidindo cada recompensa. As próximas fases (mensagens e entregas) estão
+no fim deste documento.
 
 O desenvolvimento das fases acontece na branch `feat/backend`; a `main` continua sendo a
 versão só com localStorage, publicada na Vercel como demonstração, até a migração terminar.
@@ -71,15 +74,26 @@ conversam por HTTP.
 api/
 ├── db/
 │   ├── migrations/        → histórico de mudanças do banco (uma por tabela)
-│   └── seeds/             → dados iniciais (o primeiro ADM)
+│   └── seeds/             → dados iniciais (o primeiro ADM, as missões de exemplo e a Loja)
 ├── src/
 │   ├── middlewares/
-│   │   └── auth.ts        → descobre quem está logado + ensureAuthenticated/Teacher/Admin
+│   │   └── auth.ts        → descobre quem está logado + ensureAuthenticated/Student/Teacher/Admin
 │   ├── routes/            → as rotas, cada arquivo é um plugin do Fastify
 │   │   ├── auth.ts        → login, logout e "quem sou eu"
+│   │   ├── events.ts      → agenda dos eventos e o progresso do aluno em cada fase
+│   │   ├── friends.ts     → pedidos de amizade e amizades
+│   │   ├── gifts.ts       → presentes do professor/ADM
 │   │   ├── health.ts      → a API está no ar?
+│   │   ├── inventory.ts   → usar, vender, descartar e equipar itens
+│   │   ├── missions.ts    → missões, correção do quiz e aprovação das entregas
+│   │   ├── offers.ts      → Mercado: ofertas de venda entre alunos
+│   │   ├── shop.ts        → Loja: cadastro do ADM e compra do aluno
 │   │   ├── students.ts    → cadastro e gestão de alunos
-│   │   └── teachers.ts    → cadastro e gestão de professores
+│   │   ├── teachers.ts    → cadastro e gestão de professores
+│   │   └── trades.ts      → trocas de itens entre amigos
+│   ├── services/
+│   │   ├── escrow.ts      → devolve os itens guardados em ofertas e trocas
+│   │   └── progress.ts    → updateProgress: transação + aluno travado (fase 3)
 │   ├── types/
 │   │   └── database.ts    → tipos das tabelas (GERADO pelo kysely-codegen, não editar)
 │   ├── utils/
@@ -90,7 +104,8 @@ api/
 │   │   ├── rules.ts       → regras fixas (casas, tamanho mínimo de senha...)
 │   │   └── session.ts     → abre e fecha sessões (token + cookie)
 │   ├── validation/
-│   │   └── validations.ts → existsOrError, notExistsError, equalsOrError
+│   │   ├── schemas.ts     → schemas do Zod usados por mais de uma rota (o item do jogo)
+│   │   └── validations.ts → existsOrError, notExistsError, equalsOrError e os erros 400/403/404
 │   ├── app.ts             → monta o app: plugins, erros e rotas
 │   ├── database.ts        → a conexão com o banco (o "db")
 │   ├── env.ts             → lê e valida as variáveis de ambiente
@@ -105,6 +120,9 @@ api/
 
 O `tsconfig.json` da raiz do site tem `"exclude": ["node_modules", "api"]`, pra o Next.js
 (e a Vercel) não tentar compilar a API junto com o site.
+
+Desde a fase 3, a API também **importa as regras do jogo** da pasta `src/engine/` do site
+(veja [Uma regra só](#uma-regra-só-a-api-usa-as-regras-do-site)).
 
 ## Executando o projeto
 
@@ -278,7 +296,9 @@ select * from teachers; -- consulta os professores
 
 ## Modelo do banco de dados
 
-A fase 1 tem três tabelas. Os nomes das colunas no banco são em `snake_case`
+A fase 1 tem três tabelas (abaixo). A fase 3 trouxe as colunas do progresso do aluno e as
+tabelas de missões, Loja, amizades, ofertas, trocas e agenda dos eventos (veja
+[As tabelas novas](#as-tabelas-novas)). Os nomes das colunas no banco são em `snake_case`
 (`teacher_id`) e no código TypeScript em `camelCase` (`teacherId`), veja o
 [CamelCasePlugin](#camelcaseplugin-snake_case-no-banco-camelcase-no-código).
 
@@ -431,8 +451,9 @@ await db.transaction().execute(async (trx) => {
 ```
 
 Dentro da transação usamos o `trx` no lugar do `db`. Se qualquer passo der erro, o
-PostgreSQL desfaz tudo (rollback) e nenhum aluno fica sem professor. Nas próximas fases, as
-trocas entre alunos e as compras na loja vão usar muito isso.
+PostgreSQL desfaz tudo (rollback) e nenhum aluno fica sem professor. Na fase 3, toda ação do
+jogo (compra, venda, troca, recompensa) roda numa transação com o aluno travado: veja
+[updateProgress](#updateprogress-transação--linha-travada).
 
 ### Por que o Kysely está fixado na versão 0.28
 
@@ -553,8 +574,9 @@ Depois de qualquer migration nova, rode `npm run db:types` para atualizar os tip
 
 ## Seeds: criando o primeiro ADM
 
-Seeds são dados iniciais que o sistema precisa pra funcionar. Aqui o único é o primeiro ADM:
-sem ele não haveria quem cadastrasse os professores.
+Seeds são dados iniciais que o sistema precisa pra funcionar. O principal é o primeiro ADM:
+sem ele não haveria quem cadastrasse os professores. (A fase 3 trouxe mais dois, as missões
+de exemplo e a Loja: veja [Seeds novos](#seeds-novos).)
 
 O arquivo `db/seeds/20260928130000_create-admin.ts` lê `ADMIN_NAME`, `ADMIN_EMAIL` e
 `ADMIN_PASSWORD` do `.env`, faz o hash da senha e cria o professor com `is_admin = true`.
@@ -771,6 +793,25 @@ export function equalsOrError(valueA: unknown, valueB: unknown, msg: string): vo
 }
 ```
 
+Na fase 3 entraram mais dois erros no mesmo arquivo, pra quando a regra não é "dado
+inválido":
+
+```ts
+// Registro que não existe (vira resposta 404)
+export class NotFoundError extends Error {
+    statusCode = 404
+}
+
+// Ação que a pessoa logada não pode fazer (vira resposta 403)
+export class ForbiddenError extends Error {
+    statusCode = 403
+}
+```
+
+Eles são úteis dentro do `updateProgress`, onde não dá pra usar o `reply.status(...)`: a
+regra só lança o erro (ex.: `throw new NotFoundError('Esse item não está no seu inventário.')`),
+a transação é desfeita e o tratamento de erros responde com o status certo.
+
 Exemplos de uso reais:
 
 ```ts
@@ -792,6 +833,7 @@ resposta. Assim nenhuma rota precisa de `try/catch`:
 | `ZodError` (dado fora do schema) | `400` | `{ message: 'Dados inválidos.', issues: [...] }` |
 | `ValidationError` (existsOrError & cia.) | `400` | `{ message: '...' }` |
 | Valor repetido numa coluna única (código `23505` do PostgreSQL) | `409` | `{ message: 'Esse registro já existe.' }` |
+| `NotFoundError` e `ForbiddenError` (fase 3) | `404` / `403` | `{ message: '...' }` |
 | Erros do Fastify e dos plugins (JSON inválido, 429 do limite...) | o status do erro | `{ message: '...' }` |
 | Qualquer outro erro | `500` | `{ message: 'Erro interno no servidor.' }` |
 
@@ -1025,7 +1067,11 @@ Resumo:
 | GET | `/students/:id` | O próprio aluno, o professor dele ou o ADM |
 | PUT | `/students/:id` | O professor dele / o ADM, ou o próprio aluno (campos diferentes) |
 | PUT | `/students/:id/password` | O professor dele ou o ADM |
+| DELETE | `/students/:id/items/:itemId` | O professor dele ou o ADM (tira um item do inventário) |
 | DELETE | `/students/:id` | O professor dele ou o ADM |
+
+As rotas do jogo (inventário, missões, Loja, presentes, amigos, Mercado, trocas e eventos)
+estão em [As rotas da fase 3](#as-rotas-da-fase-3).
 
 ### O formato do professor e do aluno nas respostas
 
@@ -1064,13 +1110,19 @@ Aluno:
   "tutorialDone": false,
   "bonusSlots": 0,
   "multiverseAccess": null,
+  "inventory": [{ "id": "i_1759...", "name": "Fragmento Inicial", "icon": "✨", "rarity": "comum", "value": 5, "xp": 20, "...": "..." }],
+  "pendingItems": [],
+  "equipped": {},
+  "completedMissionIds": [],
+  "events": {},
   "createdAt": "2026-09-28T14:50:30.000Z",
   "hasPassword": true
 }
 ```
 
 O `hasPassword` substitui a senha: o professor sabe se ainda precisa definir uma, sem nunca
-ver qual é.
+ver qual é. Os campos do progresso (`inventory` até `events`) entraram na fase 3 (veja
+[O progresso do aluno no banco](#o-progresso-do-aluno-no-banco)).
 
 ---
 
@@ -1183,10 +1235,11 @@ O papel de ADM não muda por aqui. `200 { "teacher": {...} }`, `400`, `403` ou `
 
 ### DELETE /teachers/:id
 
-Só o ADM. Os alunos do professor excluído passam para o professor escolhido na query
-`?heirId=<id>` (o "herdeiro", que o Painel ADM pede na tela de exclusão); sem ele, passam
-para o ADM que fez a exclusão. Tudo numa [transação](#transações). As sessões do professor
-excluído caem na hora.
+Só o ADM. Os alunos **e as missões** do professor excluído passam para o professor escolhido
+na query `?heirId=<id>` (o "herdeiro", que o Painel ADM pede na tela de exclusão); sem ele,
+passam para o ADM que fez a exclusão. Tudo numa [transação](#transações). As sessões e a
+agenda dos eventos do professor excluído são apagadas junto (os alunos passam a seguir a
+agenda do herdeiro).
 
 ```
 DELETE /teachers/395b31ca-795a-4484-9291-2893f6d1d75f?heirId=61b56c8f-1762-4fe4-b903-5e4d6cddcf6a
@@ -1300,9 +1353,17 @@ O professor do aluno ou o ADM define uma senha nova:
 Todas as sessões abertas do aluno caem: ele precisa entrar de novo com a senha nova.
 `200`, `400`, `403` ou `404`.
 
+### DELETE /students/:id/items/:itemId
+
+O professor do aluno ou o ADM tira um item do inventário dele (se era um visual equipado,
+sai do avatar também). `200 { "student": {...} }`, `403` ou `404`.
+
 ### DELETE /students/:id
 
-O professor do aluno ou o ADM. As sessões do aluno são apagadas junto. `200`, `403` ou `404`.
+O professor do aluno ou o ADM. As sessões, as amizades e as ofertas e trocas que o aluno
+**fez** são apagadas junto. As ofertas e trocas que ele **recebeu** devolvem os itens pra
+quem ofereceu, antes de ele sair (veja [Itens guardados](#itens-guardados-ofertas-e-trocas)).
+`200`, `403` ou `404`.
 
 ## Testando as rotas
 
@@ -1368,10 +1429,11 @@ if (!response.ok) alert(data.message)
 
 Na fase 2, o site deixou de guardar as **contas** no localStorage e passou a usar a API. O
 **progresso do jogo** (nível, XP, moedas, inventário, missões feitas, visuais equipados,
-eventos) e o resto (missões, loja, mensagens, amigos, trocas) continuam no navegador até as
-próximas fases.
+eventos) e o resto (missões, loja, mensagens, amigos, trocas) continuaram no navegador. Esta
+seção descreve como ficou ao fim da fase 2; o que mudou depois está em
+[Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor).
 
-### O que é da API e o que ainda é do navegador
+### O que era da API e o que ainda era do navegador (fim da fase 2)
 
 | Dado | Onde fica agora |
 |---|---|
@@ -1417,13 +1479,13 @@ Pra não reescrever as 23 telas que usam `useStudents` e `useTeachers`, os mesmo
 de antes (`cg-students` e `cg-teachers`) viraram um **cache** do que a API devolveu:
 
 1. A tela abre e mostra na hora o que está no cache.
-2. Em segundo plano, o `refreshAccounts()` pergunta à API quem está logado (`/auth/me`) e busca as listas que essa pessoa pode ver:
+2. Em segundo plano, o `refreshFromApi()` pergunta à API quem está logado (`/auth/me`) e busca as listas que essa pessoa pode ver (na fase 3 entraram também as missões, a Loja, a agenda dos eventos e, pro aluno, os amigos, as ofertas e as trocas):
    - professor: `/students` (os alunos dele) e `/teachers` (ou `/teachers/admin`, se for ADM);
    - aluno: `/students/community` (a comunidade) e `/teachers`;
    - ninguém logado: só `/teachers` (a tela de cadastro precisa da lista).
 3. O que voltou é gravado no cache (`saveStudentAccounts`, `saveTeachers`) e o `emitChange()` avisa os hooks, que atualizam as telas.
 
-O `refreshAccounts()` roda quando os hooks montam (no máximo a cada 5 segundos, por mais
+O `refreshFromApi()` roda quando os hooks montam (no máximo a cada 5 segundos, por mais
 telas que abram juntas), quando a pessoa volta pra aba do site e depois de login, cadastro e
 edições.
 
@@ -1463,7 +1525,7 @@ Regras:
 | `login(username, password)` | conferia no localStorage | `Promise` — API `/auth/students/login` |
 | `signUp(dados)` | criava no localStorage | `Promise` — API `POST /students` (o aluno já sai logado) |
 | `patchActive(patch)` | salvava no localStorage | salva no cache e, se mudou o perfil (avatar, casa, etapa do primeiro acesso, tutorial), manda pra API em segundo plano |
-| `patchStudent(id, patch)` | salvava qualquer campo | só progresso do jogo (ex.: o professor tirar um item) |
+| `patchStudent(id, patch)` | salvava qualquer campo | só progresso do jogo (**removido na fase 3**: o progresso só muda pela API) |
 | `updateAccount(id, patch)` | — | **novo**: nome, e-mail, turma, login, casa e (ADM) professor, na API |
 | `setPassword(id, senha)` | — | **novo**: o professor define uma senha nova |
 | `deleteStudent(id)` | apagava do localStorage | `Promise` — API `DELETE /students/:id` e depois limpa o que o aluno tinha no navegador |
@@ -1492,6 +1554,408 @@ API_URL=http://localhost:3333
 
 3. Reinicie o `npm run dev` do site (o `next.config.js` só lê o `API_URL` quando o servidor inicia).
 4. Abra `http://localhost:3000/api/health`: tem que aparecer `{"status":"ok"}` (é a API respondendo pelo site).
+
+## Fase 3: o jogo no servidor
+
+Na fase 3, tudo que vale moedas, XP ou itens passou para a API. Antes, o site calculava a
+recompensa e salvava no navegador, então bastava abrir o DevTools e mudar o `cg-students`
+pra ficar rico. Agora a tela só **pede** a ação ("usei o item X", "terminei o quiz com estas
+respostas", "quero comprar o item Y") e a API confere, aplica a regra e devolve o aluno
+atualizado.
+
+### O que é da API e o que ainda é do navegador
+
+| Dado | Onde fica agora |
+|---|---|
+| Login, senha, sessão, professores, perfil do aluno | API (fase 2) |
+| Nível, XP, moedas, inventário, itens esperando espaço, espaços extras | **API** |
+| Missões feitas, visuais equipados, progresso nos eventos, passe do Multiverso | **API** |
+| Missões (catálogo de cada professor) e a Loja | **API** |
+| Presentes do professor, amizades, ofertas do Mercado, trocas entre amigos | **API** |
+| Agenda dos eventos (iniciar, liberar fase, encerrar) | **API** |
+| Recompensa da missão de entrega aprovada | **API** |
+| Mensagens (sininho), conversa com balões, mensagens pro professor, comunicados | Navegador (fase 4) |
+| Entregas das missões de entrega (texto e arquivos) | Navegador (fase 5) |
+
+As mensagens ainda são locais. Por isso, quando uma ação da API dá certo, o **site** cria a
+mensagem (🛒 Compra, 🔄 Troca, 🎁 Presente...) no navegador de quem fez a ação. A mensagem
+pra outra pessoa (ex.: o 💰 Venda pro vendedor) só aparece se ela usar o mesmo navegador. Isso
+se resolve na fase 4, quando as mensagens forem pro servidor e a própria API criar cada uma.
+
+### Uma regra só: a API usa as regras do site
+
+As regras do jogo já existiam no site, em `src/engine/` (ganhar XP e subir de nível, guardar
+itens com limite de espaço, comprar, trocar...). Em vez de reescrever tudo no servidor (e
+correr o risco de as duas versões ficarem diferentes), a **API importa os mesmos arquivos**:
+
+```ts
+// api/src/routes/inventory.ts
+import { consumeItem, sellItemToSystem, equipItem } from "../../../src/engine/students";
+```
+
+O site usa essas funções pra mostrar (ex.: "faltam 30 moedas"), e a API usa pra decidir.
+Uma regra só, em um lugar só.
+
+Os arquivos de `src/engine/` que a API importa:
+
+| Arquivo | Regras usadas pela API |
+|---|---|
+| `students.ts` | usar item, vender, descartar, equipar, guardar itens com limite de espaço, recompensa de missão, `grantItem` |
+| `missions.ts` | correção do quiz (`hasPassed`), tipos das missões |
+| `shop.ts` | compra (`applyPurchase`), coleções da Loja, itens padrão |
+| `avatar.ts` | visuais e coleções (pra conferir visual repetido na Loja) |
+| `multiverse.ts` | usar a Chave do Multiverso |
+| `market.ts` | criar, aceitar e devolver ofertas |
+| `trades.ts` | propor, aceitar e devolver trocas |
+| `gifts.ts` | o tipo do presente |
+| `specialEvents.ts` | fases dos eventos, abertura vista, concluir fase e recompensa |
+| `eventItems.ts` | o item do evento com as alterações do ADM na Loja (`resolveEventItem`) |
+
+Três cuidados pra isso funcionar:
+
+- **Esses arquivos não podem importar nada com `@/`** (o atalho do Next.js pra pasta `src/`). A API não conhece esse atalho. Por isso as chamadas à API ficam em arquivos separados (`gameApi.ts`, `shopApi.ts`, `socialApi.ts`, `eventsApi.ts`), que a API nunca importa.
+- Eles também não podem usar o `window` ou o `localStorage` quando são carregados, só dentro das funções (todos já conferem `typeof window === "undefined"`). As funções que a API usa são **puras**: recebem o aluno e devolvem o aluno alterado, sem salvar nada.
+- O `tsconfig.json` da API tem `"lib": ["ES2022", "DOM"]`, porque esses arquivos citam tipos do navegador (como `window`). No build, o tsup segue os imports e coloca essas regras dentro do `build/server.js`.
+
+### O progresso do aluno no banco
+
+Nível, XP, moedas, espaços extras e o passe do Multiverso já eram colunas da tabela
+`students`. A migration `20260929120000_add-progress-to-students` trouxe o resto, em `jsonb`,
+com **exatamente** o formato que o site usa (`InventoryItem`, `equipped` etc., de
+`src/engine/students.ts`):
+
+| Coluna | O que guarda |
+|---|---|
+| `inventory` | os itens do aluno |
+| `pending_items` | os itens que esperam espaço no inventário |
+| `equipped` | os visuais equipados no avatar (espaço → id do item) |
+| `completed_mission_ids` | os ids das missões concluídas |
+| `events` | o progresso em cada evento/fase (abertura vista, fase concluída) |
+
+Por que `jsonb` e não uma tabela de itens? Porque o inventário sempre é lido e salvo inteiro,
+junto com o aluno, e as regras do site já trabalham com o objeto completo. Uma tabela de itens
+só valeria a pena se precisássemos de consultas do tipo "quem tem o item X", que o jogo não faz.
+
+Um detalhe ao **salvar** `jsonb`: o driver `pg` transforma um array do JavaScript num array do
+PostgreSQL (e não num JSON), e o banco recusa. Por isso os valores vão com `JSON.stringify`:
+
+```ts
+inventory: JSON.stringify(student.inventory) as Json,
+```
+
+### updateProgress: transação + linha travada
+
+Toda ação do jogo passa pela função `updateProgress` (`src/services/progress.ts`):
+
+```ts
+const result = await updateProgress(studentId, (student) => {
+    const item = findItem(student, itemId)
+    return { student: sellItemToSystem(student, itemId), coinsGained: item.value }
+})
+```
+
+Por dentro, numa [transação](#transações):
+
+1. carrega o aluno **travando a linha** (`select ... for update`);
+2. monta o objeto `Student` no formato das regras do site (`toStudent`);
+3. aplica a regra (a função que a rota passou);
+4. salva o progresso de volta (`saveProgress`).
+
+Se a regra lançar um erro (ex.: "Esse item não está no seu inventário."), nada é salvo.
+
+**Por que travar a linha?** Imagine o aluno clicando duas vezes rápido em "Vender". Sem a
+trava, as duas requisições leriam o aluno ao mesmo tempo (as duas com o item), as duas
+venderiam, e ele ganharia as moedas duas vezes. Com o `for update`, a segunda requisição
+**espera** a primeira terminar e lê o aluno já sem o item, então a venda falha como deveria.
+
+O terceiro parâmetro, `alsoSave`, grava outras coisas na mesma transação. A compra usa isso
+pra somar a venda no item da Loja: ou salva as duas coisas, ou nenhuma.
+
+#### Ações com dois alunos: lockStudents
+
+Aceitar uma oferta mexe no comprador e no vendedor; aceitar uma troca, nos dois amigos; um
+presente pra turma, em todos os alunos. Pra isso existe o `lockStudents(trx, ids)`, que trava
+várias linhas de uma vez, **sempre na ordem do id**:
+
+```ts
+const students = await lockStudents(trx, [offer.buyerId, offer.sellerId])
+```
+
+Por que a ordem importa? Se a Ana aceitar uma troca do Bruno enquanto o Bruno aceita uma troca
+da Ana, e cada requisição travasse primeiro "o seu" aluno, as duas ficariam esperando a outra
+soltar pra sempre (um *deadlock*). Travando sempre em ordem de id, as duas tentam travar a
+mesma linha primeiro, e uma simplesmente espera a outra.
+
+A ordem das travas na API inteira é sempre a mesma: **primeiro a oferta/troca/amizade, depois
+os alunos** (em ordem de id).
+
+### Itens guardados: ofertas e trocas
+
+No Mercado e nas trocas, os itens oferecidos **saem do inventário** na hora e ficam guardados
+na própria linha da oferta (coluna `item`) ou da troca (coluna `offered`), até a outra pessoa
+decidir. Assim ninguém vende o mesmo item duas vezes nem usa um item que está numa proposta.
+
+O `src/services/escrow.ts` cuida de devolver esses itens:
+
+| Quando | O que volta |
+|---|---|
+| O comprador recusa ou o vendedor cancela a oferta | o item volta pro vendedor |
+| O amigo recusa ou quem propôs cancela a troca | os itens oferecidos voltam pra quem propôs |
+| A amizade é desfeita | as trocas pendentes entre os dois são canceladas (os itens voltam) |
+| Um aluno é excluído | as ofertas e trocas que ele **recebeu** devolvem os itens pra quem ofereceu |
+
+Se quem vai receber o item de volta estiver com o inventário cheio, o item vai pra "esperando
+espaço" (nada se perde). As ofertas e trocas que o aluno excluído **fez** somem junto com ele
+(`on delete cascade`).
+
+### As tabelas novas
+
+```
+missions (missões)                 shop_items (Loja)                 event_runs (agenda dos eventos)
+──────────────────                 ─────────────────                 ───────────────────────────────
+id           varchar(120) PK       id             varchar(80) PK     teacher_id  uuid FK ┐ PK
+teacher_id   uuid FK → teachers    name, icon, description           event_id    varchar ┘
+title, icon, difficulty            rarity         varchar(10)        status      'ativo' | 'encerrado'
+min_level    integer               price, value, xp  integer         started_at  timestamptz
+description  text                  cosmetic       jsonb (visual)     ended_at    timestamptz
+reward_xp, reward_coins  integer   slots          integer (espaço)   phases_released_at  jsonb
+reward_item  jsonb                 hidden, featured  boolean
+questions    jsonb                 event_item_key varchar(80)
+kind         'quiz' | 'entrega'    collection     varchar(20)
+task         jsonb                 sold           integer
+event_id, event_phase              created_at
+created_at
+
+friendships (amizades)             offers (Mercado)                  trades (trocas)
+──────────────────────             ────────────────                  ───────────────
+id          uuid PK                id         uuid PK                id            uuid PK
+from_id     uuid FK → students     seller_id  uuid FK → students     from_id       uuid FK → students
+to_id       uuid FK → students     buyer_id   uuid FK → students     to_id         uuid FK → students
+status      'pendente' | 'aceito'  item       jsonb (guardado)       offered       jsonb (guardados)
+created_at, accepted_at            price      integer                requested_ids jsonb
+                                   created_at                        requested     jsonb (cópia)
+                                                                     created_at
+```
+
+Detalhes que valem lembrar:
+
+- **O id da missão continua sendo o "slug" do título** (`loops-com-for`), como no site, porque os alunos guardam as missões feitas (`completed_mission_ids`) por esse id. Dois títulos iguais viram `loops-com-for` e `loops-com-for-1`.
+- `missions.teacher_id` é `on delete restrict`: a exclusão do professor passa as missões pro herdeiro antes (junto com os alunos).
+- **Uma amizade só entre dois alunos**, não importa quem pediu: o índice único `friendships_pair_index` usa `least(from_id, to_id)` e `greatest(from_id, to_id)`, então (Ana, Bruno) e (Bruno, Ana) contam como o mesmo par. Esse índice foi criado com `sql` puro na migration, porque o construtor de índices do Kysely não aceita expressões.
+- `offers`, `trades` e `friendships` têm `check` pra ninguém negociar consigo mesmo (`seller_id <> buyer_id`, `from_id <> to_id`), e `offers_price_check` (preço ≥ 0).
+- `event_runs` tem chave primária composta (professor + evento): uma linha por professor e evento, e o `insert ... on conflict` reabre o evento em vez de duplicar.
+- **Nomes das tabelas no código**: o `CamelCasePlugin` também traduz o nome da tabela. No banco é `shop_items` e `event_runs`; no código, `db.selectFrom('shopItems')` e `db.selectFrom('eventRuns')`.
+
+### Seeds novos
+
+| Seed | O que faz |
+|---|---|
+| `20260929130000_create-default-missions` | cria as missões de exemplo do site (`MISSIONS`, de `src/engine/missions.ts`), com o primeiro ADM como dono. Missões que já existem (mesmo id) são puladas. |
+| `20260929140000_create-default-shop` | coloca os itens padrão da Loja (`DEFAULT_SHOP`, de `src/engine/shop.ts`), só se a Loja estiver vazia. |
+
+Os dois podem rodar quantas vezes quiser (`npm run seed`), sem duplicar nada.
+
+### As rotas da fase 3
+
+Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo formato do
+`/auth/me`), e o site guarda ele no cache na hora.
+
+| Método | Rota | Quem pode | O que faz |
+|---|---|---|---|
+| POST | `/inventory/:itemId/use` | Aluno | usa o item (consumível dá XP; item de espaço aumenta o inventário; a Chave abre o Multiverso) |
+| POST | `/inventory/:itemId/sell` | Aluno | vende o item pro sistema pelo valor dele |
+| DELETE | `/inventory/:itemId` | Aluno | descarta o item |
+| POST | `/inventory/:itemId/equip` | Aluno | equipa o visual no avatar |
+| POST | `/inventory/:itemId/unequip` | Aluno | tira o visual do avatar |
+| POST | `/inventory/pending/claim` | Aluno | guarda os itens que esperavam espaço (todos ou `{ itemId }`) |
+| POST | `/inventory/multiverse/enter` | Aluno | entra na Sala do Multiverso (gasta o passe) |
+| GET | `/missions` | Logados | aluno: as do professor dele; professor: as dele; ADM: todas (ou `?teacherId=`) |
+| POST | `/missions` | Professores | cria a missão (o ADM pode escolher o `teacherId`) |
+| PUT | `/missions/:id` | O dono ou o ADM | altera o que vier (`null` tira a tarefa/evento/fase) |
+| DELETE | `/missions/:id` | O dono ou o ADM | exclui |
+| POST | `/missions/:id/attempt` | Aluno | manda as respostas do quiz; a API corrige e dá a recompensa |
+| POST | `/missions/:id/approve` | O professor do aluno ou o ADM | aprova a entrega e dá a recompensa |
+| GET | `/shop` | Logados | ADM: todos os itens; os outros: só os que não estão escondidos |
+| POST / PUT / DELETE | `/shop`, `/shop/:id` | ADM | cadastra, edita e tira itens da Loja |
+| POST / DELETE | `/shop/collections/:collection` | ADM | coloca ou tira uma coleção inteira |
+| POST | `/shop/:id/buy` | Aluno | compra o item |
+| POST | `/gifts` | Professores | dá um item pra uma lista de alunos |
+| GET / POST | `/friends` | Aluno | os vínculos do aluno / manda um pedido de amizade |
+| POST | `/friends/:id/accept` | Aluno (quem recebeu) | aceita o pedido |
+| DELETE | `/friends/:id` | Aluno (um dos dois) | recusa, cancela ou desfaz a amizade |
+| GET / POST | `/offers` | Aluno | as ofertas recebidas e feitas / oferece um item pra um colega |
+| POST | `/offers/:id/accept` | Aluno (o comprador) | compra |
+| DELETE | `/offers/:id` | Aluno (um dos dois) | recusa ou cancela (o item volta pro vendedor) |
+| GET / POST | `/trades` | Aluno | as propostas recebidas e feitas / propõe uma troca pra um amigo |
+| POST | `/trades/:id/accept` | Aluno (quem recebeu) | aceita a troca |
+| DELETE | `/trades/:id` | Aluno (um dos dois) | recusa ou cancela (os itens voltam pra quem propôs) |
+| GET | `/events/runs` | Logados | a agenda (aluno: a do professor dele; professores: todas) |
+| POST | `/events/runs/:eventId/start` | Professores | inicia ou reabre o evento pra turma |
+| POST | `/events/runs/:eventId/release` | Professores | libera a próxima fase (evento em fases) |
+| POST | `/events/runs/:eventId/end` | Professores | encerra o evento |
+| POST | `/events/:eventId/phases/:phase/intro` | Aluno | marca a abertura da fase como vista |
+| POST | `/events/:eventId/phases/:phase/finish` | Aluno | conclui a fase e ganha a recompensa |
+
+---
+
+#### Inventário
+
+Exemplo, usando um item:
+
+```
+POST /inventory/i_1759080000000_1234/use
+```
+
+```json
+{
+  "student": { "...": "o aluno atualizado" },
+  "effect": { "kind": "xp", "xpGained": 20, "leveledUp": true, "fromLevel": 1, "newLevel": 2 }
+}
+```
+
+O `effect.kind` diz o que aconteceu: `"xp"` (consumível), `"espaco"` (com `slotsGained` e
+`claimed`, os itens que esperavam e entraram) ou `"multiverso"`. Item que não está no
+inventário: `404`. Item que não pode ser usado (ex.: um visual): `400`.
+
+Na venda a resposta traz `coinsGained`; no `pending/claim`, `moved` (quantos entraram). Sem
+espaço livre, o `pending/claim` responde `400`.
+
+#### Missões
+
+- O `POST /missions` confere se a missão faz sentido (`checkMissionContent`): tem título, ícone, dificuldade e item; o quiz tem perguntas, e cada pergunta tem a resposta certa entre as opções; a missão de entrega tem o enunciado da tarefa.
+- No `PUT`, só o ADM troca o dono (`teacherId`).
+- **A correção do quiz é feita aqui.** O aluno manda as respostas (`{ "answers": { "q1": "a", "q2": "c" } }`) e o servidor compara com o `correctOptionId` de cada pergunta. Com 60% ou mais numa missão ainda não concluída, ganha XP, moedas e o item. A resposta:
+
+```json
+{ "student": { ... }, "correctCount": 3, "total": 4, "passed": true, "rewarded": true, "leveledUp": false, "fromLevel": 2, "newLevel": 2, "itemWaiting": false }
+```
+
+- Refazer uma missão já concluída, ou tirar menos de 60%, responde `200` com `rewarded: false` (a tela mostra a nota, mas não paga de novo). Missão de nível acima do aluno: `400`. Missão de outro professor: `403`. Missão de entrega: `400` (quem aprova é o professor).
+- `POST /missions/:id/approve` com `{ "studentId": "..." }`: o professor aprova a entrega e o aluno ganha a recompensa (se ainda não tinha concluído; se já tinha, `rewarded: false`). A entrega em si (texto e arquivos) ainda fica no navegador até a fase 5, então o site só chama essa rota depois de conferir que existe uma entrega pendente.
+
+#### Loja
+
+- `POST /shop/:id/buy` usa o `applyPurchase` do site: confere moedas, espaço no inventário e se o aluno já tem aquele visual. Resposta: `{ "student": {...}, "item": {...o item que entrou no inventário} }`. Item escondido não pode ser comprado (`400`).
+- O ADM não consegue cadastrar dois itens com o mesmo visual (`400`).
+- Ao editar um item, o `eventItemKey` (o elo com um item de evento) e a `collection` só mudam se vierem no corpo: editar o preço não desliga o item do evento.
+- `POST /shop/collections/natal` coloca à venda os visuais da coleção que ainda não estão na Loja (`{ "added": 12 }`); o `DELETE` tira (`{ "removed": 12 }`).
+
+#### Presentes
+
+```json
+POST /gifts
+{
+  "studentIds": ["...", "..."],
+  "item": { "name": "Pena Dourada", "icon": "🪶", "description": "Um presente", "rarity": "raro", "value": 20, "xp": 5 }
+}
+```
+
+- O professor só presenteia os alunos dele (`403`); o ADM, qualquer aluno.
+- Item de espaço (`slots`), só o ADM (`403`).
+- Cada aluno ganha o próprio exemplar (`grantItem`). Resposta: `{ "delivered": 2, "waiting": 0, "results": [{ "studentId": "...", "waiting": false }] }`. O `waiting` diz se o item foi pra "esperando espaço" (o site usa isso na mensagem de presente).
+
+#### Amigos
+
+- `POST /friends` com `{ "toId": "..." }`. Se o outro aluno já tinha mandado um pedido, os dois viram amigos na hora e a resposta tem `"accepted": true` (`200`); senão, `201` com o pedido pendente.
+- Pedido repetido, pra si mesmo ou quando já são amigos: `400`.
+- `DELETE /friends/:id` serve pra recusar, cancelar ou desfazer a amizade. Desfazendo, as trocas pendentes entre os dois são canceladas e os itens voltam (numa transação só).
+
+#### Mercado (ofertas)
+
+- `POST /offers` com `{ "buyerId": "...", "itemId": "...", "price": 40 }`. O item sai do inventário do vendedor (e do avatar, se estava equipado). Preço de 0 a 100.000.
+- `POST /offers/:id/accept`: o comprador precisa ter as moedas e um espaço livre (`400` com a mensagem, ex.: `Moedas insuficientes — faltam 939.`). Deu certo: o comprador paga e recebe o item, o vendedor recebe as moedas.
+- Oferta que já não existe (comprada ou cancelada): `404` `Essa oferta não existe mais.`
+
+#### Trocas
+
+- `POST /trades` com `{ "toId": "...", "offeredIds": ["..."], "requestedIds": ["..."] }`. Só entre **amigos** (`400` `Vocês precisam ser amigos pra trocar itens.`), de 1 a 6 itens de cada lado, no máximo 5 propostas esperando resposta.
+- Enquanto a proposta é salva, a amizade fica travada (`for share`): se o amigo desfizer a amizade no mesmo instante, ele espera a proposta terminar e depois a cancela junto.
+- `POST /trades/:id/accept`: o amigo precisa ainda ter todos os itens pedidos, e os itens que recebe precisam caber no inventário dele. Quem propôs recebe os itens pedidos (sem espaço, eles esperam espaço).
+
+#### Eventos
+
+A **agenda** diz, pra cada professor, quais eventos estão acontecendo pra turma dele:
+
+```json
+GET /events/runs
+{
+  "runs": {
+    "<id do professor>": {
+      "natal": { "status": "ativo", "startedAt": "...", "phasesReleasedAt": ["...", "..."] },
+      "halloween": { "status": "encerrado", "startedAt": "...", "endedAt": "...", "phasesReleasedAt": ["..."] }
+    }
+  }
+}
+```
+
+- `start`, `release` e `end` aceitam `{ "teacherId": "..." }`: o ADM mexe na agenda de qualquer professor; o professor só na dele (`403`). A resposta traz a agenda desse professor.
+- `start` num evento encerrado **reabre** mantendo as fases já liberadas. `release` além da última fase, ou com o evento parado: `400`. `end` num evento nunca iniciado: `404`.
+- Evento que não existe: `400` (o `eventId` é conferido pelo Zod contra a lista de eventos do site).
+
+O **progresso** do aluno:
+
+- `intro`: marca a abertura como vista. Precisa do evento acontecendo e da fase liberada pro aluno (liberada pelo professor e com a fase anterior concluída). Se a abertura já tinha sido vista, só responde `200` (rever a abertura não muda nada).
+- `finish`: conclui a fase. A API confere tudo de novo: o evento acontecendo, a fase liberada, a fase ainda não concluída e **todas as missões da fase concluídas** (as missões são buscadas no banco, do professor do aluno). A recompensa usa o item do evento com as alterações que o ADM fez na Loja (`resolveEventItem`, pela `event_item_key`). Resposta:
+
+```json
+{ "student": { ... }, "leveledUp": true, "fromLevel": 3, "newLevel": 4, "itemWaiting": false, "item": { ... }, "xp": 300, "coins": 150 }
+```
+
+### O site na fase 3
+
+```
+src/engine/
+├── gameApi.ts     → ações do jogo: inventário, quiz, compra, Mercado, trocas, presentes, eventos, aprovar entrega
+├── shopApi.ts     → cadastro da Loja pelo ADM (itens e coleções)
+├── socialApi.ts   → pedidos de amizade e amizades
+├── eventsApi.ts   → agenda dos eventos (iniciar, liberar fase, encerrar)
+├── accounts.ts    → a sincronização agora também busca missões, Loja, amigos, ofertas, trocas e a agenda
+├── market.ts      → regras puras das ofertas + cache "cg-offers"
+├── trades.ts      → regras puras das trocas + cache "cg-trades"
+├── friends.ts     → cache "cg-friends" (a conversa com balões continua local)
+└── eventSchedule.ts → cache "cg-event-runs"
+```
+
+Toda função do `gameApi.ts` segue o mesmo padrão: chama a API, guarda o aluno que voltou no
+cache e avisa as telas (`emitChange`). Ela devolve `{ ok: true, ... }` ou
+`{ ok: false, error }` com a mensagem da API, e a tela mostra essa mensagem:
+
+```ts
+const result = await game.sellItem(item.id)
+if (!result.ok) return flash(result.error, "erro")
+flash(`💰 Você vendeu ${item.name} por ${result.coinsGained} moedas.`)
+```
+
+O que mudou nos hooks do `store.ts`:
+
+| Hook | O que mudou |
+|---|---|
+| `useStudents` | o `patchStudent` saiu: progresso só muda pelas ações do jogo |
+| `useMissions` | criar, editar e excluir falam com a API |
+| `useMissionAttempt` | manda as respostas do quiz; a API corrige |
+| `useShop` | cadastro (ADM) e compra pela API |
+| `useGameActions` | **novo**: as ações do inventário, do quiz e dos eventos |
+| `useGifts` | o `give` espera a API e devolve `{ ok, delivered, waiting }` |
+| `useFriends` | pedir, aceitar, recusar e desfazer amizade pela API |
+| `useOffers` | oferecer, comprar, recusar e cancelar pela API |
+| `useTrades` | propor, aceitar, recusar e cancelar pela API |
+| `useEventRuns` | iniciar, liberar fase e encerrar pela API |
+| `useSubmissions` | aprovar uma entrega chama a API (que dá a recompensa) antes de marcar como aprovada |
+
+As telas travam o botão enquanto a API responde (uma ação por vez, pra dois cliques rápidos
+não mandarem o mesmo pedido duas vezes) e mostram o erro, se houver.
+
+### Testando a fase 3
+
+Com o Insomnia (ou o `curl`), logado como aluno:
+
+1. `GET /auth/me` pra ver o inventário (o aluno ganha o Fragmento Inicial no cadastro).
+2. `POST /inventory/<id do item>/use` e veja o XP subir.
+3. `GET /missions` e `POST /missions/<id>/attempt` com as respostas.
+4. `GET /shop` e `POST /shop/<id>/buy`.
+
+Pra testar trocas, cadastre dois alunos, mande o pedido de amizade com um (`POST /friends`) e
+aceite com o outro (`POST /friends/<id>/accept`).
 
 ## Build da aplicação
 
@@ -1586,15 +2050,14 @@ nas variáveis de ambiente.
 
 - **Senhas**: ninguém mais consegue ver a senha de um aluno, nem o professor. O professor só define uma nova. O campo `hasPassword` diz se o aluno já tem senha.
 - **Código mestre**: o front aceita o código mestre antigo como senha do ADM. A API **não** tem código mestre: o ADM entra com o próprio e-mail e senha.
-- **Economia**: nível, XP e moedas não podem ser alterados diretamente por nenhuma rota. Nas próximas fases, só as regras do jogo (no servidor) vão mexer neles.
+- **Economia**: nível, XP, moedas e itens não podem ser alterados diretamente por nenhuma rota. Desde a fase 3, só as regras do jogo (no servidor) mexem neles: quiz corrigido pela API, compra, venda, troca, presente, recompensa de evento e de entrega aprovada.
 - **Ids**: os ids passam a ser uuid, gerados pelo banco (no front eram como `s_1759...` e `t_danilo`). Alunos e professores criados antes do back end não têm conta na API e são ignorados pelo site; as missões de exemplo passam para o ADM.
 - **Uma sessão por navegador**: antes dava pra estar logado como professor e como aluno ao mesmo tempo no mesmo navegador; agora entrar com uma conta encerra a outra.
 
 ## Próximas fases
 
 - ~~**Fase 2 — ligar o site à API**~~ ✅ **feita**: contas, login, cadastro, perfil do aluno e professores (veja [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)).
-- **Fase 3 — núcleo do jogo**: tabelas de missões, loja, inventário e itens, com as recompensas calculadas no servidor (o aluno diz "terminei a missão X" e o servidor confere e paga). Compras e uso de itens em transações.
-- **Fase 4 — social**: amizades, chat, mensagens, trocas entre alunos (em transação), presentes e mensagens para o professor.
-- **Fase 5 — entregas**: envio de arquivos das missões de entrega para o Supabase Storage (1 GB grátis), com limite de tamanho por arquivo.
-- **Fase 6 — eventos e multiverso**: eventos com fases liberadas pelo professor, ranking e a Chave do Multiverso.
+- ~~**Fase 3 — o jogo no servidor**~~ ✅ **feita**: progresso do aluno, missões, Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas (veja [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)). As amizades, as trocas e os eventos, que estavam planejados pras fases 4 e 6, vieram junto, porque também mexem em itens e moedas.
+- **Fase 4 — mensagens**: o sininho (mensagens do sistema e do professor), os comunicados, a conversa com balões entre amigos e as mensagens do aluno pro professor. Com isso, a própria API passa a criar as mensagens de compra, venda, troca e presente (hoje o site cria, no navegador de quem fez a ação).
+- **Fase 5 — entregas**: as entregas das missões de entrega (texto e arquivos) no servidor, com os arquivos no Supabase Storage (1 GB grátis) e limite de tamanho por arquivo.
 - **Testes automatizados**: Vitest com o `app.inject()` do Fastify, começando por login, permissões, recompensas e trocas.

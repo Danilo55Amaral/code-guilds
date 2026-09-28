@@ -16,7 +16,8 @@ Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ain
 A API fica na pasta [`api/`](api/README.md): Fastify + Kysely + PostgreSQL (Docker em desenvolvimento, Neon em produção), com login seguro (senhas com Argon2, sessões em cookie `httpOnly`), permissões de aluno, professor e ADM e limite de tentativas de login. A documentação completa (como rodar, banco, migrations, rotas, deploy gratuito no Render) está em [`api/README.md`](api/README.md).
 
 - **Fase 1 (API)**: professores, alunos, login, sessões e permissões.
-- **Fase 2 (site usando a API)**: as contas saíram do localStorage. Login, cadastro, perfil do aluno (casa, avatar, primeiro acesso), professores e a gestão de alunos nos painéis falam com a API (`src/engine/accounts.ts` + `src/services/api.ts`). O progresso do jogo (XP, moedas, inventário...) e o resto (missões, loja, mensagens, amigos, trocas) ainda ficam no navegador, até as fases 3 e 4.
+- **Fase 2 (site usando a API)**: as contas saíram do localStorage. Login, cadastro, perfil do aluno (casa, avatar, primeiro acesso), professores e a gestão de alunos nos painéis falam com a API (`src/engine/accounts.ts` + `src/services/api.ts`).
+- **Fase 3 (o jogo no servidor)**: tudo que vale XP, moedas ou itens passou pra API, que confere e aplica cada regra: progresso do aluno, missões (o quiz é corrigido no servidor), Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas. A API importa as regras de `src/engine/` (uma regra só pro site e pro servidor); as chamadas ficam em `gameApi.ts`, `shopApi.ts`, `socialApi.ts` e `eventsApi.ts`, e os localStorage viraram cache do que a API devolve. Ainda ficam no navegador as mensagens e a conversa com balões (fase 4) e as entregas com os arquivos (fase 5). Detalhes em [`api/README.md`](api/README.md#fase-3-o-jogo-no-servidor).
 - Pra rodar: API no ar (`npm run dev` em `api/`) e o `.env.local` do site com `API_URL=http://localhost:3333` (o `next.config.js` repassa `/api/*` pra ela). Detalhes em [`api/README.md`](api/README.md#fase-2-o-site-usando-a-api).
 - O trabalho do back end está na branch `feat/backend`; a `main` segue como a demonstração só com localStorage.
 
@@ -50,8 +51,12 @@ src/
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
-    market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
-    trades.ts         -> trocas de itens entre amigos (cg-trades): propor, aceitar, recusar, cancelar; os itens oferecidos ficam guardados na proposta
+    market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar). Na branch feat/backend: regras puras (usadas pela API) + cache cg-offers
+    trades.ts         -> trocas de itens entre amigos (cg-trades): propor, aceitar, recusar, cancelar; os itens oferecidos ficam guardados na proposta. Na branch feat/backend: regras puras (usadas pela API) + cache
+    gameApi.ts        -> (feat/backend) as ações do jogo pela API: inventário, quiz, compra, Mercado, trocas, presentes, eventos e aprovar entrega; o aluno que volta vai pro cache
+    socialApi.ts      -> (feat/backend) pedidos de amizade e amizades pela API
+    eventsApi.ts      -> (feat/backend) agenda dos eventos pela API (iniciar, liberar fase, encerrar)
+    shopApi.ts        -> (feat/backend) cadastro da Loja pelo ADM pela API (itens e coleções)
     submissions.ts    -> entregas das missões de entrega (cg-submissions): enviar, corrigir (aprovar dá a recompensa; refazer volta com comentário), histórico de tentativas
     fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar)
     multiverse.ts     -> Sala do Multiverso: os mundos dos portais, a Chave do Multiverso pronta, o passe de entrada do aluno (Student.multiverseAccess) e a viagem entre a sala e os mundos (startMultiverseVisit/isOnMultiverseVisit/endMultiverseVisit, só na memória da página)
@@ -294,7 +299,7 @@ public/
 
 ## O que ainda não existe (próximos passos sugeridos)
 
-- Persistência real no site (hoje é 100% localStorage, por dispositivo/navegador; uma missão criada pelo professor num navegador não aparece pros alunos em outro dispositivo). A API já existe (pasta `api/`, fase 1); falta ligar o site a ela (fase 2 em diante, ver `api/README.md`)
+- Persistência real no site: na branch `feat/backend`, contas, progresso, missões, Loja, amizades, Mercado, trocas e eventos já estão na API (fases 1 a 3). Faltam as mensagens e a conversa (fase 4) e as entregas com os arquivos (fase 5), ver `api/README.md`
 - Mais missões/quizzes de exemplo
 - Autenticação real (o login de aluno e de professor aqui são simplificados: as senhas ficam em texto puro no localStorage, justamente pro professor conseguir ver — serve pra demonstração, não pra produção)
 

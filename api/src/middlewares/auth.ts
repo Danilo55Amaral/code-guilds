@@ -56,6 +56,17 @@ export async function ensureAuthenticated(request: FastifyRequest, reply: Fastif
     }
 }
 
+// Só alunos (as ações do jogo: usar item, comprar, responder missão...)
+export async function ensureStudent(request: FastifyRequest, reply: FastifyReply) {
+    if (!request.user) {
+        return reply.status(401).send({ message: 'Faça login para continuar.' })
+    }
+
+    if (request.user.role !== 'aluno') {
+        return reply.status(403).send({ message: 'Apenas alunos podem fazer isso.' })
+    }
+}
+
 // Só professores (o ADM também é professor)
 export async function ensureTeacher(request: FastifyRequest, reply: FastifyReply) {
     if (!request.user) {

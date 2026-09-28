@@ -71,7 +71,8 @@ export default function StudentDetails({
   missions: Mission[];
   messages: Message[];
   /** Dá um item (criado, da Loja, de missão ou de evento) pro aluno. */
-  onGrantItem: (item: GiftItem) => void;
+  /** Dá o item pro aluno na API; devolve a mensagem de erro, ou null se entregou. */
+  onGrantItem: (item: GiftItem) => Promise<string | null>;
   onRemoveItem: (itemId: string) => void;
   onSendMessage: (data: { kind: MessageKind; body: string }) => void;
   /** Exclui o aluno na API; devolve a mensagem de erro, ou null se excluiu. */
@@ -92,7 +93,7 @@ export default function StudentDetails({
 }) {
   const [viewingItem, setViewingItem] = useState<InventoryItem | null>(null);
   const [confirmRemoveId, setConfirmRemoveId] = useState<string | null>(null);
-  const [grantedMsg, setGrantedMsg] = useState<string | null>(null);
+  const [grantedMsg, setGrantedMsg] = useState<{ text: string; tone: "ok" | "erro" } | null>(null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [messageKind, setMessageKind] = useState<MessageKind>("mensagem");
   const [messageBody, setMessageBody] = useState("");
@@ -173,10 +174,14 @@ export default function StudentDetails({
   }
 
   const house = student.houseId ? getHouse(student.houseId) : null;
-  function handleGrant(item: GiftItem) {
-    onGrantItem(item);
-    setGrantedMsg(`${item.icon} "${item.name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`);
-    setTimeout(() => setGrantedMsg(null), 3000);
+  async function handleGrant(item: GiftItem) {
+    const error = await onGrantItem(item);
+    setGrantedMsg(
+      error
+        ? { text: error, tone: "erro" }
+        : { text: `${item.icon} "${item.name}" entregue para ${student.name} — a mensagem de parabéns já foi enviada.`, tone: "ok" },
+    );
+    setTimeout(() => setGrantedMsg(null), error ? 5000 : 3000);
   }
 
   function handleRemove(itemId: string) {
@@ -566,7 +571,7 @@ export default function StudentDetails({
           <div className="rounded-xl border border-slate-800 bg-cg-sunken p-4">
             <SectionTitle>Dar item</SectionTitle>
             <GiftItemPicker shopItems={shopItems} missions={missions} isAdmin={isAdmin} actionLabel="🎁 Dar item" onGive={handleGrant} />
-            {grantedMsg && <p className="mt-2 text-xs text-emerald-300">{grantedMsg}</p>}
+            {grantedMsg && <p className={`mt-2 text-xs ${grantedMsg.tone === "ok" ? "text-emerald-300" : "text-rose-300"}`}>{grantedMsg.text}</p>}
           </div>
         </div>
       </div>

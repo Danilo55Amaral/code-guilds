@@ -6,6 +6,16 @@ export class ValidationError extends Error {
     statusCode = 400
 }
 
+// Registro que não existe (vira resposta 404 no tratamento de erros)
+export class NotFoundError extends Error {
+    statusCode = 404
+}
+
+// Ação que a pessoa logada não pode fazer (vira resposta 403)
+export class ForbiddenError extends Error {
+    statusCode = 403
+}
+
 // Se o valor não existir (vazio, array vazio ou texto em branco), lança o erro
 export function existsOrError(value: unknown, msg: string): void {
     if (!value) throw new ValidationError(msg)

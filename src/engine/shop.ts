@@ -1,17 +1,21 @@
 // ============================================================================
 // SHOP — a Loja da Academia. O ADM cadastra os itens à venda (itens comuns,
 // como poções de XP, ou visuais exclusivos do avatar); os alunos compram com
-// moedas. Mesmo padrão de CRUD em localStorage de missionsStore.ts: na
-// primeira vez, a Loja já vem com alguns itens pra não abrir vazia.
+// moedas. Visual do avatar não pode ser comprado duas vezes.
 //
-// Comprar desconta as moedas, põe o item no inventário e manda uma mensagem
-// 🛒 Compra pro aluno. Visual do avatar não pode ser comprado duas vezes.
+// Desde a fase 3 do back end, a Loja é da API (tabela shop_items) e quem
+// decide a compra é o servidor. Este arquivo ficou com:
+//   - as regras puras (applyPurchase, validateShopItem, as coleções prontas e
+//     os itens iniciais DEFAULT_SHOP), que a API também importa;
+//   - o cache no localStorage ("cg-shop") do que a API devolveu.
+// As chamadas à API ficam em engine/shopApi.ts (cadastro do ADM) e em
+// engine/gameApi.ts (a compra do aluno), porque a API não pode importar o
+// cliente HTTP do site.
 // ============================================================================
 
 import { Rarity } from "./missions";
 import { Cosmetic, CosmeticCollection, sameCosmetic } from "./avatar";
-import { InventoryItem, freeSlots, getStudent, inventoryFullError, updateStudent, ownsCosmetic } from "./students";
-import { SYSTEM_SENDER_ID, sendMessage, shopPurchaseMessage } from "./messages";
+import { InventoryItem, Student, freeSlots, inventoryFullError, ownsCosmetic } from "./students";
 import { EVENT_ITEMS } from "./eventItems";
 
 export interface ShopItem {
@@ -39,7 +43,8 @@ const SHOP_KEY = "cg-shop";
 
 const SEED_DATE = "2026-01-01T00:00:00.000Z";
 
-const DEFAULT_SHOP: ShopItem[] = [
+/** Itens iniciais da Loja (o seed da API coloca à venda quando a Loja está vazia). */
+export const DEFAULT_SHOP: ShopItem[] = [
   {
     id: "loja-aureola",
     name: "Auréola Divina",
@@ -161,22 +166,56 @@ const DEFAULT_SHOP: ShopItem[] = [
 ].map((item) => ({ ...item, sold: 0, createdAt: SEED_DATE }) as ShopItem);
 
 function readAll(): ShopItem[] {
-  if (typeof window === "undefined") return DEFAULT_SHOP;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(SHOP_KEY);
-    if (!raw) {
-      writeAll(DEFAULT_SHOP);
-      return DEFAULT_SHOP;
-    }
-    return JSON.parse(raw) as ShopItem[];
+    return raw ? (JSON.parse(raw) as ShopItem[]) : [];
   } catch {
-    return DEFAULT_SHOP;
+    return [];
   }
 }
 
 function writeAll(items: ShopItem[]) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(SHOP_KEY, JSON.stringify(items));
+}
+
+/** Item da Loja como a API manda: os campos opcionais vêm como null. */
+export type ShopItemFromApi = Omit<ShopItem, "cosmetic" | "slots" | "hidden" | "eventItemKey" | "collection"> & {
+  cosmetic?: Cosmetic | null;
+  slots?: number | null;
+  hidden?: boolean | null;
+  eventItemKey?: string | null;
+  collection?: CosmeticCollection | null;
+};
+
+/** Deixa o item no formato do site (null vira "sem valor"). */
+function fromApi(item: ShopItemFromApi): ShopItem {
+  return {
+    ...item,
+    cosmetic: item.cosmetic ?? undefined,
+    slots: item.slots ?? undefined,
+    hidden: item.hidden || undefined,
+    eventItemKey: item.eventItemKey ?? undefined,
+    collection: item.collection ?? undefined,
+  };
+}
+
+/** Troca o cache pela lista que a API devolveu. */
+export function saveShopItems(items: ShopItemFromApi[]) {
+  writeAll(items.map(fromApi));
+}
+
+/** Guarda (ou atualiza) um item que a API devolveu. */
+export function saveShopItem(item: ShopItemFromApi) {
+  const saved = fromApi(item);
+  writeAll([...readAll().filter((i) => i.id !== saved.id), saved]);
+}
+
+/** Tira itens do cache (depois que a API os tirou da Loja). */
+export function forgetShopItems(ids: string[]) {
+  const gone = new Set(ids);
+  writeAll(readAll().filter((i) => !gone.has(i.id)));
 }
 
 /** Destaques primeiro, depois os mais novos. */
@@ -199,33 +238,6 @@ export function validateShopItem(data: ShopItemData, exceptId?: string): string 
     return "Esse visual já está à venda na Loja.";
   }
   return null;
-}
-
-/** Quem chama deve validar antes com validateShopItem(). */
-export function createShopItem(data: ShopItemData): ShopItem {
-  const item: ShopItem = {
-    ...data,
-    xp: data.cosmetic || data.slots ? 0 : data.xp,
-    id: `loja_${Date.now()}_${Math.round(Math.random() * 9999)}`,
-    sold: 0,
-    createdAt: new Date().toISOString(),
-  };
-  writeAll([...readAll(), item]);
-  return item;
-}
-
-export function updateShopItem(id: string, data: ShopItemData) {
-  // visual, espaço e "só presente" vêm sempre do cadastro (trocar o tipo do item apaga o que era do tipo antigo)
-  writeAll(
-    readAll().map((i) =>
-      i.id === id ? { ...i, ...data, cosmetic: data.cosmetic, slots: data.slots, hidden: data.hidden, xp: data.cosmetic || data.slots ? 0 : data.xp, id } : i,
-    ),
-  );
-}
-
-/** Tirar da Loja não mexe em quem já comprou — o item continua no inventário dessas pessoas. */
-export function deleteShopItem(id: string) {
-  writeAll(readAll().filter((i) => i.id !== id));
 }
 
 // ============================================================================
@@ -753,36 +765,16 @@ export function eventItemCount(collection: CosmeticCollection): number {
   return SHOP_COLLECTIONS[collection].filter((p) => p.eventItemKey).length;
 }
 
-/** Coloca à venda os itens da coleção que ainda não estão na Loja. Devolve quantos entraram. */
-export function addCollection(collection: CosmeticCollection): number {
-  const current = readAll();
-  const missing = missingFromCollection(collection, current);
-  const now = Date.now();
-  const created: ShopItem[] = missing.map((p, i) => ({
-    ...p,
-    id: `loja_${collection}_${now}_${i}`,
-    sold: 0,
-    createdAt: new Date(now + i).toISOString(),
-  }));
-  writeAll([...current, ...created]);
-  return created.length;
-}
+// ============================================================================
+// COMPRA — a regra que o servidor usa (a API importa esta função): confere se
+// dá pra comprar e devolve o aluno com as moedas descontadas e o item novo no
+// inventário. Não salva nada: quem salva é a API.
+// ============================================================================
 
-/** Tira da Loja todos os itens da coleção (quem já comprou continua com eles). Devolve quantos saíram. */
-export function removeCollection(collection: CosmeticCollection): number {
-  const all = readAll();
-  const kept = all.filter((i) => i.collection !== collection);
-  writeAll(kept);
-  return all.length - kept.length;
-}
+export type PurchaseResult = { ok: true; student: Student; item: InventoryItem } | { ok: false; error: string };
 
-export type ShopResult = { ok: true; item: InventoryItem } | { ok: false; error: string };
-
-export function buyShopItem(studentId: string, shopItemId: string): ShopResult {
-  const student = getStudent(studentId);
-  const shopItem = readAll().find((i) => i.id === shopItemId);
-  if (!student) return { ok: false, error: "Aluno não encontrado." };
-  if (!shopItem || shopItem.hidden) return { ok: false, error: "Esse item não está mais à venda." };
+export function applyPurchase(student: Student, shopItem: ShopItem): PurchaseResult {
+  if (shopItem.hidden) return { ok: false, error: "Esse item não está mais à venda." };
   if (shopItem.cosmetic && ownsCosmetic(student, shopItem.cosmetic)) return { ok: false, error: "Você já tem esse visual — é só equipar no Inventário." };
   if (student.coins < shopItem.price) return { ok: false, error: `Moedas insuficientes — faltam ${shopItem.price - student.coins}.` };
   if (freeSlots(student) < 1) return { ok: false, error: inventoryFullError(student) };
@@ -799,13 +791,6 @@ export function buyShopItem(studentId: string, shopItemId: string): ShopResult {
     ...(shopItem.slots && { slots: shopItem.slots }),
     obtainedAt: new Date().toISOString(),
   };
-  updateStudent(student.id, { coins: student.coins - shopItem.price, inventory: [...student.inventory, item] });
-  writeAll(readAll().map((i) => (i.id === shopItemId ? { ...i, sold: i.sold + 1 } : i)));
-  sendMessage({
-    studentId: student.id,
-    senderId: SYSTEM_SENDER_ID,
-    kind: "compra",
-    body: shopPurchaseMessage({ item: shopItem, price: shopItem.price, isCosmetic: !!shopItem.cosmetic }),
-  });
-  return { ok: true, item };
+
+  return { ok: true, student: { ...student, coins: student.coins - shopItem.price, inventory: [...student.inventory, item] }, item };
 }

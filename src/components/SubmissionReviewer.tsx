@@ -36,12 +36,16 @@ function ReviewCard({
   const { review } = useSubmissions();
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Aprovar fala com a API (que dá a recompensa): um clique por vez
+  const [busy, setBusy] = useState(false);
   const house = student?.houseId ? getHouse(student.houseId) : null;
   const pending = submission.status === "pendente";
 
-  function decide(decision: "aprovada" | "refazer") {
-    if (!mission) return;
-    const result = review(submission.id, decision, feedback, mission, reviewerName);
+  async function decide(decision: "aprovada" | "refazer") {
+    if (!mission || busy) return;
+    setBusy(true);
+    const result = await review(submission.id, decision, feedback, mission, reviewerName);
+    setBusy(false);
     setError(result.ok ? null : result.error);
   }
 
@@ -97,17 +101,17 @@ function ReviewCard({
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <button
               onClick={() => decide("refazer")}
-              disabled={!mission}
+              disabled={!mission || busy}
               className="rounded-full border border-rose-400/60 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-40"
             >
               ↩ Pedir pra refazer
             </button>
             <button
               onClick={() => decide("aprovada")}
-              disabled={!mission || !student}
+              disabled={!mission || !student || busy}
               className="rounded-full bg-emerald-500 px-4 py-2 text-xs font-black text-cg-onaccent transition-transform hover:scale-[1.03] disabled:opacity-40"
             >
-              ✅ Aprovar e dar a recompensa
+              {busy ? "Salvando…" : "✅ Aprovar e dar a recompensa"}
             </button>
           </div>
         </div>

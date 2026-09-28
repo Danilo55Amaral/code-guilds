@@ -205,9 +205,10 @@ export default function MissionEditor({
   defaultTeacherId?: string;
   /** Só o Painel ADM passa: permite usar um item da Loja como recompensa. */
   shopItems?: ShopItem[];
-  /** teacherId só vem quando `teachers` foi passado. */
-  onSave: (data: MissionContent, teacherId?: string) => void;
-  onDelete?: () => void;
+  /** Salva na API; devolve a mensagem de erro, ou null se salvou. teacherId só vem quando `teachers` foi passado. */
+  onSave: (data: MissionContent, teacherId?: string) => Promise<string | null>;
+  /** Exclui na API; devolve a mensagem de erro, ou null se excluiu. */
+  onDelete?: () => Promise<string | null>;
   onClose: () => void;
 }) {
   const [draft, setDraft] = useState<MissionDraft>(existingMission ? missionToDraft(existingMission) : emptyDraft());
@@ -217,6 +218,9 @@ export default function MissionEditor({
   const lockedEventItem = lockEventItem ? eventItemOfReward({ name: draft.rewardItemName, icon: draft.rewardItemIcon }) : undefined;
   const [teacherId, setTeacherId] = useState(existingMission?.teacherId ?? defaultTeacherId ?? teachers?.[0]?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Esperando a API e o erro que ela devolveu (ex.: dado inválido)
+  const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   // item da Loja escolhido como recompensa (só pra mostrar no seletor; o que vale é o que foi copiado pro draft)
   const [shopItemId, setShopItemId] = useState(
     () => shopItems?.find((i) => i.name === existingMission?.rewardItem.name && i.icon === existingMission?.rewardItem.icon)?.id ?? "",
@@ -262,9 +266,21 @@ export default function MissionEditor({
     setDraft((d) => ({ ...d, questions: d.questions.filter((_, i) => i !== index) }));
   }
 
-  function handleSave() {
-    if (!draftIsValid(draft, kind)) return;
-    onSave(draftToMission(draft, kind), teachers ? teacherId : undefined);
+  async function handleSave() {
+    if (!draftIsValid(draft, kind) || busy) return;
+    setBusy(true);
+    const error = await onSave(draftToMission(draft, kind), teachers ? teacherId : undefined);
+    setBusy(false);
+    setSaveError(error);
+  }
+
+  async function handleDelete() {
+    if (!onDelete || busy) return;
+    setBusy(true);
+    const error = await onDelete();
+    setBusy(false);
+    setSaveError(error);
+    setConfirmDelete(false);
   }
 
   /** Recompensa vira (ou deixa de ser) a Chave do Multiverso; com o nome vazio, já vem a chave pronta. */
@@ -625,11 +641,12 @@ export default function MissionEditor({
           )}
         </div>
 
+        {saveError && <p className="border-t border-slate-800 bg-rose-500/10 px-6 py-2 text-xs text-rose-200">{saveError}</p>}
         <div className="flex items-center justify-between gap-3 border-t border-slate-800 px-6 py-4">
           {existingMission && onDelete ? (
             <button
               type="button"
-              onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}
+              onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
               className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
                 confirmDelete ? "border-rose-400 bg-rose-400/20 text-rose-200" : "border-rose-500/30 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10"
               }`}
@@ -641,7 +658,7 @@ export default function MissionEditor({
           )}
           <button
             onClick={handleSave}
-            disabled={!valid}
+            disabled={!valid || busy}
             title={
               valid
                 ? undefined
@@ -651,7 +668,7 @@ export default function MissionEditor({
             }
             className="cg-btn-primary disabled:cursor-not-allowed disabled:opacity-30"
           >
-            {existingMission ? "Salvar alterações" : "Criar missão"}
+            {busy ? "Salvando…" : existingMission ? "Salvar alterações" : "Criar missão"}
           </button>
         </div>
       </div>

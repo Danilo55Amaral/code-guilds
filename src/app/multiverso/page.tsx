@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStudents, useTeachers } from "@/engine/store";
-import { MULTIVERSE_WORLDS, MultiverseWorld, endMultiverseVisit, isOnMultiverseVisit, spendMultiverseAccessPatch, startMultiverseVisit } from "@/engine/multiverse";
+import { useStudents, useTeachers, useGameActions } from "@/engine/store";
+import { MULTIVERSE_WORLDS, MultiverseWorld, endMultiverseVisit, isOnMultiverseVisit, startMultiverseVisit } from "@/engine/multiverse";
 import { isSoundMuted, playCosmicAmbience, setSoundMuted } from "@/engine/sfx";
 import { pauseMusic, resumeMusic } from "@/engine/music";
 import { BlackHole, Nebulae, PortalVortex, Starfield } from "@/components/multiverse/CosmicArt";
@@ -35,7 +35,8 @@ const RING_POSITIONS: [number, number][] = [
 
 export default function MultiversoPage() {
   const router = useRouter();
-  const { activeStudent, ready, patchActive } = useStudents();
+  const { activeStudent, ready } = useStudents();
+  const { enterMultiverse } = useGameActions();
   const { currentTeacher, ready: teachersReady } = useTeachers();
   const [mode, setMode] = useState<Mode>("carregando");
   const [backTo, setBackTo] = useState("/professor/painel");
@@ -57,7 +58,8 @@ export default function MultiversoPage() {
     if (activeStudent?.multiverseAccess) {
       setMode("aluno");
       startMultiverseVisit(activeStudent.id);
-      patchActive(spendMultiverseAccessPatch());
+      // o passe é gasto no servidor (a tela não espera a resposta)
+      void enterMultiverse();
       return;
     }
     if (activeStudent && isOnMultiverseVisit(activeStudent.id)) {
@@ -65,7 +67,7 @@ export default function MultiversoPage() {
       return;
     }
     setMode("fechado");
-  }, [ready, teachersReady, mode, currentTeacher, activeStudent, patchActive]);
+  }, [ready, teachersReady, mode, currentTeacher, activeStudent, enterMultiverse]);
 
   // Entrada: o salto pelo hiperespaço (quem pede menos movimento pula direto).
   useEffect(() => {

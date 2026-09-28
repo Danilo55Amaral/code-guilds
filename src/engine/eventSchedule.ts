@@ -6,7 +6,10 @@
 // reabrir o evento devolve tudo como estava.
 // Evento em fases (Natal): iniciar libera a Fase 1 e o professor libera as
 // seguintes, uma por vez (a ideia é uma por semana).
-// Mesmo padrão de CRUD em localStorage dos outros engines.
+//
+// Desde a fase 3 do back end, a agenda é da API (tabela event_runs): aqui fica
+// o cache ("cg-event-runs") e as funções de leitura. Iniciar, liberar fase e
+// encerrar ficam em engine/eventsApi.ts.
 // ============================================================================
 
 import type { EventId } from "./specialEvents";
@@ -61,39 +64,20 @@ export function releasedPhasesIn(runs: EventRuns, teacherId: string, eventId: Ev
   return Math.max(1, run.phasesReleasedAt?.length ?? 1);
 }
 
-/** Inicia (ou reabre) o evento pros alunos do professor. Reabrir mantém as fases já liberadas. */
-export function startEvent(teacherId: string, eventId: EventId) {
+/** Troca o cache pela agenda que a API devolveu (a de todos os professores que a pessoa pode ver). */
+export function saveEventRuns(runs: EventRuns) {
+  writeAll(runs);
+}
+
+/** Atualiza só a agenda de um professor (a API devolve ela depois de iniciar, liberar ou encerrar). */
+export function saveTeacherEventRuns(teacherId: string, runs: EventRuns[string] | undefined) {
   const all = readAll();
-  const now = new Date().toISOString();
-  const previous = all[teacherId]?.[eventId];
-  all[teacherId] = {
-    ...all[teacherId],
-    [eventId]: { status: "ativo", startedAt: now, phasesReleasedAt: previous?.phasesReleasedAt ?? [now] },
-  };
+  if (runs) all[teacherId] = runs;
+  else delete all[teacherId];
   writeAll(all);
 }
 
-/** Evento em fases: libera a próxima fase pros alunos do professor (até `totalPhases`). */
-export function releaseNextPhase(teacherId: string, eventId: EventId, totalPhases: number) {
-  const all = readAll();
-  const run = all[teacherId]?.[eventId];
-  if (!run || run.status !== "ativo") return;
-  const released = run.phasesReleasedAt ?? [run.startedAt];
-  if (released.length >= totalPhases) return;
-  all[teacherId] = { ...all[teacherId], [eventId]: { ...run, phasesReleasedAt: [...released, new Date().toISOString()] } };
-  writeAll(all);
-}
-
-/** Encerra o evento: some da tela dos alunos do professor (o progresso deles fica guardado). */
-export function endEvent(teacherId: string, eventId: EventId) {
-  const all = readAll();
-  const run = all[teacherId]?.[eventId];
-  if (!run) return;
-  all[teacherId] = { ...all[teacherId], [eventId]: { ...run, status: "encerrado", endedAt: new Date().toISOString() } };
-  writeAll(all);
-}
-
-/** Apaga a agenda de um professor excluído (os alunos dele passam pra outro professor, que tem a própria agenda). */
+/** Apaga do cache a agenda de um professor excluído (a API já apagou a dele; os alunos passam pro herdeiro, que tem a própria agenda). */
 export function deleteEventRunsOf(teacherId: string) {
   const all = readAll();
   if (!(teacherId in all)) return;

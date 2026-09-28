@@ -127,13 +127,14 @@ export default function TradeModal({
   friends: Student[];
   initialFriendId?: string | null;
   /** Devolve a mensagem de erro, ou null se a proposta foi enviada. */
-  onPropose: (friendId: string, offeredIds: string[], requestedIds: string[]) => string | null;
+  onPropose: (friendId: string, offeredIds: string[], requestedIds: string[]) => Promise<string | null>;
   onClose: () => void;
 }) {
   const [friendId, setFriendId] = useState<string | null>(initialFriendId && friends.some((f) => f.id === initialFriendId) ? initialFriendId : null);
   const [give, setGive] = useState<string[]>([]);
   const [receive, setReceive] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const friend = friends.find((f) => f.id === friendId) ?? null;
 
   useEffect(() => {
@@ -153,9 +154,12 @@ export default function TradeModal({
     setError(null);
   }
 
-  function send() {
-    if (!friend) return;
-    setError(onPropose(friend.id, give, receive));
+  async function send() {
+    if (!friend || sending) return;
+    setSending(true);
+    const problem = await onPropose(friend.id, give, receive);
+    setSending(false);
+    setError(problem);
   }
 
   const giveItems = me.inventory.filter((i) => give.includes(i.id));
@@ -267,10 +271,10 @@ export default function TradeModal({
           <div className="border-t border-slate-800 px-6 py-4">
             <button
               onClick={send}
-              disabled={give.length === 0 || receive.length === 0}
+              disabled={give.length === 0 || receive.length === 0 || sending}
               className="w-full rounded-full bg-gradient-to-r from-teal-400 to-sky-500 px-5 py-3 text-sm font-black text-cg-ink shadow-lg shadow-teal-500/30 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
             >
-              {give.length === 0 || receive.length === 0 ? "Escolha pelo menos 1 item de cada lado" : "🔄 Enviar proposta de troca"}
+              {give.length === 0 || receive.length === 0 ? "Escolha pelo menos 1 item de cada lado" : sending ? "Enviando…" : "🔄 Enviar proposta de troca"}
             </button>
           </div>
         )}

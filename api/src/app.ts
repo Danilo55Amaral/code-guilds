@@ -6,9 +6,17 @@ import { env } from "./env";
 import { loadUser } from "./middlewares/auth";
 import { ValidationError } from "./validation/validations";
 import { authRoutes } from "./routes/auth";
+import { eventsRoutes } from "./routes/events";
+import { friendsRoutes } from "./routes/friends";
+import { giftsRoutes } from "./routes/gifts";
 import { healthRoutes } from "./routes/health";
+import { inventoryRoutes } from "./routes/inventory";
+import { missionsRoutes } from "./routes/missions";
+import { offersRoutes } from "./routes/offers";
+import { shopRoutes } from "./routes/shop";
 import { studentsRoutes } from "./routes/students";
 import { teachersRoutes } from "./routes/teachers";
+import { tradesRoutes } from "./routes/trades";
 
 // O app fica separado do server.ts (que só faz o listen) para que possa ser
 // importado sem subir o servidor, por exemplo em testes com app.inject().
@@ -103,4 +111,36 @@ app.register(teachersRoutes, {
 
 app.register(studentsRoutes, {
     prefix: 'students',
+})
+
+app.register(inventoryRoutes, {
+    prefix: 'inventory',
+})
+
+app.register(missionsRoutes, {
+    prefix: 'missions',
+})
+
+app.register(shopRoutes, {
+    prefix: 'shop',
+})
+
+app.register(eventsRoutes, {
+    prefix: 'events',
+})
+
+app.register(giftsRoutes, {
+    prefix: 'gifts',
+})
+
+app.register(friendsRoutes, {
+    prefix: 'friends',
+})
+
+app.register(offersRoutes, {
+    prefix: 'offers',
+})
+
+app.register(tradesRoutes, {
+    prefix: 'trades',
 })

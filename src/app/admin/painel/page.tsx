@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions, useGameActions } from "@/engine/store";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
-import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
+import { validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ShopManager from "@/components/ShopManager";
 import EventMissionsManager from "@/components/EventMissionsManager";
 import { eventMissionItemKey, resolveEventItem } from "@/engine/eventItems";
-import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, missingPresets } from "@/engine/specialEvents";
+import { EventId, eventMissionFields, eventMissionLabel, getEvent, missingPresets } from "@/engine/specialEvents";
 
 type Tab = "professores" | "alunos" | "missoes" | "entregas" | "eventos" | "loja";
 
@@ -33,7 +33,8 @@ const ALL_TEACHERS = "todos";
 export default function PainelAdminPage() {
   const router = useRouter();
   const { teachers, currentTeacher, ready: teachersReady, logout, addTeacher, editTeacher, deleteTeacher } = useTeachers();
-  const { students, ready, patchStudent, updateAccount, setPassword, deleteStudent } = useStudents();
+  const { students, ready, updateAccount, setPassword, deleteStudent } = useStudents();
+  const { removeStudentItem } = useGameActions();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { items: shopItems } = useShop();
   const { give } = useGifts();
@@ -110,19 +111,25 @@ export default function PainelAdminPage() {
     setNewKind("quiz");
   }
 
-  function handleSaveMission(data: MissionContent, teacherId?: string) {
+  // Salvar e excluir falam com a API; se ela recusar, o editor continua aberto mostrando o erro.
+  async function handleSaveMission(data: MissionContent, teacherId?: string): Promise<string | null> {
     const owner = teacherId ?? admin.id;
-    if (editorTarget && editorTarget !== "new") {
-      editMission(editorTarget.id, { ...data, teacherId: owner });
-    } else {
-      addMission({ ...data, teacherId: owner, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
-    }
+    const error =
+      editorTarget && editorTarget !== "new"
+        ? await editMission(editorTarget.id, { ...data, teacherId: owner })
+        : await addMission({ ...data, teacherId: owner, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
+    if (error) return error;
     closeEditor();
+    return null;
   }
 
-  function handleDeleteMission() {
-    if (editorTarget && editorTarget !== "new") removeMission(editorTarget.id);
+  async function handleDeleteMission(): Promise<string | null> {
+    if (editorTarget && editorTarget !== "new") {
+      const error = await removeMission(editorTarget.id);
+      if (error) return error;
+    }
     closeEditor();
+    return null;
   }
 
   // ---- eventos (do professor escolhido na aba Eventos) ----
@@ -145,15 +152,17 @@ export default function PainelAdminPage() {
   // ---- alunos ----
 
   /** Doa um item da Loja (igualzinho ao da Loja, inclusive se for visual pra equipar) — só o ADM faz isso. */
-  function handleGrantItem(item: GiftItem) {
-    if (!selectedStudent) return;
-    // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
-    give([selectedStudent.id], item, { id: admin.id, name: admin.name, role: "adm" });
+  // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
+  async function handleGrantItem(item: GiftItem): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const result = await give([selectedStudent.id], item, { id: admin.id, name: admin.name, role: "adm" });
+    return result.ok ? null : result.error;
   }
 
+  // O item sai no servidor; a ficha acompanha pelo cache
   function handleRemoveItem(itemId: string) {
     if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { inventory: removeItem(selectedStudent, itemId).inventory });
+    void removeStudentItem(selectedStudent.id, itemId);
   }
 
   function handleSendMessage(data: { kind: MessageKind; body: string }) {
@@ -369,7 +378,7 @@ export default function PainelAdminPage() {
           ranking={{ students, missions }}
           onStart={(eventId) => startEvent(eventTeacher, eventId)}
           onEnd={(eventId) => endEvent(eventTeacher, eventId)}
-          onReleasePhase={(eventId) => releasePhase(eventTeacher, eventId, eventPhases(getEvent(eventId)!).length)}
+          onReleasePhase={(eventId) => releasePhase(eventTeacher, eventId)}
           onEdit={setEditorTarget}
           onCreate={createEventMission}
           onAssign={(missionId, eventId, phase) => editMission(missionId, eventMissionFields(eventId, phase))}

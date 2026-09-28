@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useStudents, useMissions, useEventRuns } from "@/engine/store";
+import { useStudents, useMissions, useEventRuns, useGameActions } from "@/engine/store";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
 import {
@@ -15,7 +15,6 @@ import {
   eventPhases,
   eventStarted,
   getPhase,
-  introSeenPatch,
   phaseLock,
   phaseProgress,
 } from "@/engine/specialEvents";
@@ -158,7 +157,8 @@ function EventCard({ event, student, missions, released, onEnter }: { event: Aca
 
 export default function EventosPage() {
   const router = useRouter();
-  const { activeStudent, students, patchActive } = useStudents();
+  const { activeStudent, students } = useStudents();
+  const game = useGameActions();
   const { missions, ready } = useMissions();
   const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
   const [introOf, setIntroOf] = useState<{ event: AcademyEvent; phase: number } | null>(null);
@@ -183,12 +183,15 @@ export default function EventosPage() {
     else router.push(`/academia/eventos/${event.id}`);
   }
 
-  // Viu a abertura até o fim ou pulou: fica marcado e o aluno vai pra tela do evento.
-  function closeIntro() {
+  // Viu a abertura até o fim ou pulou: fica marcado (na API) e o aluno vai pra
+  // tela do evento. Espera a API responder antes de ir, senão a tela do evento
+  // ainda acharia que a abertura não foi vista e tocaria ela de novo.
+  async function closeIntro() {
     if (!introOf) return;
-    patchActive(introSeenPatch(me, introOf.event, introOf.phase));
-    router.push(`/academia/eventos/${introOf.event.id}`);
+    const { event, phase } = introOf;
     setIntroOf(null);
+    await game.markEventIntroSeen(event.id, phase);
+    router.push(`/academia/eventos/${event.id}`);
   }
 
   return (

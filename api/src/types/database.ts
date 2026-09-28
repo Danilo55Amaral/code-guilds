@@ -23,6 +23,52 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface EventRuns {
+  endedAt: Timestamp | null;
+  eventId: string;
+  phasesReleasedAt: Generated<Json>;
+  startedAt: Generated<Timestamp>;
+  status: string;
+  teacherId: string;
+}
+
+export interface Friendships {
+  acceptedAt: Timestamp | null;
+  createdAt: Generated<Timestamp>;
+  fromId: string;
+  id: Generated<string>;
+  status: Generated<string>;
+  toId: string;
+}
+
+export interface Missions {
+  createdAt: Generated<Timestamp>;
+  description: Generated<string>;
+  difficulty: string;
+  eventId: string | null;
+  eventPhase: number | null;
+  icon: string;
+  id: string;
+  kind: Generated<string>;
+  minLevel: Generated<number>;
+  questions: Generated<Json>;
+  rewardCoins: Generated<number>;
+  rewardItem: Json;
+  rewardXp: Generated<number>;
+  task: Json | null;
+  teacherId: string;
+  title: string;
+}
+
+export interface Offers {
+  buyerId: string;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  item: Json;
+  price: number;
+  sellerId: string;
+}
+
 export interface Sessions {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
@@ -32,19 +78,43 @@ export interface Sessions {
   tokenHash: string;
 }
 
+export interface ShopItems {
+  collection: string | null;
+  cosmetic: Json | null;
+  createdAt: Generated<Timestamp>;
+  description: string;
+  eventItemKey: string | null;
+  featured: Generated<boolean>;
+  hidden: Generated<boolean>;
+  icon: string;
+  id: string;
+  name: string;
+  price: number;
+  rarity: string;
+  slots: number | null;
+  sold: Generated<number>;
+  value: Generated<number>;
+  xp: Generated<number>;
+}
+
 export interface Students {
   avatar: Generated<Json>;
   bonusSlots: Generated<number>;
   coins: Generated<number>;
+  completedMissionIds: Generated<Json>;
   createdAt: Generated<Timestamp>;
   email: string;
+  equipped: Generated<Json>;
+  events: Generated<Json>;
   houseId: string | null;
   id: Generated<string>;
+  inventory: Generated<Json>;
   level: Generated<number>;
   multiverseAccess: Timestamp | null;
   name: string;
   onboardingStep: Generated<string>;
   passwordHash: string | null;
+  pendingItems: Generated<Json>;
   teacherId: string;
   turma: string;
   tutorialDone: Generated<boolean>;
@@ -62,8 +132,24 @@ export interface Teachers {
   tutorialDone: Generated<boolean>;
 }
 
+export interface Trades {
+  createdAt: Generated<Timestamp>;
+  fromId: string;
+  id: Generated<string>;
+  offered: Json;
+  requested: Json;
+  requestedIds: Json;
+  toId: string;
+}
+
 export interface DB {
+  eventRuns: EventRuns;
+  friendships: Friendships;
+  missions: Missions;
+  offers: Offers;
   sessions: Sessions;
+  shopItems: ShopItems;
   students: Students;
   teachers: Teachers;
+  trades: Trades;
 }
