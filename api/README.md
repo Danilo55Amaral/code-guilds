@@ -1069,6 +1069,7 @@ Resumo:
 | Método | Rota | Quem pode |
 |---|---|---|
 | GET | `/health` | Todos |
+| GET | `/health/ping` | Todos (o cron-job.org) |
 | POST | `/auth/teachers/login` | Todos |
 | POST | `/auth/students/login` | Todos |
 | POST | `/auth/logout` | Todos |
@@ -1146,14 +1147,22 @@ ver qual é. Os campos do progresso (`inventory` até `events`) entraram na fase
 
 ### GET /health
 
-Confere se a API e o banco estão no ar (faz um `select 1` no banco). É a rota que o
-cron-job.org chama pra manter a API acordada no Render.
+Confere se a API e o banco estão no ar (faz um `select 1` no banco). Use pra testar o deploy.
+Como consulta o banco, ela **acorda o Neon**: não use no cron-job.org.
 
 Resposta `200`:
 
 ```json
 { "status": "ok" }
 ```
+
+### GET /health/ping
+
+Só responde, sem tocar no banco. É a rota que o cron-job.org chama a cada 10 minutos pra o
+Render não colocar a API pra dormir. Assim a API fica acordada, mas o Neon pode dormir quando
+ninguém usa o site (veja [Manter a API acordada](#3-manter-a-api-acordada)).
+
+Resposta `200`: `{ "status": "ok" }`.
 
 ---
 
@@ -2352,6 +2361,18 @@ Enquanto a plataforma não tiver custo, a combinação gratuita é esta:
 **Não use o PostgreSQL gratuito do Render**: ele expira 30 dias depois de criado e é apagado
 duas semanas depois disso. O Web Service gratuito do Render, por outro lado, não expira.
 
+#### Os limites do plano gratuito (conferidos em outubro de 2026)
+
+| Serviço | Limite que importa | Cuidado |
+|---|---|---|
+| Vercel (Hobby) | 100 GB de tráfego por mês | **Só uso não comercial.** Se você for pago pra criar ou manter a plataforma, ou vender o CodeGuilds pra escolas, precisa do plano Pro. Pedir doações não conta como comercial. |
+| Render (Free) | 750 horas por mês; dorme após 15 min sem uso | O cron-job.org chama o `/health/ping` (seção 3). Sem cartão cadastrado, ao passar de um limite o serviço é suspenso, não cobrado. |
+| Neon (Free) | 1 GB de banco; 100 horas de processamento por mês; dorme após 5 min sem consulta | O cron **não** pode chamar o `/health` (seção 3). Se as horas acabarem, o banco para até o mês seguinte, sem perder dados. |
+| Supabase (Free) | 1 GB de arquivos; 5 GB de download por mês; até 50 MB por arquivo | Pausa o projeto depois de 1 semana sem uso (seção 5). |
+
+Os planos gratuitos mudam com o tempo: confira as páginas de preço de cada serviço antes de
+publicar.
+
 ### 1. O banco no Neon
 
 1. Crie uma conta em [neon.com](https://neon.com) e um projeto chamado `codeguilds`.
@@ -2418,7 +2439,14 @@ No plano gratuito, o Render desliga a API depois de 15 minutos sem uso, e ela le
 minuto para voltar. Pra isso não acontecer no meio da aula:
 
 1. Crie uma conta gratuita no [cron-job.org](https://cron-job.org).
-2. Crie um job que chame `https://<sua-api>.onrender.com/health` a cada 10 minutos.
+2. Crie um job que chame `https://<sua-api>.onrender.com/health/ping` a cada 10 minutos.
+
+**Use o `/health/ping`, não o `/health`.** O Neon gratuito dá **100 horas de processamento
+por mês** (CU-hours) e desliga o banco depois de 5 minutos sem consulta. O `/health` consulta
+o banco: chamado a cada 10 minutos, ele acordaria o Neon o tempo todo e gastaria cerca de 93
+das 100 horas só com o cron, sem contar as aulas. Quando as horas acabam, o banco fica fora do
+ar até o mês seguinte (os dados não se perdem). O `/health/ping` não toca no banco: a API
+fica acordada, e o Neon só acorda quando alguém usa o site.
 
 O Render dá 750 horas gratuitas por mês, e uma API ligada o mês inteiro usa no máximo 744.
 Se preferir economizar, dá pra configurar o job só nos horários de aula.
@@ -2453,8 +2481,10 @@ Vercel pula o deploy; se mudou (saída 1), ela publica o site normalmente. Uma m
 5. Teste: um aluno envia uma entrega com um arquivo, e o professor baixa. No Supabase, o arquivo aparece em `entregas/submissions/<id da entrega>/<id do arquivo>`.
 
 O Supabase gratuito pausa o projeto depois de uma semana sem uso. O ping do cron-job.org
-(seção 3) mantém a API acordada, mas não o Supabase: se a plataforma ficar parada nas férias,
-entre no painel do Supabase e clique em **Restore** antes de voltar às aulas.
+(seção 3) mantém a API acordada, mas não o Supabase: numa semana sem missão de entrega (ou
+nas férias) o projeto pode pausar. Os arquivos não se perdem, mas ninguém envia nem baixa
+entregas até você entrar no painel do Supabase e clicar em **Restore**. Vale conferir antes
+de passar uma missão de entrega.
 
 ### Migrando para um plano pago depois
 
