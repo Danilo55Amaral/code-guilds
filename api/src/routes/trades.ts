@@ -4,6 +4,8 @@ import { db } from "../database";
 import { ensureStudent } from "../middlewares/auth";
 import { lockStudents, saveProgress } from "../services/progress";
 import { returnTrades, tradeItems } from "../services/escrow";
+import { sendMessages } from "../services/messages";
+import { tradeAcceptedMessage, tradeDeclinedMessage, tradeProposalMessage } from "../../../src/engine/messages";
 import { findStudent } from "../utils/queries";
 import { NotFoundError, ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
@@ -90,6 +92,13 @@ export async function tradesRoutes(app: FastifyInstance) {
 
             await saveProgress(trx, result.from)
 
+            // 🔄 o amigo fica sabendo da proposta
+            await sendMessages(trx, [{
+                studentId: toId,
+                kind: 'troca',
+                body: tradeProposalMessage({ fromName: from.name, give: result.offered, ask: result.requested }),
+            }])
+
             return trx
                 .insertInto('trades')
                 .values({
@@ -136,6 +145,13 @@ export async function tradesRoutes(app: FastifyInstance) {
 
             await trx.deleteFrom('trades').where('id', '=', trade.id).execute()
 
+            // 🔄 quem propôs fica sabendo que a troca foi feita
+            await sendMessages(trx, [{
+                studentId: from.id,
+                kind: 'troca',
+                body: tradeAcceptedMessage({ friendName: to.name, received: result.received, gave: tradeItems(trade).offered }),
+            }])
+
             return trade
         })
 
@@ -160,6 +176,18 @@ export async function tradesRoutes(app: FastifyInstance) {
             if (!trade) throw new NotFoundError('Essa proposta não existe mais.')
 
             await returnTrades(trx, [trade])
+
+            // Recusada pelo amigo: quem propôs recebe o aviso 🔄 (cancelar a
+            // própria proposta não manda mensagem)
+            if (trade.toId === me) {
+                const friend = await trx.selectFrom('students').select('name').where('id', '=', me).executeTakeFirst()
+
+                await sendMessages(trx, [{
+                    studentId: trade.fromId,
+                    kind: 'troca',
+                    body: tradeDeclinedMessage({ friendName: friend?.name ?? 'Seu amigo', returned: tradeItems(trade).offered }),
+                }])
+            }
 
             return trade
         })

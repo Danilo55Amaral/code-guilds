@@ -1,9 +1,9 @@
 // ============================================================================
 // SOCIAL API — pedidos de amizade e amizades entre alunos (fase 3 do back
-// end). A API guarda os vínculos (trocar itens só é permitido entre amigos, e
-// quem confere é o servidor); aqui cada ação chama a API e atualiza o cache
-// "cg-friends" (engine/friends.ts). A conversa com balões continua neste
-// navegador até a fase 4.
+// end) e a conversa com balões (fase 4). A API guarda os vínculos (trocar
+// itens só é permitido entre amigos, e quem confere é o servidor) e as
+// conversas; aqui cada ação chama a API e atualiza os caches "cg-friends" e
+// "cg-chats" (engine/friends.ts). As mensagens 🤝 do sininho a API cria.
 //
 // Toda função devolve { ok: true, ... } ou { ok: false, error } com a
 // mensagem da API pra mostrar na tela.
@@ -12,7 +12,15 @@
 import { api, describeError } from "@/services/api";
 import { emitChange } from "./events";
 import { StudentAccount, saveStudentAccounts } from "./students";
-import { FriendLink, deleteChatBetween, forgetFriendLink, rememberFriendLink } from "./friends";
+import {
+  ChatMessage,
+  FriendLink,
+  deleteChatBetween,
+  forgetFriendLink,
+  markConversationReadInCache,
+  rememberChatMessage,
+  rememberFriendLink,
+} from "./friends";
 import { deleteTradesBetween } from "./trades";
 
 export type SocialResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
@@ -41,6 +49,29 @@ export async function acceptFriend(linkId: string): Promise<SocialResult> {
     return { ok: true };
   } catch (error) {
     return { ok: false, error: describeError(error) };
+  }
+}
+
+/** Manda um balão pro amigo (a API confere se o balão existe e se são amigos). */
+export async function sendChat(toId: string, phraseId: string): Promise<SocialResult> {
+  try {
+    const { message } = await api.post<{ message: ChatMessage }>("/chats", { toId, phraseId });
+    rememberChatMessage(message);
+    emitChange();
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
+}
+
+/** A conversa foi aberta: o que o amigo mandou fica lido. */
+export async function markChatRead(meId: string, friendId: string) {
+  markConversationReadInCache(meId, friendId);
+  emitChange();
+  try {
+    await api.post(`/chats/${friendId}/read`);
+  } catch {
+    // na próxima atualização da caixa a API manda de novo o que ficou sem ler
   }
 }
 

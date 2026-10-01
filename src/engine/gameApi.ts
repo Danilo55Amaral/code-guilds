@@ -18,6 +18,7 @@ import { GiftItem } from "./gifts";
 import { RewardItem } from "./missions";
 import type { EventId } from "./specialEvents";
 import { refreshFromApi } from "./accounts";
+import { scheduleInboxRefresh } from "./messagesApi";
 
 export type GameResult<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 
@@ -27,6 +28,8 @@ async function run<T extends object = object>(request: Promise<unknown>): Promis
     const { student, ...rest } = (await request) as { student: StudentAccount } & T;
     saveStudentAccounts([student]);
     emitChange();
+    // a ação pode ter criado mensagens (🏆 recompensa, 🛒 compra...): o sininho busca de novo
+    scheduleInboxRefresh();
     return { ok: true, ...(rest as unknown as T) };
   } catch (error) {
     return { ok: false, error: describeError(error) };
@@ -205,15 +208,19 @@ export function removeStudentItem(studentId: string, itemId: string) {
   return run(api.delete(`/students/${studentId}/items/${itemId}`));
 }
 
-/** O que a API contou sobre a entrega aprovada. */
-export interface ApprovalOutcome {
-  rewarded: boolean; // false = o aluno já tinha concluído a missão
+/** O que a API contou sobre a entrega corrigida. */
+export interface ReviewOutcome {
+  rewarded: boolean; // false = pediu pra refazer, ou o aluno já tinha concluído a missão
   itemWaiting?: boolean;
 }
 
-/** Aprova a entrega de uma missão de entrega: a API dá a recompensa ao aluno (se ainda não concluiu). */
-export function approveTask(missionId: string, studentId: string) {
-  return run<ApprovalOutcome>(api.post(`/missions/${missionId}/approve`, { studentId }));
+/**
+ * Corrige a entrega de uma missão de entrega. Aprovada: a API dá a recompensa
+ * (se o aluno ainda não concluiu) e manda a mensagem 🏆 com o comentário.
+ * Refazer: a API manda a mensagem 📝 com o comentário (obrigatório).
+ */
+export function reviewTask(missionId: string, data: { studentId: string; decision: "aprovada" | "refazer"; feedback: string }) {
+  return run<ReviewOutcome>(api.post(`/missions/${missionId}/review`, data));
 }
 
 /** Resultado do presente: quantos receberam e, pra cada aluno, se o item ficou esperando espaço. */

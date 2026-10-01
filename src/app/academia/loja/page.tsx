@@ -110,7 +110,7 @@ export default function LojaPage() {
   async function confirmBuy() {
     if (!confirming || busy) return;
     setBusy(true);
-    const result = await buy(me.id, confirming);
+    const result = await buy(confirming);
     setBusy(false);
     if (!result.ok) {
       setError(result.error);

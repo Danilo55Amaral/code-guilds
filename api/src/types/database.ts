@@ -23,6 +23,15 @@ export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
+export interface ChatMessages {
+  fromId: string;
+  id: Generated<string>;
+  phraseId: string;
+  readAt: Timestamp | null;
+  sentAt: Generated<Timestamp>;
+  toId: string;
+}
+
 export interface EventRuns {
   endedAt: Timestamp | null;
   eventId: string;
@@ -39,6 +48,18 @@ export interface Friendships {
   id: Generated<string>;
   status: Generated<string>;
   toId: string;
+}
+
+export interface Messages {
+  audience: Json | null;
+  body: string;
+  broadcastId: string | null;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  kind: string;
+  readAt: Timestamp | null;
+  senderId: string | null;
+  studentId: string;
 }
 
 export interface Missions {
@@ -122,6 +143,20 @@ export interface Students {
   xp: Generated<number>;
 }
 
+export interface TeacherMessages {
+  body: string;
+  id: Generated<string>;
+  missionId: string | null;
+  readAt: Timestamp | null;
+  repliedAt: Timestamp | null;
+  replierName: string | null;
+  reply: string | null;
+  sentAt: Generated<Timestamp>;
+  studentId: string;
+  teacherId: string;
+  topic: string;
+}
+
 export interface Teachers {
   createdAt: Generated<Timestamp>;
   email: string;
@@ -143,13 +178,16 @@ export interface Trades {
 }
 
 export interface DB {
+  chatMessages: ChatMessages;
   eventRuns: EventRuns;
   friendships: Friendships;
+  messages: Messages;
   missions: Missions;
   offers: Offers;
   sessions: Sessions;
   shopItems: ShopItems;
   students: Students;
+  teacherMessages: TeacherMessages;
   teachers: Teachers;
   trades: Trades;
 }

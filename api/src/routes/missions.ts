@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../database";
 import { AuthUser, ensureAuthenticated, ensureStudent, ensureTeacher } from "../middlewares/auth";
 import { updateProgress } from "../services/progress";
+import { sendMessages, teacherSignature } from "../services/messages";
 import { slugify } from "../utils/normalize";
 import { studentsQuery } from "../utils/queries";
 import { existsOrError, ValidationError } from "../validation/validations";
@@ -10,6 +11,7 @@ import { itemSchema } from "../validation/schemas";
 import { Json } from "../types/database";
 import { Mission, SUBMISSION_FILE_KINDS, hasPassed } from "../../../src/engine/missions";
 import { applyMissionReward } from "../../../src/engine/students";
+import { PENDING_ITEM_NOTE, missionRewardMessage, taskApprovedNote, taskRedoMessage } from "../../../src/engine/messages";
 
 // ============================================================================
 // MISSÕES — o catálogo de missões de cada professor e a tentativa do quiz.
@@ -326,6 +328,16 @@ export async function missionsRoutes(app: FastifyInstance) {
                 // o item não coube no inventário e ficou esperando espaço
                 itemWaiting: reward.student.pendingItems.length > student.pendingItems.length,
             }
+        }, async (trx, result) => {
+            // a mensagem 🏆 da recompensa, na mesma transação
+            if (!result.rewarded) return
+
+            await sendMessages(trx, [{
+                studentId: user.id,
+                kind: 'missao',
+                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
+                    ('itemWaiting' in result && result.itemWaiting ? PENDING_ITEM_NOTE : ''),
+            }])
         })
 
         const { student: _unused, ...attempt } = result
@@ -334,21 +346,26 @@ export async function missionsRoutes(app: FastifyInstance) {
         return { student, ...attempt }
     })
 
-    // Aprovando a entrega de uma missão de entrega (o professor do aluno ou o ADM).
+    // Corrigindo a entrega de uma missão de entrega (o professor do aluno ou o ADM).
     // A entrega em si (texto e arquivos) continua no navegador até a fase 5;
-    // a recompensa é dada AQUI, com a mesma regra do quiz. Missão que o aluno
-    // já tinha concluído não dá nada de novo (rewarded: false).
-    app.post('/:id/approve', { preHandler: ensureTeacher }, async (request, reply) => {
-        const approveParamsSchema = z.object({
+    // a recompensa e a mensagem pro aluno são dadas AQUI:
+    // - aprovada: o aluno ganha a recompensa (com a mesma regra do quiz) e a
+    //   mensagem 🏆 com o comentário. Missão que ele já tinha concluído não dá
+    //   nada de novo (rewarded: false);
+    // - refazer: o comentário é obrigatório e chega como mensagem 📝 Entrega.
+    app.post('/:id/review', { preHandler: ensureTeacher }, async (request, reply) => {
+        const reviewParamsSchema = z.object({
             id: z.string().min(1),
         })
 
-        const approveBodySchema = z.object({
+        const reviewBodySchema = z.object({
             studentId: z.uuid(),
+            decision: z.enum(['aprovada', 'refazer']),
+            feedback: z.string().trim().max(1000).default(''),
         })
 
-        const { id } = approveParamsSchema.parse(request.params)
-        const { studentId } = approveBodySchema.parse(request.body)
+        const { id } = reviewParamsSchema.parse(request.params)
+        const { studentId, decision, feedback } = reviewBodySchema.parse(request.body)
         const user = request.user!
 
         const mission = (await missionsQuery().where('id', '=', id).executeTakeFirst()) as unknown as Mission | undefined
@@ -375,6 +392,21 @@ export async function missionsRoutes(app: FastifyInstance) {
             return reply.status(400).send({ message: 'Essa missão não é do professor do aluno.' })
         }
 
+        const reviewer = await teacherSignature(user)
+
+        if (decision === 'refazer') {
+            existsOrError(feedback, 'Escreva um comentário dizendo o que o aluno precisa melhorar.')
+
+            await sendMessages(db, [{
+                studentId,
+                kind: 'entrega',
+                senderId: user.id,
+                body: taskRedoMessage({ mission, reviewerName: reviewer.label, feedback }),
+            }])
+
+            return { student: await studentsQuery().where('id', '=', studentId).executeTakeFirst(), rewarded: false }
+        }
+
         const result = await updateProgress(studentId, (student) => {
             if (student.completedMissionIds.includes(mission.id)) {
                 return { student, rewarded: false }
@@ -390,6 +422,16 @@ export async function missionsRoutes(app: FastifyInstance) {
                 newLevel: reward.newLevel,
                 itemWaiting: reward.student.pendingItems.length > student.pendingItems.length,
             }
+        }, async (trx, result) => {
+            if (!result.rewarded) return
+
+            await sendMessages(trx, [{
+                studentId,
+                kind: 'missao',
+                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
+                    taskApprovedNote({ reviewerName: reviewer.label, feedback }) +
+                    ('itemWaiting' in result && result.itemWaiting ? PENDING_ITEM_NOTE : ''),
+            }])
         })
 
         const { student: _unused, ...approval } = result

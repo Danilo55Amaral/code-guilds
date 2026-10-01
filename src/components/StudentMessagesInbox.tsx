@@ -6,7 +6,7 @@ import { Student, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import { TEACHER_MESSAGE_MAX, TEACHER_MESSAGE_TOPICS, TeacherMessage } from "@/engine/teacherMessages";
 import { formatMessageDate } from "@/engine/messages";
-import { useTeacherMessages } from "@/engine/store";
+import { useInboxPolling, useTeacherMessages } from "@/engine/store";
 import Avatar from "./Avatar";
 import { PaginationFooter, usePagination } from "./Pagination";
 
@@ -20,16 +20,21 @@ const PER_PAGE = 5;
 
 type Tab = "novas" | "todas";
 
-function InboxCard({ message, student, mission, replier }: { message: TeacherMessage; student: Student | undefined; mission: Mission | undefined; replier: { id: string; name: string } }) {
+function InboxCard({ message, student, mission }: { message: TeacherMessage; student: Student | undefined; mission: Mission | undefined }) {
   const { markRead, reply } = useTeacherMessages();
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const house = student?.houseId ? getHouse(student.houseId) : null;
 
-  function send() {
-    const result = reply(message.id, text, replier);
-    setError(result.ok ? null : result.error);
-    if (result.ok) setText("");
+  // A resposta vai pela API, que também manda ela pra caixa de Mensagens do aluno
+  async function send() {
+    if (busy) return;
+    setBusy(true);
+    const problem = await reply(message.id, text);
+    setBusy(false);
+    setError(problem);
+    if (!problem) setText("");
   }
 
   return (
@@ -78,8 +83,8 @@ function InboxCard({ message, student, mission, replier }: { message: TeacherMes
           />
           {error && <p className="mt-1 text-xs text-rose-300">{error}</p>}
           <div className="mt-2 flex justify-end">
-            <button onClick={send} disabled={!text.trim() || !student} className="cg-btn-primary !px-4 !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-30">
-              💬 Responder
+            <button onClick={send} disabled={!text.trim() || !student || busy} className="cg-btn-primary !px-4 !py-2 text-xs disabled:cursor-not-allowed disabled:opacity-30">
+              {busy ? "Enviando…" : "💬 Responder"}
             </button>
           </div>
         </div>
@@ -92,14 +97,14 @@ export default function StudentMessagesInbox({
   messages,
   students,
   missions,
-  replier,
 }: {
   /** As mensagens que os alunos mandaram pra esse professor. */
   messages: TeacherMessage[];
   students: Student[];
   missions: Mission[];
-  replier: { id: string; name: string };
 }) {
+  // Mensagens novas dos alunos chegam sem precisar recarregar o painel
+  useInboxPolling();
   const unread = messages.filter((m) => !m.readAt);
   const [tab, setTab] = useState<Tab>(unread.length > 0 ? "novas" : "todas");
   const list = tab === "novas" ? unread : messages;
@@ -144,7 +149,6 @@ export default function StudentMessagesInbox({
               message={m}
               student={students.find((s) => s.id === m.studentId)}
               mission={m.missionId ? missions.find((x) => x.id === m.missionId) : undefined}
-              replier={replier}
             />
           ))}
         </div>

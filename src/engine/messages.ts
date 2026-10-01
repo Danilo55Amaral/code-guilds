@@ -1,13 +1,17 @@
 // ============================================================================
-// MESSAGES — mensagens do professor para um aluno (avisos ou comunicação).
-// Mesmo padrão de CRUD em localStorage de students.ts. Cada mensagem guarda
-// quando foi lida (readAt) — é isso que alimenta o sino de notificações.
-// Comunicados (pra turma toda ou pra uma casa) viram uma cópia por aluno,
-// ligadas pelo mesmo broadcastId — assim cada aluno tem o seu próprio readAt.
+// MESSAGES — as mensagens que o aluno recebe: avisos e mensagens do professor
+// e as mensagens automáticas da plataforma (missão concluída, compra, venda,
+// troca, presente...). Cada mensagem guarda quando foi lida (readAt) — é isso
+// que alimenta o sino de notificações. Comunicados (pra turma toda ou pra uma
+// casa) viram uma cópia por aluno, ligadas pelo mesmo broadcastId — assim
+// cada aluno tem o seu próprio readAt.
+//
+// Desde a fase 4 do back end, as mensagens ficam na API. Os textos das
+// mensagens automáticas (missionRewardMessage, saleMessage...) continuam
+// aqui e a API importa este arquivo pra criar cada uma no servidor.
 // ============================================================================
 
 import { HouseId, getHouse } from "./houses";
-import { DEFAULT_TEACHER_ID } from "./teachers";
 import { Rarity, RARITY_META } from "./missions";
 
 export type MessageKind = "aviso" | "mensagem" | "presente" | "missao" | "compra" | "venda" | "amizade" | "troca" | "entrega";
@@ -177,9 +181,9 @@ export interface Message {
   body: string;
   createdAt: string;
   readAt: string | null;
-  audience?: MessageAudience;
-  broadcastId?: string;
-  senderId?: string; // professor que enviou; mensagens antigas são do professor padrão
+  audience?: MessageAudience | null;
+  broadcastId?: string | null;
+  senderId?: string | null; // professor que enviou; null = mensagem automática da plataforma
 }
 
 /** Pra quem um comunicado foi enviado. Mensagens individuais não têm audience. */
@@ -213,6 +217,16 @@ export function audienceLabel(audience: MessageAudience): string {
   return audience.type === "turma" ? "Toda a turma" : getHouse(audience.houseId).name;
 }
 
+// ---------------------------------------------------------------------------
+// Cache das mensagens (fase 4 do back end)
+//
+// As mensagens são da API (tabela messages): o aluno logado tem as dele no
+// cache, e o professor, as do aluno que abriu na ficha. Mandar, marcar como
+// lida e os comunicados ficam em engine/messagesApi.ts. As mensagens
+// automáticas (missão, compra, troca...) a própria API cria.
+// Este arquivo não pode importar nada com "@/": a API usa os textos acima.
+// ---------------------------------------------------------------------------
+
 function readAll(): Message[] {
   if (typeof window === "undefined") return [];
   try {
@@ -235,83 +249,28 @@ export function listMessages(studentId: string): Message[] {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function sendMessage(data: { studentId: string; senderId: string; kind: MessageKind; body: string }): Message {
-  const message: Message = {
-    id: `m_${Date.now()}_${Math.round(Math.random() * 9999)}`,
-    studentId: data.studentId,
-    kind: data.kind,
-    body: data.body.trim().slice(0, MESSAGE_MAX_LENGTH),
-    createdAt: new Date().toISOString(),
-    readAt: null,
-    senderId: data.senderId,
-  };
-  writeAll([...readAll(), message]);
-  return message;
+/** Troca, no cache, as mensagens de um aluno pelas que a API devolveu. */
+export function saveMessagesOf(studentId: string, messages: Message[]) {
+  writeAll([...readAll().filter((m) => m.studentId !== studentId), ...messages]);
 }
 
-/** Comunicado: grava uma cópia da mesma mensagem pra cada aluno destinatário. */
-export function broadcastMessage(data: {
-  studentIds: string[];
-  senderId: string;
-  audience: MessageAudience;
-  kind: MessageKind;
-  body: string;
-}): Message[] {
-  const stamp = `${Date.now()}_${Math.round(Math.random() * 9999)}`;
-  const createdAt = new Date().toISOString();
-  const body = data.body.trim().slice(0, MESSAGE_MAX_LENGTH);
-  const copies: Message[] = data.studentIds.map((studentId) => ({
-    id: `m_${stamp}_${studentId}`,
-    studentId,
-    kind: data.kind,
-    body,
-    createdAt,
-    readAt: null,
-    audience: data.audience,
-    broadcastId: `b_${stamp}`,
-    senderId: data.senderId,
-  }));
-  writeAll([...readAll(), ...copies]);
-  return copies;
+/** Uma mensagem nova ou alterada (lida) que a API confirmou. */
+export function rememberMessage(message: Message) {
+  writeAll([...readAll().filter((m) => m.id !== message.id), message]);
 }
 
-/** Comunicados que um professor já enviou (agrupados por broadcastId), mais recentes primeiro. */
-export function listBroadcasts(senderId: string): BroadcastSummary[] {
-  const groups = new Map<string, BroadcastSummary>();
-  for (const m of readAll()) {
-    if (!m.broadcastId || !m.audience) continue;
-    if ((m.senderId ?? DEFAULT_TEACHER_ID) !== senderId) continue;
-    const g = groups.get(m.broadcastId);
-    if (g) {
-      g.total++;
-      if (m.readAt) g.read++;
-    } else {
-      groups.set(m.broadcastId, {
-        broadcastId: m.broadcastId,
-        audience: m.audience,
-        kind: m.kind,
-        body: m.body,
-        createdAt: m.createdAt,
-        total: 1,
-        read: m.readAt ? 1 : 0,
-      });
-    }
-  }
-  return Array.from(groups.values()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-}
-
-/** Marcar de novo uma mensagem já lida não muda o readAt original. */
-export function markAsRead(id: string) {
-  const now = new Date().toISOString();
-  writeAll(readAll().map((m) => (m.id === id && !m.readAt ? { ...m, readAt: now } : m)));
-}
-
-export function markAllAsRead(studentId: string) {
+/** Todas as mensagens do aluno ficam lidas no cache (a API já marcou). */
+export function markAllReadInCache(studentId: string) {
   const now = new Date().toISOString();
   writeAll(readAll().map((m) => (m.studentId === studentId && !m.readAt ? { ...m, readAt: now } : m)));
 }
 
-/** Usado quando o aluno é excluído — não deixa mensagens órfãs no localStorage. */
+/** Esvazia o cache (ninguém logado, ou outra pessoa entrou neste navegador). */
+export function forgetMessages() {
+  writeAll([]);
+}
+
+/** Usado quando o aluno é excluído — não deixa mensagens órfãs no cache. */
 export function deleteMessagesOf(studentId: string) {
   writeAll(readAll().filter((m) => m.studentId !== studentId));
 }

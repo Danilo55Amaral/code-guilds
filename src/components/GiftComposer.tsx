@@ -5,7 +5,7 @@ import { Student } from "@/engine/students";
 import { HOUSES, HouseId, getHouse } from "@/engine/houses";
 import { Mission } from "@/engine/missions";
 import { ShopItem } from "@/engine/shop";
-import { GiftItem, Giver } from "@/engine/gifts";
+import { GiftItem } from "@/engine/gifts";
 import { useGifts } from "@/engine/store";
 import GiftItemPicker from "./GiftItemPicker";
 
@@ -20,7 +20,6 @@ type Target = "todos" | HouseId;
 
 export default function GiftComposer({
   students,
-  giver,
   shopItems,
   missions,
   isAdmin,
@@ -29,7 +28,6 @@ export default function GiftComposer({
 }: {
   /** Quem pode receber (professor: a turma dele; ADM: a plataforma toda ou a turma escolhida). */
   students: Student[];
-  giver: Giver;
   shopItems: ShopItem[];
   missions: Mission[];
   isAdmin: boolean;
@@ -57,7 +55,6 @@ export default function GiftComposer({
     const outcome = await give(
       recipients.map((s) => s.id),
       pending,
-      giver,
     );
     setSending(false);
     if (!outcome.ok) {

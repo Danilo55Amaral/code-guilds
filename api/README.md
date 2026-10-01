@@ -24,6 +24,7 @@
 - [Ligação com o site (Next.js)](#ligação-com-o-site-nextjs)
 - [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)
 - [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)
+- [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -40,8 +41,9 @@ seguro e com o servidor decidindo o que cada um pode fazer.
 A **fase 1** criou a API: professores, alunos, login, sessões e permissões. A **fase 2**
 ligou o site a ela (as contas saem do localStorage). A **fase 3** levou o jogo para o
 servidor: progresso, missões, Loja, inventário, presentes, amizades, Mercado, trocas e
-eventos, com a API decidindo cada recompensa. As próximas fases (mensagens e entregas) estão
-no fim deste documento.
+eventos, com a API decidindo cada recompensa. A **fase 4** levou as mensagens: o sininho, os
+comunicados, a conversa com balões e as mensagens pro professor, com a API criando as
+mensagens automáticas. A próxima fase (entregas) está no fim deste documento.
 
 O desenvolvimento das fases acontece na branch `feat/backend`; a `main` continua sendo a
 versão só com localStorage, publicada na Vercel como demonstração, até a migração terminar.
@@ -80,19 +82,23 @@ api/
 │   │   └── auth.ts        → descobre quem está logado + ensureAuthenticated/Student/Teacher/Admin
 │   ├── routes/            → as rotas, cada arquivo é um plugin do Fastify
 │   │   ├── auth.ts        → login, logout e "quem sou eu"
+│   │   ├── chats.ts       → conversa com balões entre amigos (fase 4)
 │   │   ├── events.ts      → agenda dos eventos e o progresso do aluno em cada fase
 │   │   ├── friends.ts     → pedidos de amizade e amizades
 │   │   ├── gifts.ts       → presentes do professor/ADM
 │   │   ├── health.ts      → a API está no ar?
 │   │   ├── inventory.ts   → usar, vender, descartar e equipar itens
-│   │   ├── missions.ts    → missões, correção do quiz e aprovação das entregas
+│   │   ├── messages.ts    → caixa do aluno, mensagens e comunicados do professor (fase 4)
+│   │   ├── missions.ts    → missões, correção do quiz e das entregas
 │   │   ├── offers.ts      → Mercado: ofertas de venda entre alunos
 │   │   ├── shop.ts        → Loja: cadastro do ADM e compra do aluno
 │   │   ├── students.ts    → cadastro e gestão de alunos
+│   │   ├── teacherMessages.ts → mensagens do aluno pro professor (fase 4)
 │   │   ├── teachers.ts    → cadastro e gestão de professores
 │   │   └── trades.ts      → trocas de itens entre amigos
 │   ├── services/
 │   │   ├── escrow.ts      → devolve os itens guardados em ofertas e trocas
+│   │   ├── messages.ts    → grava as mensagens do aluno (as automáticas também) (fase 4)
 │   │   └── progress.ts    → updateProgress: transação + aluno travado (fase 3)
 │   ├── types/
 │   │   └── database.ts    → tipos das tabelas (GERADO pelo kysely-codegen, não editar)
@@ -1574,13 +1580,13 @@ atualizado.
 | Presentes do professor, amizades, ofertas do Mercado, trocas entre amigos | **API** |
 | Agenda dos eventos (iniciar, liberar fase, encerrar) | **API** |
 | Recompensa da missão de entrega aprovada | **API** |
-| Mensagens (sininho), conversa com balões, mensagens pro professor, comunicados | Navegador (fase 4) |
+| Mensagens (sininho), conversa com balões, mensagens pro professor, comunicados | **API** (fase 4) |
 | Entregas das missões de entrega (texto e arquivos) | Navegador (fase 5) |
 
-As mensagens ainda são locais. Por isso, quando uma ação da API dá certo, o **site** cria a
-mensagem (🛒 Compra, 🔄 Troca, 🎁 Presente...) no navegador de quem fez a ação. A mensagem
-pra outra pessoa (ex.: o 💰 Venda pro vendedor) só aparece se ela usar o mesmo navegador. Isso
-se resolve na fase 4, quando as mensagens forem pro servidor e a própria API criar cada uma.
+Ao fim da fase 3, as mensagens ainda eram locais: o **site** criava a mensagem (🛒 Compra,
+🔄 Troca, 🎁 Presente...) no navegador de quem fez a ação. A fase 4 resolveu isso: a própria
+API cria cada mensagem, na mesma transação da ação (veja
+[Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)).
 
 ### Uma regra só: a API usa as regras do site
 
@@ -1774,7 +1780,7 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 | PUT | `/missions/:id` | O dono ou o ADM | altera o que vier (`null` tira a tarefa/evento/fase) |
 | DELETE | `/missions/:id` | O dono ou o ADM | exclui |
 | POST | `/missions/:id/attempt` | Aluno | manda as respostas do quiz; a API corrige e dá a recompensa |
-| POST | `/missions/:id/approve` | O professor do aluno ou o ADM | aprova a entrega e dá a recompensa |
+| POST | `/missions/:id/review` | O professor do aluno ou o ADM | corrige a entrega: aprova (dá a recompensa) ou pede pra refazer (fase 4) |
 | GET | `/shop` | Logados | ADM: todos os itens; os outros: só os que não estão escondidos |
 | POST / PUT / DELETE | `/shop`, `/shop/:id` | ADM | cadastra, edita e tira itens da Loja |
 | POST / DELETE | `/shop/collections/:collection` | ADM | coloca ou tira uma coleção inteira |
@@ -1831,7 +1837,7 @@ espaço livre, o `pending/claim` responde `400`.
 ```
 
 - Refazer uma missão já concluída, ou tirar menos de 60%, responde `200` com `rewarded: false` (a tela mostra a nota, mas não paga de novo). Missão de nível acima do aluno: `400`. Missão de outro professor: `403`. Missão de entrega: `400` (quem aprova é o professor).
-- `POST /missions/:id/approve` com `{ "studentId": "..." }`: o professor aprova a entrega e o aluno ganha a recompensa (se ainda não tinha concluído; se já tinha, `rewarded: false`). A entrega em si (texto e arquivos) ainda fica no navegador até a fase 5, então o site só chama essa rota depois de conferir que existe uma entrega pendente.
+- `POST /missions/:id/review` com `{ "studentId": "...", "decision": "aprovada", "feedback": "Muito bom!" }`: o professor corrige a entrega. Aprovada: o aluno ganha a recompensa (se ainda não tinha concluído; se já tinha, `rewarded: false`) e a mensagem 🏆 com o comentário. `"decision": "refazer"`: o comentário é obrigatório e chega pro aluno como mensagem 📝 Entrega. (Na fase 3 essa rota se chamava `/approve` e só aprovava; na fase 4 virou a correção completa, com as mensagens.) A entrega em si (texto e arquivos) ainda fica no navegador até a fase 5, então o site só chama essa rota depois de conferir que existe uma entrega pendente.
 
 #### Loja
 
@@ -1940,7 +1946,7 @@ O que mudou nos hooks do `store.ts`:
 | `useOffers` | oferecer, comprar, recusar e cancelar pela API |
 | `useTrades` | propor, aceitar, recusar e cancelar pela API |
 | `useEventRuns` | iniciar, liberar fase e encerrar pela API |
-| `useSubmissions` | aprovar uma entrega chama a API (que dá a recompensa) antes de marcar como aprovada |
+| `useSubmissions` | corrigir uma entrega chama a API (que dá a recompensa e, desde a fase 4, manda a mensagem) antes de marcar como corrigida |
 
 As telas travam o botão enquanto a API responde (uma ação por vez, pra dois cliques rápidos
 não mandarem o mesmo pedido duas vezes) e mostram o erro, se houver.
@@ -1956,6 +1962,181 @@ Com o Insomnia (ou o `curl`), logado como aluno:
 
 Pra testar trocas, cadastre dois alunos, mande o pedido de amizade com um (`POST /friends`) e
 aceite com o outro (`POST /friends/<id>/accept`).
+
+## Fase 4: as mensagens no servidor
+
+Na fase 4, tudo que é mensagem passou para a API:
+
+- a **caixa do aluno** (o sininho 🔔 e a página Mensagens): avisos e mensagens do professor, comunicados e as mensagens automáticas da plataforma;
+- os **comunicados** do professor pra turma toda ou pra uma casa;
+- a **conversa com balões** entre amigos;
+- as **mensagens do aluno pro professor** (e as respostas).
+
+Antes, cada uma dessas coisas ficava no navegador onde foi criada. Um aviso do professor só
+aparecia pro aluno se os dois usassem o mesmo computador. Agora o aluno vê tudo em qualquer
+lugar.
+
+### A API cria as mensagens automáticas
+
+A grande mudança: as mensagens automáticas (🏆 missão concluída, 🛒 compra, 💰 venda,
+🔄 troca, 🎁 presente, 🤝 amizade, 📝 entrega) são criadas pela **própria API**, dentro da
+mesma transação da ação. Se a compra der errado, a mensagem "compra realizada" também não
+fica. E o vendedor recebe o 💰 Venda mesmo estando em outro computador.
+
+Os textos das mensagens continuam em `src/engine/messages.ts` (`missionRewardMessage`,
+`saleMessage`, `tradeProposalMessage`...), e a API importa esse arquivo, igual às regras do
+jogo na fase 3. Uma regra só pros textos também.
+
+O `src/services/messages.ts` tem a função que grava:
+
+```ts
+await sendMessages(trx, [{
+    studentId: buyer.id,
+    kind: 'compra',
+    body: purchaseMessage({ item, sellerName: seller.name, price: offer.price }),
+}])
+```
+
+Ela recebe o `trx` de quem chamou (pra ficar na mesma transação) ou o próprio `db`. As rotas
+do jogo chamam no `alsoSave` do `updateProgress` ou dentro das próprias transações:
+
+| Ação | Mensagem | Pra quem |
+|---|---|---|
+| Quiz com recompensa (`POST /missions/:id/attempt`) | 🏆 Missão concluída (+ aviso de espaço) | o aluno |
+| Entrega corrigida (`POST /missions/:id/review`) | 🏆 com "Entrega aprovada por..." ou 📝 "refazer" com o comentário | o aluno |
+| Compra na Loja | 🛒 Compra na Loja | o aluno |
+| Oferta aceita | 🛒 Compra / 💰 Venda | comprador / vendedor |
+| Proposta de troca | 🔄 proposta | o amigo |
+| Troca aceita | 🔄 troca feita | quem propôs |
+| Troca recusada (pelo amigo) | 🔄 não aceitou, os itens voltaram | quem propôs |
+| Presente | 🎁 Presente, assinado pelo professor | cada aluno |
+| Pedido de amizade / pedido aceito | 🤝 Amizade | o outro aluno |
+| Fase de evento concluída | 🏆 recompensa da fase (ou do evento) | o aluno |
+| Resposta do professor | 💬 Resposta à sua mensagem | o aluno |
+
+Cancelar a própria proposta de troca não manda mensagem (só quem recusa avisa).
+
+### As tabelas novas
+
+```
+messages (caixa do aluno)          chat_messages (conversa)          teacher_messages (pro professor)
+─────────────────────────          ────────────────────────          ────────────────────────────────
+id           uuid PK               id         uuid PK                id           uuid PK
+student_id   uuid FK → students    from_id    uuid FK → students     student_id   uuid FK → students
+sender_id    uuid FK → teachers    to_id      uuid FK → students     teacher_id   uuid FK → teachers
+             (nulo = automática)   phrase_id  varchar(40)            topic        varchar(20)
+kind         varchar(10)           sent_at    timestamptz            mission_id   varchar(120)
+body         text                  read_at    timestamptz            body         text
+audience     jsonb (comunicado)                                      sent_at, read_at
+broadcast_id uuid  (comunicado)                                      reply, replied_at, replier_name
+created_at, read_at
+```
+
+- **`messages.sender_id` nulo** = mensagem automática da plataforma. Se o professor for excluído, as mensagens que ele mandou continuam com o aluno (`on delete set null`).
+- **Comunicado**: uma linha por aluno, todas com o mesmo `broadcast_id`. Assim cada aluno tem o próprio `read_at`, e o professor vê "lida por 12/30".
+- `messages_body_check` aceita até 3000 caracteres (as mensagens automáticas mais longas juntam a recompensa, o comentário do professor e o aviso de espaço). O que o professor escreve continua limitado a 1000 (`MESSAGE_MAX_LENGTH`), conferido pelo Zod.
+- **`chat_messages` só guarda o id do balão** (`phrase_id`), nunca texto. O índice `chat_messages_pair_index` usa `least/greatest`, igual às amizades, pra achar rápido a conversa de um par.
+- **`teacher_messages.teacher_id`** é `on delete restrict`: a exclusão do professor passa essas mensagens pro herdeiro (junto com os alunos e as missões). O `mission_id` não é chave estrangeira: a missão pode ser excluída e a mensagem continua.
+- Excluir um aluno apaga a caixa dele, as conversas e as mensagens que ele mandou pro professor (`on delete cascade`).
+
+### As rotas da fase 4
+
+| Método | Rota | Quem pode | O que faz |
+|---|---|---|---|
+| GET | `/messages` | Aluno / professor | aluno: a própria caixa; professor: `?studentId=` (a caixa de um aluno dele, pra ficha) |
+| POST | `/messages` | O professor do aluno ou o ADM | aviso ou mensagem pra um aluno |
+| POST | `/messages/broadcast` | Professores | comunicado pros alunos dele: a turma toda ou uma casa |
+| GET | `/messages/broadcasts` | Professores | os comunicados que ele mandou, com quantos leram |
+| POST | `/messages/:id/read` | Aluno | marca uma mensagem como lida |
+| POST | `/messages/read-all` | Aluno | marca todas como lidas |
+| GET | `/chats` | Aluno | as conversas com todos os amigos |
+| POST | `/chats` | Aluno | manda um balão pra um amigo |
+| POST | `/chats/:friendId/read` | Aluno | o que o amigo mandou fica lido |
+| GET | `/teacher-messages` | Aluno / professor | aluno: as que ele mandou; professor: as que recebeu |
+| POST | `/teacher-messages` | Aluno | escreve pro professor dele |
+| POST | `/teacher-messages/:id/read` | O professor que recebeu | marca como lida |
+| POST | `/teacher-messages/:id/reply` | O professor que recebeu | responde (a resposta também chega na caixa do aluno) |
+
+---
+
+#### Caixa e mensagens do professor
+
+- A caixa traz as 300 mensagens mais recentes, da mais nova pra mais antiga.
+- O professor só escreve `aviso` ou `mensagem` (os outros tipos são automáticos): `{ "studentId": "...", "kind": "aviso", "body": "Prova na sexta!" }`.
+- Marcar de novo uma mensagem já lida não muda a data de leitura.
+
+#### Comunicados
+
+```json
+POST /messages/broadcast
+{ "audience": { "type": "casa", "houseId": "ignis" }, "kind": "mensagem", "body": "Parabéns, Ignis!" }
+```
+
+- `audience` é `{ "type": "turma" }` ou `{ "type": "casa", "houseId": "..." }`. O Zod confere com um `discriminatedUnion`: se o `type` é `casa`, o `houseId` é obrigatório.
+- **Quem recebe é a API que decide**: os alunos do professor logado (e da casa, se for o caso). O site não manda a lista de alunos, então ninguém consegue mandar um comunicado pros alunos de outro professor.
+- Resposta: `{ "broadcastId": "...", "sent": 12 }`. Grupo sem alunos: `400`.
+- `GET /messages/broadcasts` agrupa as cópias pelo `broadcast_id` no próprio SQL (`group by`), com `count(*)` (total) e `count(read_at)` (quantos leram: o `count` de uma coluna só conta o que não é nulo). O `count` do PostgreSQL volta como texto (é um `bigint`), por isso a rota converte com `Number()`.
+
+#### Conversa com balões
+
+- `POST /chats` com `{ "toId": "...", "phraseId": "oi" }`. A API confere o balão no catálogo do site (`getPhrase`, em `src/engine/friends.ts`): balão que não existe é recusado (`400`), então nenhum texto livre entra, nem mexendo na requisição.
+- Só entre amigos (`400` `Vocês precisam ser amigos pra conversar.`).
+- Um balão por segundo pro mesmo amigo (`400` `Calma! Espere um pouquinho...`), além da espera de 1,5 s que a própria tela já faz.
+- Cada conversa guarda os últimos 200 balões: ao gravar um novo, a rota apaga os mais antigos, na mesma transação.
+- Desfazer a amizade apaga a conversa dos dois (na transação do `DELETE /friends/:id`).
+
+#### Mensagens pro professor
+
+- `POST /teacher-messages` com `{ "topic": "duvida-missao", "missionId": "loops-com-for", "body": "Não entendi a pergunta 2" }`. Vai pro professor atual do aluno.
+- No máximo 5 mensagens esperando o professor ler (`400`).
+- `POST /teacher-messages/:id/reply` com `{ "reply": "..." }`: grava a resposta (e marca como lida, se ainda não estava) e manda a mensagem 💬 pra caixa do aluno, na mesma transação. A resposta é assinada como "Professor Fulano" (ou "ADM Fulano").
+
+### O site na fase 4
+
+```
+src/engine/
+├── messagesApi.ts    → caixa, mensagens e comunicados do professor, mensagens pro professor e a atualização da caixa
+├── socialApi.ts      → + mandar balão e marcar a conversa como lida
+├── messages.ts       → os textos das mensagens (a API usa) + cache "cg-messages"
+├── friends.ts        → catálogo dos balões (a API usa) + cache "cg-chats"
+└── teacherMessages.ts → assuntos e limites (a API usa) + cache "cg-teacher-messages"
+```
+
+**Como a mensagem nova aparece sem recarregar a página?** A API não "empurra" nada pro site
+(isso exigiria WebSocket, que o plano gratuito do Render não mantém bem). Em vez disso, o site
+pergunta de tempos em tempos, com o hook `useInboxPolling`:
+
+| Onde | A cada |
+|---|---|
+| Sininho do aluno (cabeçalho da Academia) | 20 s |
+| Conversa com balões aberta | 4 s |
+| Painel do professor (mensagens dos alunos) | 20 s |
+
+Só pergunta com a aba visível (`document.visibilityState`), e usa o `refreshInbox()`, que é
+bem mais leve que a sincronização completa: só a caixa, as conversas e as mensagens pro
+professor. Depois de cada ação do jogo (comprar, trocar...), o `gameApi.ts` também pede a
+caixa de novo (`scheduleInboxRefresh`), pra mensagem 🛒 aparecer na hora.
+
+Num computador compartilhado, quando um aluno entra, o cache de mensagens fica só com as dele
+(as de quem usou antes são apagadas).
+
+O que mudou nos hooks:
+
+| Hook | O que mudou |
+|---|---|
+| `useMessages` | a caixa vem da API; o professor, ao abrir a ficha de um aluno, busca a caixa dele; `send` devolve o erro (ou null) |
+| `useBroadcasts` | não recebe mais o professor: a API sabe quem está logado; o envio não manda a lista de alunos |
+| `useFriends` | `sendPhrase` e `markRead` pela API |
+| `useTeacherMessages` | `send`, `markRead` e `reply` pela API, devolvendo o erro (ou null) |
+| `useInboxPolling` | **novo**: pergunta à API se chegou mensagem nova |
+| `useShop`, `useOffers`, `useTrades`, `useGifts`, `useFriends`, `useMissionAttempt` | não criam mais mensagens: a API cria |
+
+### Testando a fase 4
+
+1. Logado como professor: `POST /messages` com um aviso pra um aluno.
+2. Logado como o aluno: `GET /messages` (o aviso está lá) e `POST /messages/<id>/read`.
+3. Faça uma compra na Loja (`POST /shop/<id>/buy`) e veja a mensagem 🛒 no `GET /messages`.
+4. Com dois alunos amigos: `POST /chats` com `{ "toId": "...", "phraseId": "oi" }` e `GET /chats` com o outro.
 
 ## Build da aplicação
 
@@ -2058,6 +2239,6 @@ nas variáveis de ambiente.
 
 - ~~**Fase 2 — ligar o site à API**~~ ✅ **feita**: contas, login, cadastro, perfil do aluno e professores (veja [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)).
 - ~~**Fase 3 — o jogo no servidor**~~ ✅ **feita**: progresso do aluno, missões, Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas (veja [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)). As amizades, as trocas e os eventos, que estavam planejados pras fases 4 e 6, vieram junto, porque também mexem em itens e moedas.
-- **Fase 4 — mensagens**: o sininho (mensagens do sistema e do professor), os comunicados, a conversa com balões entre amigos e as mensagens do aluno pro professor. Com isso, a própria API passa a criar as mensagens de compra, venda, troca e presente (hoje o site cria, no navegador de quem fez a ação).
+- ~~**Fase 4 — mensagens**~~ ✅ **feita**: o sininho, os comunicados, a conversa com balões e as mensagens do aluno pro professor, com a API criando as mensagens automáticas na mesma transação de cada ação (veja [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)).
 - **Fase 5 — entregas**: as entregas das missões de entrega (texto e arquivos) no servidor, com os arquivos no Supabase Storage (1 GB grátis) e limite de tamanho por arquivo.
 - **Testes automatizados**: Vitest com o `app.inject()` do Fastify, começando por login, permissões, recompensas e trocas.

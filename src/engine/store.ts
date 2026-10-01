@@ -24,31 +24,8 @@ import {
   updateStudentAccount,
   updateTeacherAccount,
 } from "./accounts";
-import {
-  Message,
-  MessageKind,
-  MessageAudience,
-  BroadcastSummary,
-  listMessages,
-  sendMessage,
-  broadcastMessage,
-  listBroadcasts,
-  markAsRead,
-  markAllAsRead,
-  deleteMessagesOf,
-  SYSTEM_SENDER_ID,
-  missionRewardMessage,
-  shopPurchaseMessage,
-  PENDING_ITEM_NOTE,
-  friendRequestMessage,
-  friendAcceptedMessage,
-  purchaseMessage,
-  saleMessage,
-  itemGiftMessage,
-  tradeProposalMessage,
-  tradeAcceptedMessage,
-  tradeDeclinedMessage,
-} from "./messages";
+import { Message, MessageKind, MessageAudience, BroadcastSummary, listMessages, deleteMessagesOf } from "./messages";
+import * as messagesApi from "./messagesApi";
 import {
   FriendLink,
   ChatMessage,
@@ -57,22 +34,13 @@ import {
   friendStatusIn,
   deleteFriendsOf,
   conversationIn,
-  sendChatPhrase,
-  markConversationRead,
+  hasUnreadFrom,
   unreadByFriendIn,
 } from "./friends";
 import * as social from "./socialApi";
 import { Offer, listOffersTo, listOffersFrom, deleteOffersOf } from "./market";
-import { GiftItem, GiftResult, Giver } from "./gifts";
-import {
-  TeacherMessage,
-  TeacherMessageTopic,
-  deleteTeacherMessagesOf,
-  listTeacherMessages,
-  markTeacherMessageRead,
-  replyToStudent,
-  sendToTeacher,
-} from "./teacherMessages";
+import { GiftItem, GiftResult } from "./gifts";
+import { TeacherMessage, TeacherMessageTopic, deleteTeacherMessagesOf, listTeacherMessages } from "./teacherMessages";
 import { Submission, deleteSubmissionsOf, deleteSubmissionsOfMission, listSubmissions, reviewSubmission, submitTask } from "./submissions";
 import { Trade, listTradesTo, listTradesFrom, deleteTradesOf } from "./trades";
 import { subscribe, emitChange } from "./events";
@@ -227,14 +195,13 @@ export function useMissions() {
 /**
  * Termina uma tentativa de missão do aluno logado (tela de Missões e tela de evento).
  * As respostas escolhidas vão pra API, que corrige: com 60%+ de acertos numa
- * missão ainda não concluída, ela aplica XP, moedas e item, e aqui sai a
- * mensagem de recompensa. Revisão de missão já concluída ou nota abaixo de 60%
- * não dão nada. Devolve o nível antigo e o novo quando o aluno subiu de nível
- * (pra tela abrir a cena de nível), null quando não subiu, ou { error }.
+ * missão ainda não concluída, ela aplica XP, moedas e item e manda a mensagem
+ * de recompensa. Revisão de missão já concluída ou nota abaixo de 60% não dão
+ * nada. Devolve o nível antigo e o novo quando o aluno subiu de nível (pra
+ * tela abrir a cena de nível), null quando não subiu, ou { error }.
  */
 export function useMissionAttempt() {
   const { activeStudent } = useStudents();
-  const { send } = useMessages(activeStudent?.id ?? null);
 
   return useCallback(
     async (mission: Mission, answers: Record<string, string>): Promise<{ from: number; to: number } | null | { error: string }> => {
@@ -244,45 +211,57 @@ export function useMissionAttempt() {
       const result = await game.attemptMission(mission.id, answers);
       if (!result.ok) return { error: result.error };
       if (!result.rewarded) return null;
-      send({
-        studentId: activeStudent.id,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "missao",
-        body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) + (result.itemWaiting ? PENDING_ITEM_NOTE : ""),
-      });
       return result.leveledUp ? { from: result.fromLevel!, to: result.newLevel! } : null;
     },
-    [activeStudent, send],
+    [activeStudent],
   );
 }
 
-/** Mensagens de um aluno. Com studentId null (ninguém logado), devolve lista vazia. */
+/**
+ * Pergunta à API, de tempos em tempos, se chegou mensagem nova (só com a aba
+ * visível): o sininho do aluno usa a cada 20s, a conversa aberta a cada 4s e
+ * o painel do professor (mensagens dos alunos) a cada 20s.
+ */
+export function useInboxPolling(intervalMs: number = messagesApi.INBOX_POLL_MS) {
+  useEffect(() => {
+    void messagesApi.refreshInbox();
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") void messagesApi.refreshInbox();
+    }, intervalMs);
+    return () => window.clearInterval(timer);
+  }, [intervalMs]);
+}
+
+/**
+ * Mensagens de um aluno (cache da API). O aluno logado vê a própria caixa; o
+ * professor, ao abrir a ficha de um aluno, busca a caixa dele na API.
+ * Com studentId null (ninguém logado), devolve lista vazia.
+ */
 export function useMessages(studentId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [ready, setReady] = useState(false);
 
   const sync = useCallback(() => {
     setMessages(studentId ? listMessages(studentId) : []);
-    setReady(true);
+    setReady(isSessionChecked());
   }, [studentId]);
 
   useSyncOnChange(sync);
 
-  const send = useCallback((data: { studentId: string; senderId: string; kind: MessageKind; body: string }) => {
-    const m = sendMessage(data);
-    emitChange();
-    return m;
-  }, []);
+  // Professor abrindo a ficha de um aluno: a caixa dele vem da API
+  useEffect(() => {
+    if (studentId && getTeacherSessionId()) void messagesApi.loadStudentMessages(studentId);
+  }, [studentId]);
+
+  /** Professor/ADM: aviso ou mensagem pro aluno. Devolve o erro, ou null. */
+  const send = useCallback((data: { studentId: string; kind: MessageKind; body: string }) => messagesApi.sendMessageToStudent(data), []);
 
   const markRead = useCallback((id: string) => {
-    markAsRead(id);
-    emitChange();
+    void messagesApi.markMessageRead(id);
   }, []);
 
   const markAllRead = useCallback(() => {
-    if (!studentId) return;
-    markAllAsRead(studentId);
-    emitChange();
+    if (studentId) void messagesApi.markAllMessagesRead(studentId);
   }, [studentId]);
 
   const unreadCount = messages.filter((m) => !m.readAt).length;
@@ -290,26 +269,29 @@ export function useMessages(studentId: string | null) {
   return { messages, unreadCount, ready, send, markRead, markAllRead };
 }
 
-/** Comunicados de um professor (turma toda ou uma casa) e o envio de novos em nome dele. */
-export function useBroadcasts(senderId: string) {
+/** Comunicados do professor logado (turma toda ou uma casa), com quantos leram, e o envio de novos. */
+export function useBroadcasts() {
   const [broadcasts, setBroadcasts] = useState<BroadcastSummary[]>([]);
 
-  const sync = useCallback(() => {
-    setBroadcasts(listBroadcasts(senderId));
-  }, [senderId]);
+  const load = useCallback(async () => {
+    setBroadcasts(await messagesApi.loadBroadcasts());
+  }, []);
 
-  useSyncOnChange(sync);
+  useEffect(() => {
+    void load();
+  }, [load]);
 
+  /** Manda o comunicado; devolve { ok, sent } ou { ok: false, error }. */
   const broadcast = useCallback(
-    (data: { studentIds: string[]; audience: MessageAudience; kind: MessageKind; body: string }) => {
-      const copies = broadcastMessage({ ...data, senderId });
-      emitChange();
-      return copies;
+    async (data: { audience: MessageAudience; kind: MessageKind; body: string }) => {
+      const result = await messagesApi.sendBroadcast(data);
+      if (result.ok) void load();
+      return result;
     },
-    [senderId]
+    [load],
   );
 
-  return { broadcasts, broadcast };
+  return { broadcasts, broadcast, reload: load };
 }
 
 /** Professores (cache da API), o professor logado (sessão) e o CRUD usado pelo Painel ADM. */
@@ -398,20 +380,8 @@ export function useShop() {
     return error;
   }, []);
 
-  // A compra é decidida pela API; aqui sai a mensagem 🛒 Compra pro aluno.
-  const buy = useCallback(async (studentId: string, shopItem: ShopItem) => {
-    const result = await game.buyShopItem(shopItem.id);
-    if (result.ok) {
-      sendMessage({
-        studentId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "compra",
-        body: shopPurchaseMessage({ item: shopItem, price: shopItem.price, isCosmetic: !!shopItem.cosmetic }),
-      });
-      emitChange();
-    }
-    return result;
-  }, []);
+  // A compra é decidida pela API, que também manda a mensagem 🛒 Compra pro aluno.
+  const buy = useCallback((shopItem: ShopItem) => game.buyShopItem(shopItem.id), []);
 
   const addItemsOfCollection = useCallback(async (collection: CosmeticCollection) => {
     const result = await shopApi.addCollection(collection);
@@ -430,10 +400,9 @@ export function useShop() {
 
 /**
  * Amigos do aluno logado: pedidos recebidos e enviados, a lista de amigos e a
- * conversa com balões. Os pedidos e as amizades são da API (engine/socialApi.ts);
- * a conversa continua neste navegador. Pedido novo e pedido aceito também
- * chegam como mensagem "🤝 Amizade" no sino do outro aluno. As ações devolvem
- * { ok } ou { ok: false, error }.
+ * conversa com balões, tudo da API (engine/socialApi.ts). Pedido novo e pedido
+ * aceito também chegam como mensagem "🤝 Amizade" no sino do outro aluno (a
+ * API manda). As ações devolvem { ok } ou { ok: false, error }.
  */
 export function useFriends(meId: string | null) {
   const [links, setLinks] = useState<FriendLink[]>([]);
@@ -452,35 +421,15 @@ export function useFriends(meId: string | null) {
     void refreshFromApi();
   }, []);
 
-  const notify = useCallback((studentId: string, body: string) => {
-    sendMessage({ studentId, senderId: SYSTEM_SENDER_ID, kind: "amizade", body });
-  }, []);
-
   const request = useCallback(
     async (otherId: string) => {
       if (!meId) return { ok: false as const, error: "Entre na sua conta primeiro." };
-      const result = await social.requestFriend(otherId);
-      if (result.ok) {
-        const myName = getStudent(meId)?.name ?? "Um colega";
-        notify(otherId, result.accepted ? friendAcceptedMessage(myName) : friendRequestMessage(myName));
-        emitChange();
-      }
-      return result;
+      return social.requestFriend(otherId);
     },
-    [meId, notify],
+    [meId],
   );
 
-  const accept = useCallback(
-    async (link: FriendLink) => {
-      const result = await social.acceptFriend(link.id);
-      if (result.ok) {
-        notify(link.fromId, friendAcceptedMessage(getStudent(link.toId)?.name ?? "Um colega"));
-        emitChange();
-      }
-      return result;
-    },
-    [notify],
-  );
+  const accept = useCallback((link: FriendLink) => social.acceptFriend(link.id), []);
 
   /** Recusar um pedido recebido ou cancelar um enviado. */
   const dismiss = useCallback((link: FriendLink) => social.removeFriendLink(link), []);
@@ -495,21 +444,19 @@ export function useFriends(meId: string | null) {
     [meId],
   );
 
+  /** Manda um balão pro amigo (pela API). */
   const sendPhrase = useCallback(
-    (friendId: string, phraseId: string) => {
+    async (friendId: string, phraseId: string) => {
       if (!meId) return { ok: false as const, error: "Entre na sua conta primeiro." };
-      const result = sendChatPhrase(meId, friendId, phraseId);
-      if (result.ok) emitChange();
-      return result;
+      return social.sendChat(friendId, phraseId);
     },
     [meId],
   );
 
+  /** Conversa aberta: o que o amigo mandou fica lido (só chama a API se tiver algo sem ler). */
   const markRead = useCallback(
     (friendId: string) => {
-      if (!meId) return;
-      markConversationRead(meId, friendId);
-      emitChange();
+      if (meId && hasUnreadFrom(meId, friendId)) void social.markChatRead(meId, friendId);
     },
     [meId],
   );
@@ -607,9 +554,9 @@ export function useTheme() {
 
 /**
  * Ofertas de venda de itens entre alunos (cache da API) — as que o aluno
- * recebeu e as que ele fez. Quem decide é a API (engine/gameApi.ts); aqui
- * saem as mensagens 🛒 Compra e 💰 Venda depois que ela confirma. As ações
- * devolvem { ok } ou { ok: false, error }.
+ * recebeu e as que ele fez. Quem decide é a API (engine/gameApi.ts), que
+ * também manda as mensagens 🛒 Compra e 💰 Venda. As ações devolvem { ok } ou
+ * { ok: false, error }.
  */
 export function useOffers(studentId: string | null) {
   const [received, setReceived] = useState<Offer[]>([]);
@@ -624,27 +571,7 @@ export function useOffers(studentId: string | null) {
 
   const offer = useCallback((data: { buyerId: string; itemId: string; price: number }) => game.createOffer(data), []);
 
-  const accept = useCallback(async (offer: Offer) => {
-    const result = await game.acceptOffer(offer.id);
-    if (result.ok) {
-      const buyer = getStudent(offer.buyerId);
-      const seller = getStudent(offer.sellerId);
-      sendMessage({
-        studentId: offer.buyerId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "compra",
-        body: purchaseMessage({ item: offer.item, sellerName: seller?.name ?? "um colega", price: offer.price }),
-      });
-      sendMessage({
-        studentId: offer.sellerId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "venda",
-        body: saleMessage({ item: offer.item, buyerName: buyer?.name ?? "Um colega", price: offer.price }),
-      });
-      emitChange();
-    }
-    return result;
-  }, []);
+  const accept = useCallback((offer: Offer) => game.acceptOffer(offer.id), []);
 
   /** Recusar (comprador) ou cancelar (vendedor): o item volta pro vendedor. */
   const withdraw = useCallback((offerId: string) => game.removeOffer(offerId), []);
@@ -679,56 +606,43 @@ export function useSubmissions() {
   return { submissions, ready, submit, review };
 }
 
-/** Mensagens dos alunos pro professor (engine/teacherMessages.ts): o aluno escreve, o professor lê e responde. */
+/**
+ * Mensagens dos alunos pro professor (cache da API): o aluno escreve, o
+ * professor lê e responde (engine/messagesApi.ts). As ações devolvem a
+ * mensagem de erro, ou null.
+ */
 export function useTeacherMessages() {
   const [messages, setMessages] = useState<TeacherMessage[]>([]);
   const [ready, setReady] = useState(false);
 
   const sync = useCallback(() => {
     setMessages(listTeacherMessages());
-    setReady(true);
+    setReady(isSessionChecked());
   }, []);
 
   useSyncOnChange(sync);
 
-  const send = useCallback((data: { studentId: string; topic: TeacherMessageTopic; missionId?: string; body: string }) => {
-    const result = sendToTeacher(data);
-    if (result.ok) emitChange();
-    return result;
-  }, []);
+  const send = useCallback(
+    (data: { topic: TeacherMessageTopic; missionId?: string; body: string }) => messagesApi.sendTeacherMessage(data),
+    [],
+  );
 
-  const markRead = useCallback((id: string) => {
-    markTeacherMessageRead(id);
-    emitChange();
-  }, []);
+  const markRead = useCallback((id: string) => messagesApi.markTeacherMessageRead(id), []);
 
-  const reply = useCallback((id: string, text: string, replier: { id: string; name: string }) => {
-    const result = replyToStudent(id, text, replier);
-    if (result.ok) emitChange();
-    return result;
-  }, []);
+  const reply = useCallback((id: string, text: string) => messagesApi.replyTeacherMessage(id, text), []);
 
   return { messages, ready, send, markRead, reply };
 }
 
 /**
  * Presentes do professor/ADM (engine/gifts.ts): dar um item pra um aluno, pra
- * turma toda ou pra uma casa. A API entrega os itens; aqui sai a mensagem
+ * turma toda ou pra uma casa. A API entrega os itens e manda a mensagem
  * 🎁 Presente pra cada aluno. Devolve { ok, delivered, waiting } ou { ok: false, error }.
  */
 export function useGifts() {
-  const give = useCallback(async (studentIds: string[], item: GiftItem, giver: Giver): Promise<GameResult<GiftResult>> => {
+  const give = useCallback(async (studentIds: string[], item: GiftItem): Promise<GameResult<GiftResult>> => {
     const result = await game.giveGift(studentIds, item);
     if (!result.ok) return result;
-    for (const { studentId, waiting } of result.results) {
-      sendMessage({
-        studentId,
-        senderId: giver.id,
-        kind: "presente",
-        body: itemGiftMessage({ studentName: getStudent(studentId)?.name ?? "", item, giverName: giver.name, giverRole: giver.role }) + (waiting ? PENDING_ITEM_NOTE : ""),
-      });
-    }
-    emitChange();
     return { ok: true, delivered: result.delivered, waiting: result.waiting };
   }, []);
   return { give };
@@ -736,8 +650,9 @@ export function useGifts() {
 
 /**
  * Trocas de itens entre amigos (cache da API): propostas recebidas e enviadas,
- * propor, aceitar, recusar e cancelar. Quem decide é a API (engine/gameApi.ts);
- * aqui saem as mensagens 🔄 Troca. As ações devolvem { ok } ou { ok: false, error }.
+ * propor, aceitar, recusar e cancelar. Quem decide é a API (engine/gameApi.ts),
+ * que também manda as mensagens 🔄 Troca. As ações devolvem { ok } ou
+ * { ok: false, error }.
  */
 export function useTrades(studentId: string | null) {
   const [received, setReceived] = useState<Trade[]>([]);
@@ -750,48 +665,12 @@ export function useTrades(studentId: string | null) {
 
   useSyncOnChange(sync);
 
-  const propose = useCallback(async (data: { toId: string; offeredIds: string[]; requestedIds: string[] }) => {
-    const result = await game.proposeTrade(data);
-    if (result.ok) {
-      sendMessage({
-        studentId: result.trade.toId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "troca",
-        body: tradeProposalMessage({ fromName: getStudent(result.trade.fromId)?.name ?? "Um amigo", give: result.trade.offered, ask: result.trade.requested }),
-      });
-      emitChange();
-    }
-    return result;
-  }, []);
+  const propose = useCallback((data: { toId: string; offeredIds: string[]; requestedIds: string[] }) => game.proposeTrade(data), []);
 
-  const accept = useCallback(async (trade: Trade) => {
-    const result = await game.acceptTrade(trade.id);
-    if (result.ok) {
-      sendMessage({
-        studentId: trade.fromId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "troca",
-        body: tradeAcceptedMessage({ friendName: getStudent(trade.toId)?.name ?? "Seu amigo", received: trade.requested, gave: trade.offered }),
-      });
-      emitChange();
-    }
-    return result;
-  }, []);
+  const accept = useCallback((trade: Trade) => game.acceptTrade(trade.id), []);
 
   /** Recusar (quem recebeu): os itens oferecidos voltam pra quem propôs, que recebe um aviso. */
-  const decline = useCallback(async (trade: Trade) => {
-    const result = await game.removeTrade(trade.id);
-    if (result.ok) {
-      sendMessage({
-        studentId: trade.fromId,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "troca",
-        body: tradeDeclinedMessage({ friendName: getStudent(trade.toId)?.name ?? "Seu amigo", returned: trade.offered }),
-      });
-      emitChange();
-    }
-    return result;
-  }, []);
+  const decline = useCallback((trade: Trade) => game.removeTrade(trade.id), []);
 
   /** Cancelar (quem propôs): os itens oferecidos voltam. */
   const cancel = useCallback((tradeId: string) => game.removeTrade(tradeId), []);

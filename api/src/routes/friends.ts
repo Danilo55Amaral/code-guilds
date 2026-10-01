@@ -3,13 +3,15 @@ import { z } from "zod";
 import { db } from "../database";
 import { ensureStudent } from "../middlewares/auth";
 import { returnTrades } from "../services/escrow";
+import { sendMessages } from "../services/messages";
+import { friendAcceptedMessage, friendRequestMessage } from "../../../src/engine/messages";
 import { findStudent } from "../utils/queries";
 import { existsOrError, NotFoundError, ValidationError } from "../validation/validations";
 
 // ============================================================================
 // AMIGOS — pedidos de amizade entre alunos. Trocar itens só é permitido entre
 // amigos, por isso as amizades ficam no servidor. A conversa com balões
-// continua no navegador até a fase 4 (mensagens).
+// fica em routes/chats.ts.
 // ============================================================================
 
 // As colunas de um vínculo (pedido pendente ou amizade), no formato do site
@@ -17,6 +19,13 @@ function friendshipsQuery() {
     return db
         .selectFrom('friendships')
         .select(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
+}
+
+// O nome do aluno, pras mensagens 🤝
+async function studentName(id: string) {
+    const student = await db.selectFrom('students').select('name').where('id', '=', id).executeTakeFirst()
+
+    return student?.name ?? 'Um colega'
 }
 
 // O vínculo entre dois alunos, não importa quem mandou o pedido
@@ -66,48 +75,72 @@ export async function friendsRoutes(app: FastifyInstance) {
         if (existing?.status === 'aceito') throw new ValidationError('Vocês já são amigos.')
         if (existing && existing.fromId === me) throw new ValidationError('Você já mandou um pedido pra esse aluno.')
 
+        const myName = await studentName(me)
+
         if (existing) {
-            const friendship = await db
-                .updateTable('friendships')
-                .set({ status: 'aceito', acceptedAt: new Date() })
-                .where('id', '=', existing.id)
-                .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
-                .executeTakeFirstOrThrow()
+            const friendship = await db.transaction().execute(async (trx) => {
+                const friendship = await trx
+                    .updateTable('friendships')
+                    .set({ status: 'aceito', acceptedAt: new Date() })
+                    .where('id', '=', existing.id)
+                    .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
+                    .executeTakeFirstOrThrow()
+
+                // 🤝 quem tinha mandado o pedido fica sabendo
+                await sendMessages(trx, [{ studentId: toId, kind: 'amizade', body: friendAcceptedMessage(myName) }])
+
+                return friendship
+            })
 
             return { friendship, accepted: true }
         }
 
-        const friendship = await db
-            .insertInto('friendships')
-            .values({ fromId: me, toId })
-            .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
-            .executeTakeFirstOrThrow()
+        const friendship = await db.transaction().execute(async (trx) => {
+            const friendship = await trx
+                .insertInto('friendships')
+                .values({ fromId: me, toId })
+                .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
+                .executeTakeFirstOrThrow()
+
+            // 🤝 o outro aluno recebe o pedido no sininho
+            await sendMessages(trx, [{ studentId: toId, kind: 'amizade', body: friendRequestMessage(myName) }])
+
+            return friendship
+        })
 
         return reply.status(201).send({ friendship, accepted: false })
     })
 
-    // Aceitando um pedido recebido
+    // Aceitando um pedido recebido (quem mandou recebe a mensagem 🤝)
     app.post('/:id/accept', { preHandler: ensureStudent }, async (request) => {
         const { id } = friendshipParamsSchema.parse(request.params)
         const me = request.user!.id
+        const myName = await studentName(me)
 
-        const friendship = await db
-            .updateTable('friendships')
-            .set({ status: 'aceito', acceptedAt: new Date() })
-            .where('id', '=', id)
-            .where('toId', '=', me)
-            .where('status', '=', 'pendente')
-            .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
-            .executeTakeFirst()
+        const friendship = await db.transaction().execute(async (trx) => {
+            const friendship = await trx
+                .updateTable('friendships')
+                .set({ status: 'aceito', acceptedAt: new Date() })
+                .where('id', '=', id)
+                .where('toId', '=', me)
+                .where('status', '=', 'pendente')
+                .returning(['id', 'fromId', 'toId', 'status', 'createdAt', 'acceptedAt'])
+                .executeTakeFirst()
 
-        if (!friendship) throw new NotFoundError('Pedido de amizade não encontrado.')
+            if (!friendship) throw new NotFoundError('Pedido de amizade não encontrado.')
+
+            await sendMessages(trx, [{ studentId: friendship.fromId, kind: 'amizade', body: friendAcceptedMessage(myName) }])
+
+            return friendship
+        })
 
         return { friendship }
     })
 
     // Recusando (quem recebeu) ou cancelando (quem mandou) um pedido, ou
     // desfazendo uma amizade. Desfazer a amizade cancela as propostas de troca
-    // entre os dois, e os itens oferecidos voltam pra quem propôs.
+    // entre os dois (os itens oferecidos voltam pra quem propôs) e apaga a
+    // conversa com balões.
     app.delete('/:id', { preHandler: ensureStudent }, async (request) => {
         const { id } = friendshipParamsSchema.parse(request.params)
         const me = request.user!.id
@@ -137,6 +170,14 @@ export async function friendsRoutes(app: FastifyInstance) {
                     .execute()
 
                 await returnTrades(trx, trades)
+
+                await trx
+                    .deleteFrom('chatMessages')
+                    .where((eb) => eb.or([
+                        eb.and([eb('fromId', '=', a), eb('toId', '=', b)]),
+                        eb.and([eb('fromId', '=', b), eb('toId', '=', a)]),
+                    ]))
+                    .execute()
             }
 
             await trx.deleteFrom('friendships').where('id', '=', id).execute()

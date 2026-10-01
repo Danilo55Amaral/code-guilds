@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "../database";
 import { AuthUser, ensureAuthenticated, ensureStudent, ensureTeacher } from "../middlewares/auth";
 import { updateProgress } from "../services/progress";
+import { sendMessages } from "../services/messages";
+import { PENDING_ITEM_NOTE, eventPhaseRewardMessage, eventRewardMessage } from "../../../src/engine/messages";
 import { findStudent } from "../utils/queries";
 import { existsOrError, ForbiddenError, NotFoundError, ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
@@ -263,6 +265,14 @@ export async function eventsRoutes(app: FastifyInstance) {
                 // o item não coube no inventário e ficou esperando espaço
                 itemWaiting: finished.student.pendingItems.length > student.pendingItems.length,
             }
+        }, async (trx, result) => {
+            // 🏆 a mensagem da recompensa: do evento inteiro (última fase) ou da fase
+            const totalPhases = eventPhases(event).length
+            const body = phase === totalPhases
+                ? eventRewardMessage({ event, item, xp: reward.xp, coins: reward.coins })
+                : eventPhaseRewardMessage({ event, phase: getPhase(event, phase), totalPhases, item, xp: reward.xp, coins: reward.coins })
+
+            await sendMessages(trx, [{ studentId: user.id, kind: 'missao', body: body + (result.itemWaiting ? PENDING_ITEM_NOTE : '') }])
         })
 
         const { student: _unused, ...outcome } = result

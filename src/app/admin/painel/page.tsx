@@ -155,7 +155,7 @@ export default function PainelAdminPage() {
   // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
   async function handleGrantItem(item: GiftItem): Promise<string | null> {
     if (!selectedStudent) return null;
-    const result = await give([selectedStudent.id], item, { id: admin.id, name: admin.name, role: "adm" });
+    const result = await give([selectedStudent.id], item);
     return result.ok ? null : result.error;
   }
 
@@ -165,9 +165,10 @@ export default function PainelAdminPage() {
     void removeStudentItem(selectedStudent.id, itemId);
   }
 
-  function handleSendMessage(data: { kind: MessageKind; body: string }) {
-    if (!selectedStudent) return;
-    sendMessage({ studentId: selectedStudent.id, senderId: admin.id, ...data });
+  // A mensagem vai pela API; devolve o erro (ou null) pra ficha mostrar
+  async function handleSendMessage(data: { kind: MessageKind; body: string }): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return sendMessage({ studentId: selectedStudent.id, ...data });
   }
 
   // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
@@ -304,7 +305,6 @@ export default function PainelAdminPage() {
         <GiftComposer
           key={`presentes-${teacherFilter}`}
           students={visibleStudents}
-          giver={{ id: admin.id, name: admin.name, role: "adm" }}
           shopItems={shopItems}
           missions={missions}
           isAdmin

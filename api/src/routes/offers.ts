@@ -4,6 +4,8 @@ import { db } from "../database";
 import { ensureStudent } from "../middlewares/auth";
 import { lockStudents, saveProgress } from "../services/progress";
 import { offerItem, returnOffers } from "../services/escrow";
+import { sendMessages } from "../services/messages";
+import { purchaseMessage, saleMessage } from "../../../src/engine/messages";
 import { findStudent } from "../utils/queries";
 import { existsOrError, NotFoundError, ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
@@ -106,6 +108,21 @@ export async function offersRoutes(app: FastifyInstance) {
             if (result.seller) await saveProgress(trx, result.seller)
 
             await trx.deleteFrom('offers').where('id', '=', offer.id).execute()
+
+            // 🛒 pro comprador e 💰 pro vendedor
+            const item = offerItem(offer)
+            await sendMessages(trx, [
+                {
+                    studentId: buyer.id,
+                    kind: 'compra',
+                    body: purchaseMessage({ item, sellerName: seller?.name ?? 'um colega', price: offer.price }),
+                },
+                ...(seller ? [{
+                    studentId: seller.id,
+                    kind: 'venda' as const,
+                    body: saleMessage({ item, buyerName: buyer.name, price: offer.price }),
+                }] : []),
+            ])
 
             return offer
         })

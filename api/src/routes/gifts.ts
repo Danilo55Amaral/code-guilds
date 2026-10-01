@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "../database";
 import { ensureTeacher } from "../middlewares/auth";
 import { lockStudents, saveProgress } from "../services/progress";
+import { NewMessage, sendMessages, teacherSignature } from "../services/messages";
+import { PENDING_ITEM_NOTE, itemGiftMessage } from "../../../src/engine/messages";
 import { itemSchema } from "../validation/schemas";
 import { ValidationError } from "../validation/validations";
 import { grantItem } from "../../../src/engine/students";
@@ -17,8 +19,8 @@ import { GiftItem } from "../../../src/engine/gifts";
 export async function giftsRoutes(app: FastifyInstance) {
     // Dando um item pra uma lista de alunos.
     // O professor só presenteia os alunos dele; itens de espaço, só o ADM dá.
-    // A resposta diz, pra cada aluno, se o item entrou no inventário ou ficou
-    // esperando espaço (o site usa isso na mensagem 🎁 Presente).
+    // Cada aluno recebe a mensagem 🎁 Presente. A resposta diz, pra cada aluno,
+    // se o item entrou no inventário ou ficou esperando espaço.
     app.post('/', { preHandler: ensureTeacher }, async (request, reply) => {
         const giveGiftBodySchema = z.object({
             studentIds: z.array(z.uuid()).min(1).max(1000),
@@ -44,16 +46,31 @@ export async function giftsRoutes(app: FastifyInstance) {
         if (students.length === 0) throw new ValidationError('Nenhum aluno encontrado.')
 
         const gift = item as GiftItem
+        const giver = await teacherSignature(user)
 
         const results = await db.transaction().execute(async (trx) => {
             const locked = await lockStudents(trx, students.map((s) => s.id))
             const results: { studentId: string, waiting: boolean }[] = []
+            const messages: NewMessage[] = []
 
             for (const student of locked.values()) {
                 const granted = grantItem(student, gift)
+                const waiting = granted.pendingItems.length > student.pendingItems.length
+
                 await saveProgress(trx, granted)
-                results.push({ studentId: student.id, waiting: granted.pendingItems.length > student.pendingItems.length })
+                results.push({ studentId: student.id, waiting })
+
+                // 🎁 a mensagem de presente, assinada por quem deu
+                messages.push({
+                    studentId: student.id,
+                    kind: 'presente',
+                    senderId: user.id,
+                    body: itemGiftMessage({ studentName: student.name, item: gift, giverName: giver.name, giverRole: giver.role }) +
+                        (waiting ? PENDING_ITEM_NOTE : ''),
+                })
             }
+
+            await sendMessages(trx, messages)
 
             return results
         })

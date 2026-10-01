@@ -3,6 +3,8 @@ import { z } from "zod";
 import { db } from "../database";
 import { ensureAdmin, ensureAuthenticated, ensureStudent } from "../middlewares/auth";
 import { updateProgress } from "../services/progress";
+import { sendMessages } from "../services/messages";
+import { shopPurchaseMessage } from "../../../src/engine/messages";
 import { studentsQuery } from "../utils/queries";
 import { ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
@@ -257,6 +259,13 @@ export async function shopRoutes(app: FastifyInstance) {
                     .set((eb) => ({ sold: eb('sold', '+', 1) }))
                     .where('id', '=', id)
                     .execute()
+
+                // a mensagem 🛒 Compra, na mesma transação
+                await sendMessages(trx, [{
+                    studentId,
+                    kind: 'compra',
+                    body: shopPurchaseMessage({ item: shopItem, price: shopItem.price, isCosmetic: !!shopItem.cosmetic }),
+                }])
             },
         )
 

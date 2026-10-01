@@ -6,15 +6,18 @@ import { env } from "./env";
 import { loadUser } from "./middlewares/auth";
 import { ValidationError } from "./validation/validations";
 import { authRoutes } from "./routes/auth";
+import { chatsRoutes } from "./routes/chats";
 import { eventsRoutes } from "./routes/events";
 import { friendsRoutes } from "./routes/friends";
 import { giftsRoutes } from "./routes/gifts";
 import { healthRoutes } from "./routes/health";
 import { inventoryRoutes } from "./routes/inventory";
+import { messagesRoutes } from "./routes/messages";
 import { missionsRoutes } from "./routes/missions";
 import { offersRoutes } from "./routes/offers";
 import { shopRoutes } from "./routes/shop";
 import { studentsRoutes } from "./routes/students";
+import { teacherMessagesRoutes } from "./routes/teacherMessages";
 import { teachersRoutes } from "./routes/teachers";
 import { tradesRoutes } from "./routes/trades";
 
@@ -143,4 +146,16 @@ app.register(offersRoutes, {
 
 app.register(tradesRoutes, {
     prefix: 'trades',
+})
+
+app.register(messagesRoutes, {
+    prefix: 'messages',
+})
+
+app.register(chatsRoutes, {
+    prefix: 'chats',
+})
+
+app.register(teacherMessagesRoutes, {
+    prefix: 'teacher-messages',
 })

@@ -112,7 +112,7 @@ export default function PainelProfessorPage() {
   // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
   async function handleGrantItem(item: GiftItem): Promise<string | null> {
     if (!selectedStudent) return null;
-    const result = await give([selectedStudent.id], item, { id: teacher.id, name: teacher.name, role: "professor" });
+    const result = await give([selectedStudent.id], item);
     return result.ok ? null : result.error;
   }
 
@@ -122,9 +122,10 @@ export default function PainelProfessorPage() {
     void removeStudentItem(selectedStudent.id, itemId);
   }
 
-  function handleSendMessage(data: { kind: MessageKind; body: string }) {
-    if (!selectedStudent) return;
-    sendMessage({ studentId: selectedStudent.id, senderId: teacher.id, ...data });
+  // A mensagem vai pela API; devolve o erro (ou null) pra ficha mostrar
+  async function handleSendMessage(data: { kind: MessageKind; body: string }): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return sendMessage({ studentId: selectedStudent.id, ...data });
   }
 
   // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
@@ -239,14 +240,12 @@ export default function PainelProfessorPage() {
         messages={teacherMessages.filter((m) => m.teacherId === teacher.id)}
         students={students}
         missions={missions}
-        replier={{ id: teacher.id, name: `Professor ${teacher.name}` }}
       />
 
-      <BroadcastComposer students={students} senderId={teacher.id} />
+      <BroadcastComposer students={students} />
 
       <GiftComposer
         students={students}
-        giver={{ id: teacher.id, name: teacher.name, role: "professor" }}
         shopItems={shopItems}
         missions={missions}
         isAdmin={false}

@@ -6,16 +6,16 @@
 // O aluno envia → a entrega fica "pendente" até o professor (ou o ADM)
 // corrigir. Aprovada: o aluno ganha a recompensa da missão (XP, moedas e item)
 // e a missão conta como concluída; desde a fase 3 do back end, quem dá a
-// recompensa é a API (rota /missions/:id/approve). "Refazer": o aluno recebe o
-// comentário e pode enviar de novo (cada envio é uma tentativa nova, com o
-// histórico). As entregas e os arquivos vão pro servidor na fase 5.
+// recompensa (e a mensagem pro aluno, nos dois casos) é a API (rota
+// /missions/:id/review). "Refazer": o aluno recebe o comentário e pode enviar
+// de novo (cada envio é uma tentativa nova, com o histórico). As entregas e os
+// arquivos vão pro servidor na fase 5.
 // ============================================================================
 
 import { Mission, SUBMISSION_FILE_TYPES, SubmissionFileKind, fileKindOf, isTaskMission } from "./missions";
 import { getStudent } from "./students";
-import { PENDING_ITEM_NOTE, SYSTEM_SENDER_ID, missionRewardMessage, sendMessage, taskApprovedNote, taskRedoMessage } from "./messages";
 import { deleteFiles, saveFile } from "./fileStore";
-import { approveTask } from "./gameApi";
+import { reviewTask } from "./gameApi";
 
 export type SubmissionStatus = "pendente" | "aprovada" | "refazer";
 
@@ -174,35 +174,15 @@ export async function reviewSubmission(
   const student = getStudent(submission.studentId);
   if (!student) return { ok: false, error: "Aluno não encontrado." };
 
-  const approval = decision === "aprovada" ? await approveTask(mission.id, student.id) : null;
-  if (approval && !approval.ok) return approval;
+  // A API dá a recompensa (se aprovada) e manda a mensagem pro aluno
+  const review = await reviewTask(mission.id, { studentId: student.id, decision, feedback: comment });
+  if (!review.ok) return review;
 
   writeAll(
     readAll().map((s) =>
       s.id === submissionId ? { ...s, status: decision, feedback: comment || undefined, reviewedAt: new Date().toISOString(), reviewerName } : s,
     ),
   );
-
-  if (approval) {
-    if (approval.rewarded) {
-      sendMessage({
-        studentId: student.id,
-        senderId: SYSTEM_SENDER_ID,
-        kind: "missao",
-        body:
-          missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
-          taskApprovedNote({ reviewerName, feedback: comment }) +
-          (approval.itemWaiting ? PENDING_ITEM_NOTE : ""),
-      });
-    }
-  } else {
-    sendMessage({
-      studentId: student.id,
-      senderId: SYSTEM_SENDER_ID,
-      kind: "entrega",
-      body: taskRedoMessage({ mission, reviewerName, feedback: comment }),
-    });
-  }
   return { ok: true };
 }
 

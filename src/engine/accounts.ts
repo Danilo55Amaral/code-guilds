@@ -5,11 +5,14 @@
 // professores e o perfil do aluno (nome, e-mail, turma, login, professor,
 // casa, avatar, etapa do primeiro acesso e tutorial). Desde a fase 3, também
 // é dona do PROGRESSO DO JOGO (nível, XP, moedas, inventário, missões feitas),
-// das missões, da Loja, das amizades, das ofertas, das trocas e da agenda dos eventos.
+// das missões, da Loja, das amizades, das ofertas, das trocas e da agenda dos
+// eventos; desde a fase 4, das mensagens, da conversa com balões e das
+// mensagens pro professor.
 //
 // Tudo que a API devolve vai pros mesmos localStorage de antes ("cg-teachers",
-// "cg-students" e, desde a fase 3, "cg-missions", "cg-shop", "cg-friends",
-// "cg-offers", "cg-trades" e "cg-event-runs"), que viraram um cache: as
+// "cg-students" e, desde as fases 3 e 4, "cg-missions", "cg-shop", "cg-friends",
+// "cg-offers", "cg-trades", "cg-event-runs", "cg-messages", "cg-chats" e
+// "cg-teacher-messages"), que viraram um cache: as
 // telas continuam lendo na hora, sem esperar a rede, e o refreshFromApi()
 // atualiza o cache em segundo plano. Toda escrita termina com emitChange(), igual ao resto do engine,
 // então os hooks do store.ts se atualizam sozinhos.
@@ -33,7 +36,9 @@ import { Teacher, TeacherLoginResult, forgetTeacher, getTeacher, saveTeachers, s
 import { Mission } from "./missions";
 import { saveMissions } from "./missionsStore";
 import { ShopItemFromApi, saveShopItems } from "./shop";
-import { FriendLink, saveFriendLinks } from "./friends";
+import { ChatMessage, FriendLink, saveChatMessages, saveFriendLinks } from "./friends";
+import { Message, forgetMessages, saveMessagesOf } from "./messages";
+import { TeacherMessage, saveTeacherMessages } from "./teacherMessages";
 import { Offer, saveOffers } from "./market";
 import { Trade, saveTrades } from "./trades";
 import { EventRuns, saveEventRuns } from "./eventSchedule";
@@ -111,12 +116,13 @@ async function syncWithApi() {
       setActiveStudentId(null);
       forgetStudentSocial();
       saveTeachers([me.teacher], false);
-      const [{ students }, teachers, { missions }, { items }, { runs }] = await Promise.all([
+      const [{ students }, teachers, { missions }, { items }, { runs }, inbox] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students"),
         me.teacher.isAdmin ? api.get<{ teachers: Teacher[] }>("/teachers/admin") : api.get<{ teachers: Teacher[] }>("/teachers"),
         api.get<{ missions: Mission[] }>("/missions"),
         api.get<{ items: ShopItemFromApi[] }>("/shop"),
         api.get<{ runs: EventRuns }>("/events/runs"),
+        api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
@@ -125,6 +131,7 @@ async function syncWithApi() {
       saveMissions(missions);
       saveShopItems(items);
       saveEventRuns(runs);
+      saveTeacherMessages(inbox.messages);
       return;
     }
 
@@ -132,7 +139,7 @@ async function syncWithApi() {
       setActiveStudentId(me.student.id);
       setTeacherSessionId(null);
       saveStudentAccounts([me.student]);
-      const [{ students }, { teachers }, { missions }, { items }, { friendships }, offers, trades, { runs }] = await Promise.all([
+      const [{ students }, { teachers }, { missions }, { items }, { friendships }, offers, trades, { runs }, inbox, chats, sent] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students/community"),
         api.get<{ teachers: Teacher[] }>("/teachers"),
         api.get<{ missions: Mission[] }>("/missions"),
@@ -141,6 +148,9 @@ async function syncWithApi() {
         api.get<{ received: Offer[]; sent: Offer[] }>("/offers"),
         api.get<{ received: Trade[]; sent: Trade[] }>("/trades"),
         api.get<{ runs: EventRuns }>("/events/runs"),
+        api.get<{ messages: Message[] }>("/messages"),
+        api.get<{ messages: ChatMessage[] }>("/chats"),
+        api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
@@ -152,6 +162,10 @@ async function syncWithApi() {
       saveOffers([...offers.received, ...offers.sent]);
       saveTrades([...trades.received, ...trades.sent]);
       saveEventRuns(runs);
+      forgetMessages(); // num computador compartilhado, só ficam as mensagens de quem está logado
+      saveMessagesOf(me.student.id, inbox.messages);
+      saveChatMessages(chats.messages);
+      saveTeacherMessages(sent.messages);
       return;
     }
 
@@ -161,6 +175,8 @@ async function syncWithApi() {
     setActiveStudentId(null);
     forgetStudentSocial();
     saveEventRuns({});
+    forgetMessages();
+    saveTeacherMessages([]);
     const { teachers } = await api.get<{ teachers: Teacher[] }>("/teachers");
     if (outdated()) return;
     saveTeachers(teachers, true);
@@ -174,6 +190,7 @@ function forgetStudentSocial() {
   saveFriendLinks([]);
   saveOffers([]);
   saveTrades([]);
+  saveChatMessages([]);
 }
 
 // Quando a pessoa volta pra aba (depois de usar outro programa ou outra aba),

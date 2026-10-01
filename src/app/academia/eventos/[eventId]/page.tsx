@@ -3,11 +3,10 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudents, useMissions, useMessages, useMissionAttempt, useEventRuns, useSubmissions, useGameActions } from "@/engine/store";
+import { useStudents, useMissions, useMissionAttempt, useEventRuns, useSubmissions, useGameActions } from "@/engine/store";
 import { Mission, RewardItem, isTaskMission, requiredCorrect } from "@/engine/missions";
 import { latestSubmissionIn } from "@/engine/submissions";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
-import { PENDING_ITEM_NOTE, SYSTEM_SENDER_ID, eventPhaseRewardMessage, eventRewardMessage } from "@/engine/messages";
 import {
   canFinishPhase,
   currentPhase,
@@ -45,7 +44,6 @@ export default function EventoPage() {
   const { activeStudent, students } = useStudents();
   const game = useGameActions();
   const { missions: allMissions, ready } = useMissions();
-  const { send } = useMessages(activeStudent?.id ?? null);
   const attemptMission = useMissionAttempt();
   const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
   const [scene, setScene] = useState<{ kind: "intro" | "outro"; phase: number } | null>(null);
@@ -125,8 +123,9 @@ export default function EventoPage() {
   }
 
   // Fechar a abertura marca como vista; fechar o final (vendo até o fim ou
-  // pulando) pede a recompensa da fase à API, que confere as missões e entrega
-  // XP, moedas e o item (com as alterações que o ADM fez na Loja).
+  // pulando) pede a recompensa da fase à API, que confere as missões, entrega
+  // XP, moedas e o item (com as alterações que o ADM fez na Loja) e manda a
+  // mensagem 🏆 da recompensa.
   async function closeScene() {
     if (!scene) return;
     const closed = scene;
@@ -145,17 +144,6 @@ export default function EventoPage() {
       setAttemptError(`Não deu pra concluir a fase: ${result.error}`);
       return;
     }
-    const finished = getPhase(ev, closed.phase);
-    send({
-      studentId: me.id,
-      senderId: SYSTEM_SENDER_ID,
-      kind: "missao",
-      body:
-        (closed.phase === phases.length
-          ? eventRewardMessage({ event: ev, item: result.item, xp: result.xp, coins: result.coins })
-          : eventPhaseRewardMessage({ event: ev, phase: finished, totalPhases: phases.length, item: result.item, xp: result.xp, coins: result.coins })) +
-        (result.itemWaiting ? PENDING_ITEM_NOTE : ""),
-    });
     if (result.leveledUp) setLevelUp({ from: result.fromLevel, to: result.newLevel });
     setSelectedPhase(null);
   }

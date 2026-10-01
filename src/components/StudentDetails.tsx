@@ -74,7 +74,8 @@ export default function StudentDetails({
   /** Dá o item pro aluno na API; devolve a mensagem de erro, ou null se entregou. */
   onGrantItem: (item: GiftItem) => Promise<string | null>;
   onRemoveItem: (itemId: string) => void;
-  onSendMessage: (data: { kind: MessageKind; body: string }) => void;
+  /** Manda aviso ou mensagem na API; devolve a mensagem de erro, ou null se enviou. */
+  onSendMessage: (data: { kind: MessageKind; body: string }) => Promise<string | null>;
   /** Exclui o aluno na API; devolve a mensagem de erro, ou null se excluiu. */
   onDeleteStudent: () => Promise<string | null>;
   /** Troca o login e, se vier, a senha (em branco = mantém); devolve a mensagem de erro, ou null se salvou. */
@@ -193,10 +194,17 @@ export default function StudentDetails({
     setConfirmRemoveId(null);
   }
 
-  function handleSendMessage() {
+  async function handleSendMessage() {
     const body = messageBody.trim();
-    if (!body) return;
-    onSendMessage({ kind: messageKind, body });
+    if (!body || busy) return;
+    setBusy(true);
+    const error = await onSendMessage({ kind: messageKind, body });
+    setBusy(false);
+    if (error) {
+      setAccountError(error);
+      return;
+    }
+    setAccountError(null);
     setSentMsg(`${MESSAGE_KIND_META[messageKind].icon} ${messageKind === "aviso" ? "Aviso enviado" : "Mensagem enviada"} para ${student.name}.`);
     setTimeout(() => setSentMsg(null), 3000);
     setMessageBody("");
@@ -277,8 +285,8 @@ export default function StudentDetails({
                   <button onClick={() => setComposerOpen(false)} className="cg-btn-secondary !px-4 !py-2 text-sm">
                     Cancelar
                   </button>
-                  <button onClick={handleSendMessage} disabled={!messageBody.trim()} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">
-                    Enviar
+                  <button onClick={handleSendMessage} disabled={!messageBody.trim() || busy} className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30">
+                    {busy ? "Enviando…" : "Enviar"}
                   </button>
                 </div>
               </div>
