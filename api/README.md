@@ -2370,28 +2370,47 @@ produção.
 ### 2. A API no Render
 
 1. No Render, crie um **Web Service** ligado ao repositório do GitHub.
-2. **Root Directory**: `api` (a API está nessa pasta do repositório).
+2. **Root Directory**: deixe **vazio**. Não use `api` (veja o porquê logo abaixo).
 3. **Build Command**:
 
 ```bash
-npm install --include=dev && npm run build && npm run migrate
+cd api && npm install --include=dev && npm run build && npm run migrate
 ```
 
+- O `cd api` entra na pasta da API (é lá que ficam o `package.json` e os scripts).
 - O `--include=dev` é necessário: com `NODE_ENV=production` definido, o `npm install` pularia as dependências de desenvolvimento, e o build precisa delas (o tsup e o kysely-ctl).
 - O `npm run migrate` no build aplica sozinho as migrations novas a cada deploy.
 
 4. **Start Command**:
 
 ```bash
-npm start
+cd api && npm start
 ```
 
-5. **Environment Variables**: `NODE_ENV=production`, `DATABASE_URL` (a do Neon) e as do Supabase (passo 5 abaixo): `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` e `SUPABASE_BUCKET`. O `PORT` o Render define sozinho.
-6. Depois do deploy, abra `https://<sua-api>.onrender.com/health` e confira o `{"status":"ok"}`.
+5. **Build Filters** (em **Settings → Build & Deploy**), em **Included Paths**:
+
+```
+api/**
+src/engine/**
+```
+
+Assim o Render só publica a API de novo quando muda algo nela ou numa regra do jogo. Uma
+mudança só no visual do site (uma tela, uma animação) não republica a API.
+
+**Por que o Root Directory fica vazio?** A API importa as regras do jogo de `src/engine/`, que
+fica **fora** da pasta `api/` (veja [Uma regra só](#uma-regra-só-a-api-usa-as-regras-do-site)).
+Com o Root Directory em `api`, o Render só deixa disponíveis os arquivos dessa pasta, e o
+build quebraria ao não achar `src/engine/`. Com ele vazio, o Render baixa o repositório
+inteiro, o `cd api` entra na pasta, e o tsup junta as regras dentro do `build/server.js`.
+Depois do build, a API não precisa mais da pasta `src/`: tudo que ela usa está no
+`build/server.js`.
+
+6. **Environment Variables**: `NODE_ENV=production`, `DATABASE_URL` (a do Neon) e as do Supabase (seção 5 abaixo): `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` e `SUPABASE_BUCKET`. O `PORT` o Render define sozinho.
+7. Depois do deploy, abra `https://<sua-api>.onrender.com/health` e confira o `{"status":"ok"}`.
 
 **Atenção**: o disco do Web Service gratuito do Render é apagado a cada deploy (e quando a
 API "dorme"). Por isso, em produção, os arquivos das entregas **não podem** usar o
-`STORAGE_DRIVER=local`: eles sumiriam. Use o Supabase (passo 5).
+`STORAGE_DRIVER=local`: eles sumiriam. Use o Supabase (seção 5).
 
 ### 3. Manter a API acordada
 
@@ -2409,6 +2428,17 @@ Se preferir economizar, dá pra configurar o job só nos horários de aula.
 Em **Settings → Environment Variables** do projeto na Vercel, crie `API_URL` com
 `https://<sua-api>.onrender.com` e faça um novo deploy do site.
 
+Opcional: a Vercel republica o site a cada commit, mesmo quando só a pasta `api/` mudou. Pra
+evitar isso, em **Settings → Git → Ignored Build Step**, escolha **Custom** e use:
+
+```bash
+git diff HEAD^ HEAD --quiet -- . ':(exclude)api'
+```
+
+O comando confere se o commit mudou algo **fora** da pasta `api/`. Se não mudou (saída 0), a
+Vercel pula o deploy; se mudou (saída 1), ela publica o site normalmente. Uma mudança em
+`src/engine/` republica os dois (o site e a API), como deve ser.
+
 ### 5. Os arquivos no Supabase Storage
 
 1. Crie uma conta em [supabase.com](https://supabase.com) e um projeto (o plano gratuito tem 1 GB de arquivos). O banco do Supabase **não** é usado: o banco continua no Neon; aqui só o Storage.
@@ -2419,11 +2449,11 @@ Em **Settings → Environment Variables** do projeto na Vercel, crie `API_URL` c
    - a **Project URL** → `SUPABASE_URL`;
    - a chave **anon / public** → `SUPABASE_ANON_KEY` (essa pode ir pro navegador);
    - a chave **service_role / secret** → `SUPABASE_SERVICE_ROLE_KEY`. Essa é secreta: dá acesso total ao projeto. Ela fica só nas variáveis do Render, nunca no site nem no git.
-4. Coloque as variáveis no Render (passo 2) com `STORAGE_DRIVER=supabase` e faça um novo deploy.
+4. Coloque as variáveis no Render (seção 2) com `STORAGE_DRIVER=supabase` e faça um novo deploy.
 5. Teste: um aluno envia uma entrega com um arquivo, e o professor baixa. No Supabase, o arquivo aparece em `entregas/submissions/<id da entrega>/<id do arquivo>`.
 
 O Supabase gratuito pausa o projeto depois de uma semana sem uso. O ping do cron-job.org
-(passo 3) mantém a API acordada, mas não o Supabase: se a plataforma ficar parada nas férias,
+(seção 3) mantém a API acordada, mas não o Supabase: se a plataforma ficar parada nas férias,
 entre no painel do Supabase e clique em **Restore** antes de voltar às aulas.
 
 ### Migrando para um plano pago depois
