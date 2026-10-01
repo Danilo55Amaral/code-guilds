@@ -2390,6 +2390,17 @@ produção.
 
 ### 2. A API no Render
 
+**Jeito mais fácil: o Blueprint.** O arquivo `render.yaml`, na raiz do repositório, já tem a
+configuração toda (comandos, filtros, região, a rota de checagem e as variáveis). No Render,
+clique em **New → Blueprint**, escolha o repositório `code-guilds` e confirme. O Render pede
+só os valores secretos (`DATABASE_URL` e as três do Supabase) e cria a API.
+
+- O Blueprint publica a branch `feat/backend`. Depois de juntar a branch na `main`, troque o `branch:` do `render.yaml` pra `main`.
+- A região é `ohio`: crie o banco do Neon em **AWS US East 2 (Ohio)**, pra API e banco ficarem perto (cada tela faz várias consultas; banco longe deixa tudo lento).
+- O Supabase precisa existir **antes** (seção 5): com `STORAGE_DRIVER=supabase`, a API não sobe sem as chaves dele.
+
+**Ou, configurando à mão** (o mesmo que o Blueprint faz):
+
 1. No Render, crie um **Web Service** ligado ao repositório do GitHub.
 2. **Root Directory**: deixe **vazio**. Não use `api` (veja o porquê logo abaixo).
 3. **Build Command**:

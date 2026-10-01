@@ -1,0 +1,43 @@
+# Blueprint do Render: a API da CodeGuilds (pasta api/).
+# Em vez de configurar o serviço clicando no painel, o Render lê este arquivo
+# (New → Blueprint) e cria a API com tudo certo. Passo a passo no api/README.md
+# ("Deploy gratuito: Render + Neon").
+services:
+  - type: web
+    name: codeguilds-api
+    runtime: node
+    plan: free
+    # Ohio, pra ficar perto do banco no Neon (crie o projeto do Neon em "AWS US East 2 (Ohio)")
+    region: ohio
+    branch: feat/backend
+
+    # Sem rootDir: a API importa as regras do jogo de src/engine/ (fora da pasta api/)
+    buildCommand: cd api && npm install --include=dev && npm run build && npm run migrate
+    startCommand: cd api && npm start
+    # Rota que não toca no banco: o Render confere se a API subiu sem acordar o Neon
+    healthCheckPath: /health/ping
+
+    # Só republica quando muda algo na API ou numa regra do jogo
+    buildFilter:
+      paths:
+        - api/**
+        - src/engine/**
+
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_DRIVER
+        value: supabase
+      - key: SUPABASE_BUCKET
+        value: entregas
+      # Os valores secretos o Render pede na hora de criar (nunca ficam no git)
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
