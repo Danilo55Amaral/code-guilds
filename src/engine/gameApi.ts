@@ -208,20 +208,6 @@ export function removeStudentItem(studentId: string, itemId: string) {
   return run(api.delete(`/students/${studentId}/items/${itemId}`));
 }
 
-/** O que a API contou sobre a entrega corrigida. */
-export interface ReviewOutcome {
-  rewarded: boolean; // false = pediu pra refazer, ou o aluno já tinha concluído a missão
-  itemWaiting?: boolean;
-}
-
-/**
- * Corrige a entrega de uma missão de entrega. Aprovada: a API dá a recompensa
- * (se o aluno ainda não concluiu) e manda a mensagem 🏆 com o comentário.
- * Refazer: a API manda a mensagem 📝 com o comentário (obrigatório).
- */
-export function reviewTask(missionId: string, data: { studentId: string; decision: "aprovada" | "refazer"; feedback: string }) {
-  return run<ReviewOutcome>(api.post(`/missions/${missionId}/review`, data));
-}
 
 /** Resultado do presente: quantos receberam e, pra cada aluno, se o item ficou esperando espaço. */
 export interface GiftOutcome {

@@ -233,7 +233,6 @@ export default function PainelProfessorPage() {
         submissions={submissions.filter((s) => s.teacherId === teacher.id)}
         students={students}
         missions={missions}
-        reviewerName={`Professor ${teacher.name}`}
       />
 
       <StudentMessagesInbox

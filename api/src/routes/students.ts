@@ -5,6 +5,8 @@ import { AuthUser, ensureAuthenticated, ensureTeacher } from "../middlewares/aut
 import { existsOrError, notExistsError, NotFoundError, ValidationError } from "../validation/validations";
 import { updateProgress } from "../services/progress";
 import { returnEscrowOfDeletedStudent } from "../services/escrow";
+import { removeFiles } from "../services/storage";
+import { storageKeysOf } from "./submissions";
 import { normalizeUsername } from "../utils/normalize";
 import { hashPassword } from "../utils/password";
 import { studentsQuery } from "../utils/queries";
@@ -337,10 +339,16 @@ export async function studentsRoutes(app: FastifyInstance) {
             return reply.status(403).send({ message: 'Você não tem acesso a esse aluno.' })
         }
 
+        // As entregas dele somem junto (on delete cascade); os arquivos delas
+        // no storage são apagados logo depois
+        const fileKeys = await storageKeysOf({ studentId: id })
+
         await db.transaction().execute(async (trx) => {
             await returnEscrowOfDeletedStudent(trx, id)
             await trx.deleteFrom('students').where('id', '=', id).execute()
         })
+
+        await removeFiles(fileKeys)
 
         return reply.status(200).send()
     })

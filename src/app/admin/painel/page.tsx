@@ -332,7 +332,6 @@ export default function PainelAdminPage() {
           submissions={teacherFilter === ALL_TEACHERS ? submissions : submissions.filter((s) => s.teacherId === teacherFilter)}
           students={students}
           missions={missions}
-          reviewerName={`ADM ${admin.name}`}
           headerRight={teacherFilterSelect}
         />
       )}

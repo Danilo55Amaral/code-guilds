@@ -192,9 +192,16 @@ export async function teachersRoutes(app: FastifyInstance) {
                 .where('teacherId', '=', id)
                 .execute()
 
-            // as mensagens que os alunos tinham mandado pra ele também vão pro herdeiro
+            // as mensagens que os alunos tinham mandado pra ele e as entregas
+            // pra corrigir também vão pro herdeiro
             await trx
                 .updateTable('teacherMessages')
+                .set({ teacherId: heirId })
+                .where('teacherId', '=', id)
+                .execute()
+
+            await trx
+                .updateTable('submissions')
                 .set({ teacherId: heirId })
                 .where('teacherId', '=', id)
                 .execute()

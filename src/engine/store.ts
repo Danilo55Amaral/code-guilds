@@ -41,7 +41,8 @@ import * as social from "./socialApi";
 import { Offer, listOffersTo, listOffersFrom, deleteOffersOf } from "./market";
 import { GiftItem, GiftResult } from "./gifts";
 import { TeacherMessage, TeacherMessageTopic, deleteTeacherMessagesOf, listTeacherMessages } from "./teacherMessages";
-import { Submission, deleteSubmissionsOf, deleteSubmissionsOfMission, listSubmissions, reviewSubmission, submitTask } from "./submissions";
+import { Submission, deleteSubmissionsOf, deleteSubmissionsOfMission, listSubmissions } from "./submissions";
+import * as submissionsApi from "./submissionsApi";
 import { Trade, listTradesTo, listTradesFrom, deleteTradesOf } from "./trades";
 import { subscribe, emitChange } from "./events";
 import * as game from "./gameApi";
@@ -579,29 +580,28 @@ export function useOffers(studentId: string | null) {
   return { received, sent, offer, accept, withdraw };
 }
 
-/** Entregas das missões de entrega (engine/submissions.ts): o aluno envia, o professor/ADM corrige. */
+/**
+ * Entregas das missões de entrega (cache da API): o aluno envia (texto e
+ * arquivos), o professor/ADM corrige (engine/submissionsApi.ts). As ações
+ * devolvem { ok } ou { ok: false, error }.
+ */
 export function useSubmissions() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [ready, setReady] = useState(false);
 
   const sync = useCallback(() => {
     setSubmissions(listSubmissions());
-    setReady(true);
+    setReady(isSessionChecked());
   }, []);
 
   useSyncOnChange(sync);
 
-  const submit = useCallback(async (data: Parameters<typeof submitTask>[0]) => {
-    const result = await submitTask(data);
-    if (result.ok) emitChange();
-    return result;
-  }, []);
+  const submit = useCallback((data: { mission: Mission; text: string; files: File[] }) => submissionsApi.submitTask(data), []);
 
-  const review = useCallback(async (submissionId: string, decision: "aprovada" | "refazer", feedback: string, mission: Mission, reviewerName: string) => {
-    const result = await reviewSubmission(submissionId, decision, feedback, mission, reviewerName);
-    if (result.ok) emitChange();
-    return result;
-  }, []);
+  const review = useCallback(
+    (submissionId: string, decision: "aprovada" | "refazer", feedback: string) => submissionsApi.reviewSubmission(submissionId, decision, feedback),
+    [],
+  );
 
   return { submissions, ready, submit, review };
 }

@@ -143,6 +143,30 @@ export interface Students {
   xp: Generated<number>;
 }
 
+export interface SubmissionFiles {
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  kind: string;
+  name: string;
+  size: number;
+  storageKey: string;
+  submissionId: string;
+}
+
+export interface Submissions {
+  attempt: number;
+  feedback: string | null;
+  id: Generated<string>;
+  missionId: string;
+  reviewedAt: Timestamp | null;
+  reviewerName: string | null;
+  status: Generated<string>;
+  studentId: string;
+  submittedAt: Generated<Timestamp>;
+  teacherId: string;
+  text: Generated<string>;
+}
+
 export interface TeacherMessages {
   body: string;
   id: Generated<string>;
@@ -187,6 +211,8 @@ export interface DB {
   sessions: Sessions;
   shopItems: ShopItems;
   students: Students;
+  submissionFiles: SubmissionFiles;
+  submissions: Submissions;
   teacherMessages: TeacherMessages;
   teachers: Teachers;
   trades: Trades;

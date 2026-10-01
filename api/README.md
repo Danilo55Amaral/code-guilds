@@ -25,6 +25,7 @@
 - [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)
 - [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)
 - [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)
+- [Fase 5: as entregas no servidor](#fase-5-as-entregas-no-servidor)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -43,7 +44,8 @@ ligou o site a ela (as contas saem do localStorage). A **fase 3** levou o jogo p
 servidor: progresso, missões, Loja, inventário, presentes, amizades, Mercado, trocas e
 eventos, com a API decidindo cada recompensa. A **fase 4** levou as mensagens: o sininho, os
 comunicados, a conversa com balões e as mensagens pro professor, com a API criando as
-mensagens automáticas. A próxima fase (entregas) está no fim deste documento.
+mensagens automáticas. A **fase 5** levou as entregas das missões de entrega, com os arquivos
+no Supabase Storage. Com ela, nada do jogo fica mais só no navegador.
 
 O desenvolvimento das fases acontece na branch `feat/backend`; a `main` continua sendo a
 versão só com localStorage, publicada na Vercel como demonstração, até a migração terminar.
@@ -93,13 +95,15 @@ api/
 │   │   ├── offers.ts      → Mercado: ofertas de venda entre alunos
 │   │   ├── shop.ts        → Loja: cadastro do ADM e compra do aluno
 │   │   ├── students.ts    → cadastro e gestão de alunos
+│   │   ├── submissions.ts → entregas das missões de entrega e os arquivos (fase 5)
 │   │   ├── teacherMessages.ts → mensagens do aluno pro professor (fase 4)
 │   │   ├── teachers.ts    → cadastro e gestão de professores
 │   │   └── trades.ts      → trocas de itens entre amigos
 │   ├── services/
 │   │   ├── escrow.ts      → devolve os itens guardados em ofertas e trocas
 │   │   ├── messages.ts    → grava as mensagens do aluno (as automáticas também) (fase 4)
-│   │   └── progress.ts    → updateProgress: transação + aluno travado (fase 3)
+│   │   ├── progress.ts    → updateProgress: transação + aluno travado (fase 3)
+│   │   └── storage.ts     → onde ficam os arquivos: pasta local ou Supabase Storage (fase 5)
 │   ├── types/
 │   │   └── database.ts    → tipos das tabelas (GERADO pelo kysely-codegen, não editar)
 │   ├── utils/
@@ -116,6 +120,7 @@ api/
 │   ├── database.ts        → a conexão com o banco (o "db")
 │   ├── env.ts             → lê e valida as variáveis de ambiente
 │   └── server.ts          → sobe o servidor (listen)
+├── uploads/               → arquivos das entregas com STORAGE_DRIVER=local (NÃO vai pro git)
 ├── .env                   → suas variáveis (NÃO vai pro git)
 ├── .env.example           → modelo do .env
 ├── docker-compose.yml     → o container do PostgreSQL
@@ -217,6 +222,12 @@ valores reais.
 | `ADMIN_NAME` | Nome do primeiro ADM (usado só pelo seed) | `Danilo` |
 | `ADMIN_EMAIL` | E-mail de login do primeiro ADM | `danilo@codeguilds.com` |
 | `ADMIN_PASSWORD` | Senha do primeiro ADM | (uma senha forte) |
+| `STORAGE_DRIVER` | Onde ficam os arquivos das entregas: `local` (pasta da API) ou `supabase` (fase 5) | `local` |
+| `UPLOADS_DIR` | A pasta dos arquivos com `STORAGE_DRIVER=local` | `uploads` |
+| `SUPABASE_URL` | Endereço do projeto no Supabase (só com `supabase`) | `https://xxxx.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Chave **secreta** do Supabase: só a API usa, nunca vai pro navegador | (a chave service_role) |
+| `SUPABASE_ANON_KEY` | Chave **pública** do Supabase, enviada junto no upload direto do navegador | (a chave anon) |
+| `SUPABASE_BUCKET` | O bucket dos arquivos das entregas | `entregas` |
 
 Diferente do SPE, a conexão usa uma única variável, a `DATABASE_URL`, tanto no Docker quanto
 no Neon. Assim não é preciso ter `DATABASE_HOST`, `DATABASE_PORT` etc. separados.
@@ -251,6 +262,7 @@ export const env = _env.data
 - `z.coerce.number()` converte o texto `"3333"` para o número `3333` (tudo que vem do `.env` é texto).
 - `.default(...)` usa um valor padrão quando a variável não existe.
 - No resto do código usamos `env.PORT`, `env.DATABASE_URL`..., já com o tipo certo.
+- Na fase 5 entraram as variáveis do storage (veja a tabela acima). Com `STORAGE_DRIVER=supabase`, o `env.ts` também confere se o `SUPABASE_URL` e a `SUPABASE_SERVICE_ROLE_KEY` vieram; sem elas, a API não sobe.
 
 ## Banco de dados com Docker
 
@@ -1581,7 +1593,7 @@ atualizado.
 | Agenda dos eventos (iniciar, liberar fase, encerrar) | **API** |
 | Recompensa da missão de entrega aprovada | **API** |
 | Mensagens (sininho), conversa com balões, mensagens pro professor, comunicados | **API** (fase 4) |
-| Entregas das missões de entrega (texto e arquivos) | Navegador (fase 5) |
+| Entregas das missões de entrega (texto e arquivos) | **API** + Supabase Storage (fase 5) |
 
 Ao fim da fase 3, as mensagens ainda eram locais: o **site** criava a mensagem (🛒 Compra,
 🔄 Troca, 🎁 Presente...) no navegador de quem fez a ação. A fase 4 resolveu isso: a própria
@@ -1780,7 +1792,7 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 | PUT | `/missions/:id` | O dono ou o ADM | altera o que vier (`null` tira a tarefa/evento/fase) |
 | DELETE | `/missions/:id` | O dono ou o ADM | exclui |
 | POST | `/missions/:id/attempt` | Aluno | manda as respostas do quiz; a API corrige e dá a recompensa |
-| POST | `/missions/:id/review` | O professor do aluno ou o ADM | corrige a entrega: aprova (dá a recompensa) ou pede pra refazer (fase 4) |
+| POST | `/submissions/:id/review` | O professor da missão ou o ADM | corrige a entrega: aprova (dá a recompensa) ou pede pra refazer (fase 5; antes `/missions/:id/approve` e `/missions/:id/review`) |
 | GET | `/shop` | Logados | ADM: todos os itens; os outros: só os que não estão escondidos |
 | POST / PUT / DELETE | `/shop`, `/shop/:id` | ADM | cadastra, edita e tira itens da Loja |
 | POST / DELETE | `/shop/collections/:collection` | ADM | coloca ou tira uma coleção inteira |
@@ -1837,7 +1849,7 @@ espaço livre, o `pending/claim` responde `400`.
 ```
 
 - Refazer uma missão já concluída, ou tirar menos de 60%, responde `200` com `rewarded: false` (a tela mostra a nota, mas não paga de novo). Missão de nível acima do aluno: `400`. Missão de outro professor: `403`. Missão de entrega: `400` (quem aprova é o professor).
-- `POST /missions/:id/review` com `{ "studentId": "...", "decision": "aprovada", "feedback": "Muito bom!" }`: o professor corrige a entrega. Aprovada: o aluno ganha a recompensa (se ainda não tinha concluído; se já tinha, `rewarded: false`) e a mensagem 🏆 com o comentário. `"decision": "refazer"`: o comentário é obrigatório e chega pro aluno como mensagem 📝 Entrega. (Na fase 3 essa rota se chamava `/approve` e só aprovava; na fase 4 virou a correção completa, com as mensagens.) A entrega em si (texto e arquivos) ainda fica no navegador até a fase 5, então o site só chama essa rota depois de conferir que existe uma entrega pendente.
+- A correção das missões de entrega mudou de lugar algumas vezes: na fase 3 era `POST /missions/:id/approve` (só aprovava); na fase 4 virou `POST /missions/:id/review` (aprovar ou refazer, com as mensagens); na fase 5, com as entregas no banco, ela foi pra `POST /submissions/:id/review`, que também grava a situação da entrega (veja [Fase 5](#fase-5-as-entregas-no-servidor)).
 
 #### Loja
 
@@ -2003,7 +2015,7 @@ do jogo chamam no `alsoSave` do `updateProgress` ou dentro das próprias transa�
 | Ação | Mensagem | Pra quem |
 |---|---|---|
 | Quiz com recompensa (`POST /missions/:id/attempt`) | 🏆 Missão concluída (+ aviso de espaço) | o aluno |
-| Entrega corrigida (`POST /missions/:id/review`) | 🏆 com "Entrega aprovada por..." ou 📝 "refazer" com o comentário | o aluno |
+| Entrega corrigida (`POST /submissions/:id/review`, desde a fase 5) | 🏆 com "Entrega aprovada por..." ou 📝 "refazer" com o comentário | o aluno |
 | Compra na Loja | 🛒 Compra na Loja | o aluno |
 | Oferta aceita | 🛒 Compra / 💰 Venda | comprador / vendedor |
 | Proposta de troca | 🔄 proposta | o amigo |
@@ -2138,6 +2150,176 @@ O que mudou nos hooks:
 3. Faça uma compra na Loja (`POST /shop/<id>/buy`) e veja a mensagem 🛒 no `GET /messages`.
 4. Com dois alunos amigos: `POST /chats` com `{ "toId": "...", "phraseId": "oi" }` e `GET /chats` com o outro.
 
+## Fase 5: as entregas no servidor
+
+Nas missões de entrega, o aluno manda uma resposta escrita e/ou arquivos (PDF, Word, Scratch,
+App Inventor, Roblox Studio; até 5 arquivos de 25 MB) e o professor corrige. Até a fase 4, a
+entrega ficava no localStorage e os arquivos no IndexedDB do navegador do aluno: o professor
+só conseguia ver e baixar se usasse **o mesmo computador**. Na fase 5, a entrega fica no
+banco e os arquivos num storage de verdade, e o professor corrige de qualquer lugar.
+
+### Por que o arquivo não passa pela API
+
+O site na Vercel repassa as chamadas `/api/*` pra API (o
+[rewrite](#ligação-com-o-site-nextjs)), mas a Vercel recusa qualquer corpo acima de
+**4,5 MB** (erro `413 FUNCTION_PAYLOAD_TOO_LARGE`), e uma entrega pode ter 25 MB. Além disso,
+o disco do Render gratuito é apagado a cada deploy, então os arquivos não poderiam ficar nele.
+
+A solução é o **envio direto**: a API não recebe o arquivo, ela só **autoriza** o envio. O
+navegador manda o arquivo direto pro Supabase Storage, com um endereço assinado que a API
+gerou (vale pra um arquivo só). O download também: a API confere quem está pedindo e
+redireciona pra um link que vale 1 minuto.
+
+```
+navegador                      API (Render)                   Supabase Storage
+    │  1. POST /submissions          │                                  │
+    │  (texto + nome e tamanho       │  confere com as regras do site   │
+    │   de cada arquivo)  ─────────► │  grava a entrega ("enviando")    │
+    │                                │  pede um endereço assinado ────► │
+    │  ◄─── endereços de envio ───── │                                  │
+    │                                                                   │
+    │  2. PUT de cada arquivo, direto ────────────────────────────────► │
+    │                                                                   │
+    │  3. POST /submissions/:id/confirm                                 │
+    │  ────────────────────────────► │  confere se chegaram (HEAD) ───► │
+    │  ◄──── entrega "pendente" ──── │  a entrega vai pro professor     │
+```
+
+### Dois jeitos de guardar: local e Supabase
+
+O `src/services/storage.ts` tem as mesmas funções pros dois jeitos, escolhidos pelo
+`STORAGE_DRIVER` do `.env`:
+
+| Função | `local` (desenvolvimento) | `supabase` (produção) |
+|---|---|---|
+| `createUploadTarget` | devolve `/submissions/uploads/:fileId` (a própria API recebe) | pede ao Supabase um endereço de envio assinado |
+| `saveLocalFile` | grava o arquivo na pasta `uploads/` | (não é usada) |
+| `storedSize` | o tamanho do arquivo no disco | `HEAD` no arquivo do Supabase |
+| `createDownload` | manda o arquivo (stream) | redireciona pra um link assinado de 1 minuto |
+| `removeFiles` | apaga do disco | apaga do Supabase |
+
+Assim, em desenvolvimento tudo funciona sem conta no Supabase, e o site não precisa saber qual
+é qual: a API devolve, pra cada arquivo, um `target` que diz pra onde mandar:
+
+```json
+{ "kind": "api", "path": "/submissions/uploads/5b0c..." }
+{ "kind": "url", "url": "https://xxxx.supabase.co/storage/v1/object/upload/sign/entregas/submissions/...?token=...", "headers": { "x-upsert": "false", "apikey": "..." } }
+```
+
+As chamadas ao Supabase usam a API REST do Storage direto com `fetch` (são só 4 endereços),
+sem instalar a biblioteca do Supabase. A chave **secreta** (`SUPABASE_SERVICE_ROLE_KEY`) só
+sai da API pro Supabase; o navegador recebe apenas o endereço assinado e a chave pública.
+
+No modo local, o arquivo chega cru (`Content-Type: application/octet-stream`). Um leitor
+desse tipo é registrado **só dentro** do plugin das entregas (`addContentTypeParser` vale só
+no plugin onde foi registrado), entrega o corpo como stream (o arquivo nunca fica inteiro na
+memória) e tem limite de 25 MB.
+
+### As tabelas novas
+
+```
+submissions (entregas)                    submission_files (arquivos)
+──────────────────────                    ───────────────────────────
+id            uuid PK                ◄──┐ id             uuid PK
+mission_id    varchar FK → missions     └ submission_id  uuid FK → submissions
+student_id    uuid FK → students          name           varchar(200)
+teacher_id    uuid FK → teachers          size           integer (bytes)
+text          text (até 5000)             kind           varchar (pdf, doc, scratch...)
+status        enviando | pendente |       storage_key    submissions/<entrega>/<arquivo>
+              aprovada | refazer          created_at
+attempt       integer (1ª, 2ª...)
+submitted_at, reviewed_at, reviewer_name, feedback
+```
+
+- **`enviando`**: o aluno começou o envio e os arquivos ainda estão subindo. O professor não vê. Se o envio não terminar (a internet caiu, a aba fechou), a próxima tentativa apaga essa entrega e os arquivos que chegaram.
+- O arquivo em si só existe no storage; no banco fica o registro (nome, tamanho, tipo e a `storage_key`).
+- `mission_id` e `student_id` são `on delete cascade`: excluir a missão ou o aluno apaga as entregas. Os **arquivos** no storage não somem sozinhos com o banco, então as rotas de exclusão pegam as chaves antes (`storageKeysOf`) e apagam do storage logo depois.
+- `teacher_id` é `on delete restrict`: a exclusão do professor passa as entregas pro herdeiro (junto com os alunos, as missões e as mensagens).
+
+### As rotas da fase 5
+
+| Método | Rota | Quem pode | O que faz |
+|---|---|---|---|
+| GET | `/submissions` | Logados | aluno: as dele; professor: as das missões dele; ADM: todas (ou `?teacherId=`) |
+| POST | `/submissions` | Aluno | passo 1: confere e cria a entrega; devolve pra onde mandar cada arquivo |
+| PUT | `/submissions/uploads/:fileId` | Aluno (dono) | passo 2, só com `STORAGE_DRIVER=local`: recebe o arquivo |
+| POST | `/submissions/:id/confirm` | Aluno (dono) | passo 3: confere os arquivos e manda a entrega pro professor |
+| GET | `/submissions/files/:fileId` | O aluno, o professor da missão ou o ADM | baixa o arquivo |
+| POST | `/submissions/:id/review` | O professor da missão ou o ADM | corrige: aprova (com a recompensa) ou pede pra refazer |
+
+---
+
+#### Enviando
+
+```json
+POST /submissions
+{
+  "missionId": "projeto-de-loops",
+  "text": "Meu projeto usa um laço for pra desenhar a estrela.",
+  "files": [{ "name": "estrela.sb3", "size": 182004 }]
+}
+```
+
+- A API confere com a **mesma regra do site** (`checkSubmission`, em `src/engine/submissions.ts`): a missão é de entrega e do professor do aluno, ainda não foi concluída, não tem outra entrega esperando correção, veio o que a missão pede (texto e/ou arquivos), cada arquivo é de um tipo aceito na missão (pela extensão), até 5 arquivos de 25 MB, texto até 5000 caracteres.
+- Sem arquivos, a entrega já nasce `pendente` (vai direto pro professor).
+- Resposta `201`: `{ "submission": {...}, "uploads": [{ "fileId": "...", "target": {...} }] }`.
+
+No passo 3 (`/confirm`), a API confere cada arquivo no storage: se não chegou, `400`
+`O arquivo "x" não chegou. Envie a entrega de novo.`; se chegou com tamanho diferente do
+informado, `400` `...chegou incompleto...`. Tudo certo: a entrega vira `pendente`.
+
+#### Baixando
+
+`GET /submissions/files/:fileId` confere quem está pedindo (o aluno que enviou, o professor da
+missão ou o ADM; os outros recebem `403`) e:
+
+- no modo local, manda o arquivo com `Content-Disposition: attachment; filename*=UTF-8''nome.sb3` (o `filename*` aceita acentos no nome);
+- no Supabase, responde `302` pra um link assinado de 1 minuto, com `&download=nome` (o navegador salva com o nome original).
+
+No site, o botão "⬇ Baixar" só abre `/api/submissions/files/<id>`: o navegador segue o
+redirecionamento sozinho, e o cookie de login vai junto (é o mesmo domínio).
+
+#### Corrigindo
+
+```json
+POST /submissions/<id>/review
+{ "decision": "refazer", "feedback": "Faltou usar o laço for." }
+```
+
+- `aprovada`: o aluno ganha a recompensa (se ainda não tinha concluído a missão) e a mensagem 🏆 com o comentário.
+- `refazer`: o comentário é obrigatório; o aluno recebe a mensagem 📝 Entrega e pode enviar de novo (a 2ª tentativa, a 3ª...).
+- A recompensa, a situação da entrega e a mensagem são gravadas **na mesma transação**. A atualização da entrega tem `where status = 'pendente'`: se dois professores clicarem ao mesmo tempo, o segundo encontra a entrega já corrigida e tudo dele é desfeito (`400` `Essa entrega já foi corrigida.`), então o aluno nunca ganha a recompensa duas vezes.
+- A resposta é assinada como "Professor Fulano" (ou "ADM Fulano").
+
+### O site na fase 5
+
+```
+src/engine/
+├── submissionsApi.ts  → os 3 passos do envio, a correção e o download
+└── submissions.ts     → limites e regras (a API usa as mesmas) + cache "cg-submissions"
+```
+
+O `fileStore.ts` (o IndexedDB) saiu. O `useSubmissions` agora:
+
+| Função | Antes | Agora |
+|---|---|---|
+| `submit({ mission, text, files })` | guardava no localStorage e no IndexedDB | os 3 passos pela API |
+| `review(id, decisão, comentário)` | recebia também a missão e o nome do professor | só o id: a API sabe a missão e assina a correção |
+
+As entregas entram na sincronização (`refreshFromApi`) e na atualização periódica
+(`useInboxPolling`): o professor vê uma entrega nova em até 20 s, e o aluno vê a correção.
+
+### Testando a fase 5
+
+Em desenvolvimento (`STORAGE_DRIVER=local`), com o Insomnia ou o PowerShell:
+
+1. Logado como aluno: `POST /submissions` com uma missão de entrega do professor dele e um arquivo (`files: [{ name: "a.pdf", size: 1234 }]`).
+2. `PUT /submissions/uploads/<fileId>` com o arquivo no corpo (`Content-Type: application/octet-stream`).
+3. `POST /submissions/<id>/confirm`.
+4. Logado como o professor: `GET /submissions`, `GET /submissions/files/<fileId>` (baixa) e `POST /submissions/<id>/review`.
+
+O arquivo aparece em `api/uploads/submissions/<id da entrega>/<id do arquivo>`.
+
 ## Build da aplicação
 
 Como no SPE, o build usa o tsup para converter o TypeScript em JavaScript:
@@ -2165,6 +2347,7 @@ Enquanto a plataforma não tiver custo, a combinação gratuita é esta:
 | Site | Vercel | Hobby (o de hoje) |
 | API | Render — Web Service | Free |
 | Banco | Neon — PostgreSQL | Free (0,5 GB, não expira) |
+| Arquivos das entregas | Supabase — Storage | Free (1 GB) |
 
 **Não use o PostgreSQL gratuito do Render**: ele expira 30 dias depois de criado e é apagado
 duas semanas depois disso. O Web Service gratuito do Render, por outro lado, não expira.
@@ -2203,8 +2386,12 @@ npm install --include=dev && npm run build && npm run migrate
 npm start
 ```
 
-5. **Environment Variables**: `NODE_ENV=production` e `DATABASE_URL` (a do Neon). O `PORT` o Render define sozinho.
+5. **Environment Variables**: `NODE_ENV=production`, `DATABASE_URL` (a do Neon) e as do Supabase (passo 5 abaixo): `STORAGE_DRIVER=supabase`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` e `SUPABASE_BUCKET`. O `PORT` o Render define sozinho.
 6. Depois do deploy, abra `https://<sua-api>.onrender.com/health` e confira o `{"status":"ok"}`.
+
+**Atenção**: o disco do Web Service gratuito do Render é apagado a cada deploy (e quando a
+API "dorme"). Por isso, em produção, os arquivos das entregas **não podem** usar o
+`STORAGE_DRIVER=local`: eles sumiriam. Use o Supabase (passo 5).
 
 ### 3. Manter a API acordada
 
@@ -2222,10 +2409,28 @@ Se preferir economizar, dá pra configurar o job só nos horários de aula.
 Em **Settings → Environment Variables** do projeto na Vercel, crie `API_URL` com
 `https://<sua-api>.onrender.com` e faça um novo deploy do site.
 
+### 5. Os arquivos no Supabase Storage
+
+1. Crie uma conta em [supabase.com](https://supabase.com) e um projeto (o plano gratuito tem 1 GB de arquivos). O banco do Supabase **não** é usado: o banco continua no Neon; aqui só o Storage.
+2. Em **Storage**, crie um bucket chamado `entregas`:
+   - **Public bucket: desligado** (privado). Ninguém baixa um arquivo sem passar pela API, que confere se é o aluno que enviou, o professor que corrige ou o ADM.
+   - **Restrict file size**: `25 MB` (o mesmo limite do site). Assim nem um envio "na mão" passa disso.
+3. Em **Project Settings → API**, copie:
+   - a **Project URL** → `SUPABASE_URL`;
+   - a chave **anon / public** → `SUPABASE_ANON_KEY` (essa pode ir pro navegador);
+   - a chave **service_role / secret** → `SUPABASE_SERVICE_ROLE_KEY`. Essa é secreta: dá acesso total ao projeto. Ela fica só nas variáveis do Render, nunca no site nem no git.
+4. Coloque as variáveis no Render (passo 2) com `STORAGE_DRIVER=supabase` e faça um novo deploy.
+5. Teste: um aluno envia uma entrega com um arquivo, e o professor baixa. No Supabase, o arquivo aparece em `entregas/submissions/<id da entrega>/<id do arquivo>`.
+
+O Supabase gratuito pausa o projeto depois de uma semana sem uso. O ping do cron-job.org
+(passo 3) mantém a API acordada, mas não o Supabase: se a plataforma ficar parada nas férias,
+entre no painel do Supabase e clique em **Restore** antes de voltar às aulas.
+
 ### Migrando para um plano pago depois
 
-Nada no código muda: basta trocar a `DATABASE_URL` (novo banco) e a `API_URL` (nova API)
-nas variáveis de ambiente.
+Nada no código muda: basta trocar a `DATABASE_URL` (novo banco), a `API_URL` (nova API) e as
+variáveis do Supabase (ou de outro storage, implementando as mesmas funções em
+`src/services/storage.ts`) nas variáveis de ambiente.
 
 ## O que mudou em relação ao front de hoje
 
@@ -2240,5 +2445,5 @@ nas variáveis de ambiente.
 - ~~**Fase 2 — ligar o site à API**~~ ✅ **feita**: contas, login, cadastro, perfil do aluno e professores (veja [Fase 2: o site usando a API](#fase-2-o-site-usando-a-api)).
 - ~~**Fase 3 — o jogo no servidor**~~ ✅ **feita**: progresso do aluno, missões, Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas (veja [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)). As amizades, as trocas e os eventos, que estavam planejados pras fases 4 e 6, vieram junto, porque também mexem em itens e moedas.
 - ~~**Fase 4 — mensagens**~~ ✅ **feita**: o sininho, os comunicados, a conversa com balões e as mensagens do aluno pro professor, com a API criando as mensagens automáticas na mesma transação de cada ação (veja [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)).
-- **Fase 5 — entregas**: as entregas das missões de entrega (texto e arquivos) no servidor, com os arquivos no Supabase Storage (1 GB grátis) e limite de tamanho por arquivo.
+- ~~**Fase 5 — entregas**~~ ✅ **feita**: as entregas das missões de entrega (texto e arquivos) no servidor, com os arquivos no Supabase Storage enviados direto pelo navegador (veja [Fase 5: as entregas no servidor](#fase-5-as-entregas-no-servidor)). Com ela, nada do jogo fica mais só no navegador.
 - **Testes automatizados**: Vitest com o `app.inject()` do Fastify, começando por login, permissões, recompensas e trocas.

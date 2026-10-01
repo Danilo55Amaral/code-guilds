@@ -18,7 +18,8 @@ A API fica na pasta [`api/`](api/README.md): Fastify + Kysely + PostgreSQL (Dock
 - **Fase 1 (API)**: professores, alunos, login, sessões e permissões.
 - **Fase 2 (site usando a API)**: as contas saíram do localStorage. Login, cadastro, perfil do aluno (casa, avatar, primeiro acesso), professores e a gestão de alunos nos painéis falam com a API (`src/engine/accounts.ts` + `src/services/api.ts`).
 - **Fase 3 (o jogo no servidor)**: tudo que vale XP, moedas ou itens passou pra API, que confere e aplica cada regra: progresso do aluno, missões (o quiz é corrigido no servidor), Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas. A API importa as regras de `src/engine/` (uma regra só pro site e pro servidor); as chamadas ficam em `gameApi.ts`, `shopApi.ts`, `socialApi.ts` e `eventsApi.ts`, e os localStorage viraram cache do que a API devolve. Detalhes em [`api/README.md`](api/README.md#fase-3-o-jogo-no-servidor).
-- **Fase 4 (mensagens no servidor)**: o sininho, os comunicados, a conversa com balões e as mensagens pro professor vêm da API (`messagesApi.ts`), e a própria API cria as mensagens automáticas (missão, compra, venda, troca, presente, amizade, entrega) na mesma transação de cada ação. O site pergunta se chegou mensagem nova de tempos em tempos (`useInboxPolling`: 20 s no sininho, 4 s com uma conversa aberta). Ainda ficam no navegador só as entregas com os arquivos (fase 5). Detalhes em [`api/README.md`](api/README.md#fase-4-as-mensagens-no-servidor).
+- **Fase 4 (mensagens no servidor)**: o sininho, os comunicados, a conversa com balões e as mensagens pro professor vêm da API (`messagesApi.ts`), e a própria API cria as mensagens automáticas (missão, compra, venda, troca, presente, amizade, entrega) na mesma transação de cada ação. O site pergunta se chegou mensagem nova de tempos em tempos (`useInboxPolling`: 20 s no sininho, 4 s com uma conversa aberta). Detalhes em [`api/README.md`](api/README.md#fase-4-as-mensagens-no-servidor).
+- **Fase 5 (entregas no servidor)**: as entregas das missões de entrega ficam na API e os arquivos (até 25 MB) no Supabase Storage (numa pasta local da API em desenvolvimento). Como a Vercel recusa corpos acima de 4,5 MB, o navegador manda cada arquivo **direto** pro storage, com um endereço assinado que a API gera; o download passa pela API, que confere quem pode baixar (`submissionsApi.ts`). O professor corrige de qualquer computador, e o IndexedDB (`fileStore.ts`) saiu. Detalhes em [`api/README.md`](api/README.md#fase-5-as-entregas-no-servidor).
 - Pra rodar: API no ar (`npm run dev` em `api/`) e o `.env.local` do site com `API_URL=http://localhost:3333` (o `next.config.js` repassa `/api/*` pra ela). Detalhes em [`api/README.md`](api/README.md#fase-2-o-site-usando-a-api).
 - O trabalho do back end está na branch `feat/backend`; a `main` segue como a demonstração só com localStorage.
 
@@ -59,8 +60,9 @@ src/
     eventsApi.ts      -> (feat/backend) agenda dos eventos pela API (iniciar, liberar fase, encerrar)
     shopApi.ts        -> (feat/backend) cadastro da Loja pelo ADM pela API (itens e coleções)
     messagesApi.ts    -> (feat/backend) caixa do aluno, mensagens e comunicados do professor, mensagens pro professor e a atualização periódica da caixa
+    submissionsApi.ts -> (feat/backend) entregas: os 3 passos do envio (os arquivos vão direto pro storage), a correção e o download
     submissions.ts    -> entregas das missões de entrega (cg-submissions): enviar, corrigir (aprovar dá a recompensa; refazer volta com comentário), histórico de tentativas
-    fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar)
+    fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar). Na branch feat/backend saiu: os arquivos vão pro Supabase Storage (submissionsApi.ts)
     multiverse.ts     -> Sala do Multiverso: os mundos dos portais, a Chave do Multiverso pronta, o passe de entrada do aluno (Student.multiverseAccess) e a viagem entre a sala e os mundos (startMultiverseVisit/isOnMultiverseVisit/endMultiverseVisit, só na memória da página)
     elderDragon.ts    -> Mundo 1: poses e medidas do desenho do Dragão Ancestral, os momentos da coreografia e as legendas
     teacherMessages.ts -> mensagens dos alunos pro professor (cg-teacher-messages): enviar, marcar como lida, responder (a resposta vai pra caixa de Mensagens do aluno)
@@ -301,7 +303,7 @@ public/
 
 ## O que ainda não existe (próximos passos sugeridos)
 
-- Persistência real no site: na branch `feat/backend`, contas, progresso, missões, Loja, amizades, Mercado, trocas, eventos e mensagens já estão na API (fases 1 a 4). Faltam as entregas com os arquivos (fase 5), ver `api/README.md`
+- Persistência real no site: na branch `feat/backend`, tudo já está na API (fases 1 a 5: contas, progresso, missões, Loja, amizades, Mercado, trocas, eventos, mensagens e entregas com os arquivos). Falta publicar (Render + Neon + Supabase, ver `api/README.md`) e juntar a branch na `main`
 - Mais missões/quizzes de exemplo
 - Autenticação real (o login de aluno e de professor aqui são simplificados: as senhas ficam em texto puro no localStorage, justamente pro professor conseguir ver — serve pra demonstração, não pra produção)
 

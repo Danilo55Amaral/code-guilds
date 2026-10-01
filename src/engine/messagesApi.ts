@@ -17,6 +17,7 @@ import { getTeacherSessionId } from "./teachers";
 import { BroadcastSummary, Message, MessageAudience, MessageKind, forgetMessages, markAllReadInCache, rememberMessage, saveMessagesOf } from "./messages";
 import { ChatMessage, saveChatMessages } from "./friends";
 import { TeacherMessage, TeacherMessageTopic, rememberTeacherMessage, saveTeacherMessages } from "./teacherMessages";
+import { Submission, saveSubmissions } from "./submissions";
 
 // ---------------------------------------------------------------------------
 // Atualização da caixa
@@ -31,8 +32,9 @@ let refreshingInbox: Promise<void> | null = null;
 
 /**
  * Busca na API as mensagens de quem está logado e atualiza o cache:
- * - aluno: a caixa, as conversas com os amigos e o que ele mandou pro professor;
- * - professor: as mensagens que os alunos mandaram pra ele.
+ * - aluno: a caixa, as conversas com os amigos, o que ele mandou pro professor
+ *   e as entregas (a correção aparece sem recarregar);
+ * - professor: as mensagens que os alunos mandaram pra ele e as entregas pra corrigir.
  * É bem mais leve que a sincronização completa (refreshFromApi).
  */
 export function refreshInbox(): Promise<void> {
@@ -48,21 +50,28 @@ async function loadInbox() {
   const teacherId = getTeacherSessionId();
   try {
     if (studentId) {
-      const [{ messages }, chats, sent] = await Promise.all([
+      const [{ messages }, chats, sent, { submissions }] = await Promise.all([
         api.get<{ messages: Message[] }>("/messages"),
         api.get<{ messages: ChatMessage[] }>("/chats"),
         api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
+        api.get<{ submissions: Submission[] }>("/submissions"),
       ]);
       if (getActiveStudentId() !== studentId) return; // trocou de conta no meio do caminho
       forgetMessages(); // só ficam as mensagens de quem está logado
       saveMessagesOf(studentId, messages);
       saveChatMessages(chats.messages);
       saveTeacherMessages(sent.messages);
+      saveSubmissions(submissions); // a entrega corrigida muda de situação na hora
       emitChange();
     } else if (teacherId) {
-      const { messages } = await api.get<{ messages: TeacherMessage[] }>("/teacher-messages");
+      // o professor também recebe as entregas novas pra corrigir
+      const [{ messages }, { submissions }] = await Promise.all([
+        api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
+        api.get<{ submissions: Submission[] }>("/submissions"),
+      ]);
       if (getTeacherSessionId() !== teacherId) return;
       saveTeacherMessages(messages);
+      saveSubmissions(submissions);
       emitChange();
     }
   } catch {

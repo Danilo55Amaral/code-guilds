@@ -7,7 +7,7 @@
 // é dona do PROGRESSO DO JOGO (nível, XP, moedas, inventário, missões feitas),
 // das missões, da Loja, das amizades, das ofertas, das trocas e da agenda dos
 // eventos; desde a fase 4, das mensagens, da conversa com balões e das
-// mensagens pro professor.
+// mensagens pro professor; desde a fase 5, das entregas (e dos arquivos).
 //
 // Tudo que a API devolve vai pros mesmos localStorage de antes ("cg-teachers",
 // "cg-students" e, desde as fases 3 e 4, "cg-missions", "cg-shop", "cg-friends",
@@ -39,6 +39,7 @@ import { ShopItemFromApi, saveShopItems } from "./shop";
 import { ChatMessage, FriendLink, saveChatMessages, saveFriendLinks } from "./friends";
 import { Message, forgetMessages, saveMessagesOf } from "./messages";
 import { TeacherMessage, saveTeacherMessages } from "./teacherMessages";
+import { Submission, saveSubmissions } from "./submissions";
 import { Offer, saveOffers } from "./market";
 import { Trade, saveTrades } from "./trades";
 import { EventRuns, saveEventRuns } from "./eventSchedule";
@@ -116,13 +117,14 @@ async function syncWithApi() {
       setActiveStudentId(null);
       forgetStudentSocial();
       saveTeachers([me.teacher], false);
-      const [{ students }, teachers, { missions }, { items }, { runs }, inbox] = await Promise.all([
+      const [{ students }, teachers, { missions }, { items }, { runs }, inbox, { submissions }] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students"),
         me.teacher.isAdmin ? api.get<{ teachers: Teacher[] }>("/teachers/admin") : api.get<{ teachers: Teacher[] }>("/teachers"),
         api.get<{ missions: Mission[] }>("/missions"),
         api.get<{ items: ShopItemFromApi[] }>("/shop"),
         api.get<{ runs: EventRuns }>("/events/runs"),
         api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
+        api.get<{ submissions: Submission[] }>("/submissions"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
@@ -132,6 +134,7 @@ async function syncWithApi() {
       saveShopItems(items);
       saveEventRuns(runs);
       saveTeacherMessages(inbox.messages);
+      saveSubmissions(submissions);
       return;
     }
 
@@ -139,7 +142,7 @@ async function syncWithApi() {
       setActiveStudentId(me.student.id);
       setTeacherSessionId(null);
       saveStudentAccounts([me.student]);
-      const [{ students }, { teachers }, { missions }, { items }, { friendships }, offers, trades, { runs }, inbox, chats, sent] = await Promise.all([
+      const [{ students }, { teachers }, { missions }, { items }, { friendships }, offers, trades, { runs }, inbox, chats, sent, { submissions }] = await Promise.all([
         api.get<{ students: StudentAccount[] }>("/students/community"),
         api.get<{ teachers: Teacher[] }>("/teachers"),
         api.get<{ missions: Mission[] }>("/missions"),
@@ -151,6 +154,7 @@ async function syncWithApi() {
         api.get<{ messages: Message[] }>("/messages"),
         api.get<{ messages: ChatMessage[] }>("/chats"),
         api.get<{ messages: TeacherMessage[] }>("/teacher-messages"),
+        api.get<{ submissions: Submission[] }>("/submissions"),
       ]);
       if (outdated()) return;
       saveStudentAccounts(students);
@@ -166,6 +170,7 @@ async function syncWithApi() {
       saveMessagesOf(me.student.id, inbox.messages);
       saveChatMessages(chats.messages);
       saveTeacherMessages(sent.messages);
+      saveSubmissions(submissions);
       return;
     }
 
@@ -177,6 +182,7 @@ async function syncWithApi() {
     saveEventRuns({});
     forgetMessages();
     saveTeacherMessages([]);
+    saveSubmissions([]);
     const { teachers } = await api.get<{ teachers: Teacher[] }>("/teachers");
     if (outdated()) return;
     saveTeachers(teachers, true);
