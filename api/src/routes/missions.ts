@@ -53,7 +53,9 @@ function canManageMission(user: AuthUser, mission: { teacherId: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// Schemas do conteúdo da missão (o que o editor de missões manda)
+// Schemas do conteúdo da missão (o que o editor de missões manda).
+// O scripts/import-missions.ts usa os mesmos, pra missão importada passar
+// pelas mesmas regras de uma criada no site.
 // ---------------------------------------------------------------------------
 
 const questionSchema = z.object({
@@ -75,7 +77,7 @@ const taskSchema = z.object({
 // Todos os campos são opcionais: o cadastro confere se o que é obrigatório
 // veio (checkMissionContent) e a edição muda só o que vier. Nos campos do
 // evento e da tarefa, null = tirar.
-const missionBodySchema = z.object({
+export const missionBodySchema = z.object({
     title: z.string().trim().min(1).max(120).optional(),
     icon: z.string().min(1).max(32).optional(),
     difficulty: z.enum(['iniciante', 'medio', 'avancado', 'epico']).optional(),
@@ -92,11 +94,11 @@ const missionBodySchema = z.object({
     teacherId: z.uuid().optional(),
 })
 
-type MissionBody = z.infer<typeof missionBodySchema>
+export type MissionBody = z.infer<typeof missionBodySchema>
 
 // A missão completa precisa fazer sentido: quiz com perguntas (e cada
 // pergunta com a resposta certa entre as opções), entrega com a tarefa
-function checkMissionContent(mission: MissionBody) {
+export function checkMissionContent(mission: MissionBody) {
     for (const field of ['title', 'icon', 'difficulty', 'rewardItem'] as const) {
         existsOrError(mission[field], `Falta o campo "${field}" da missão.`)
     }
@@ -135,7 +137,7 @@ function missionColumns(mission: MissionBody) {
 }
 
 // Id único a partir do título (loops-com-for, loops-com-for-1, ...)
-async function newMissionId(title: string) {
+export async function newMissionId(title: string) {
     const base = slugify(title)
     let id = base
 

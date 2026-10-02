@@ -10,6 +10,7 @@
 - [Kysely, o query builder](#kysely-o-query-builder)
 - [Migrations com o kysely-ctl](#migrations-com-o-kysely-ctl)
 - [Seeds: criando o primeiro ADM](#seeds-criando-o-primeiro-adm)
+- [Importando missões de um arquivo](#importando-missões-de-um-arquivo)
 - [Tipos do banco gerados automaticamente](#tipos-do-banco-gerados-automaticamente)
 - [O servidor Fastify](#o-servidor-fastify)
 - [Validação de dados com Zod](#validação-de-dados-com-zod)
@@ -80,6 +81,9 @@ api/
 ├── db/
 │   ├── migrations/        → histórico de mudanças do banco (uma por tabela)
 │   └── seeds/             → dados iniciais (o primeiro ADM, as missões de exemplo e a Loja)
+├── scripts/
+│   ├── import-missions.ts → cadastra de uma vez as missões de um arquivo pra um professor
+│   └── missions/          → os arquivos de missões prontos pra importar
 ├── src/
 │   ├── middlewares/
 │   │   └── auth.ts        → descobre quem está logado + ensureAuthenticated/Student/Teacher/Admin
@@ -212,6 +216,7 @@ sobe sozinho com o Docker, por causa do `restart: unless-stopped`).
 | `npm run migrate:down` | Desfaz a última migration |
 | `npm run migrate:reset` | Desfaz TODAS as migrations (apaga as tabelas e os dados!) |
 | `npm run seed` | Roda os seeds (cria o ADM se ele ainda não existir) |
+| `npm run missions:import -- email arquivo` | Cadastra as missões de um arquivo pro professor desse e-mail ([Importando missões](#importando-missões-de-um-arquivo)) |
 | `npm run db:types` | Gera de novo o `src/types/database.ts` a partir do banco |
 
 ## Variáveis de ambiente
@@ -619,6 +624,37 @@ Rodando de novo:
 
 ```
 O ADM danilo@codeguilds.com já existe.
+```
+
+## Importando missões de um arquivo
+
+Montar um quiz de 10 perguntas comentadas no editor do site leva tempo. O script
+`scripts/import-missions.ts` cadastra de uma vez todas as missões de um arquivo pra um
+professor:
+
+```bash
+npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
+```
+
+```
++ "ODS" (10 perguntas)
++ "Introdução ao Scratch" (10 perguntas)
++ "O Mundo da Programação" (10 perguntas)
++ "Blocos de Código no Scratch" (10 perguntas)
+4 missões criadas para Danilo.
+```
+
+- O arquivo exporta (`export default`) uma lista de missões no mesmo formato do site (`MissionContent`, em `src/engine/missions.ts`). O primeiro é o `scripts/missions/programacao-12-anos.ts`, com 4 quizzes para turmas de 12 anos.
+- Cada missão passa pelas **mesmas regras** da rota `POST /missions`: o script usa o `missionBodySchema` e o `checkMissionContent` exportados de `src/routes/missions.ts`. E ele confere o arquivo inteiro antes de gravar a primeira missão, então um erro no arquivo não deixa metade cadastrada.
+- O id sai do título, como no site (`newMissionId`: "Introdução ao Scratch" vira `introducao-ao-scratch`).
+- Se o professor já tem uma missão com o mesmo título, ela é pulada: dá pra rodar de novo sem duplicar.
+- A missão fica do professor, igual a uma criada por ele: aparece no painel dele, ele pode editar ou excluir, e só os alunos dele a veem.
+
+Pra importar **em produção**, rode na pasta `api/` com a `DATABASE_URL` do Neon, do mesmo
+jeito que o seed do deploy (no cmd do Windows):
+
+```bat
+set "DATABASE_URL=postgresql://...neon.tech/codeguilds?sslmode=require" && npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
 ```
 
 ## Tipos do banco gerados automaticamente
