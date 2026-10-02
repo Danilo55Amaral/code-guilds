@@ -130,7 +130,12 @@ api/
 ```
 
 O `tsconfig.json` da raiz do site tem `"exclude": ["node_modules", "api"]`, pra o Next.js
-(e a Vercel) não tentar compilar a API junto com o site.
+não tentar compilar a API junto com o site.
+
+E o `.vercelignore` da raiz tem `/api`: a Vercel trata uma pasta `api/` na raiz do projeto
+como funções serverless dela e tenta compilar cada arquivo (com a configuração do site, sem
+os caminhos `@/` e sem JSX). Isso enche o log de erros de TypeScript e quebra o deploy. Com
+a pasta ignorada, a Vercel nem recebe a API: ela só publica o site, e a API fica no Render.
 
 Desde a fase 3, a API também **importa as regras do jogo** da pasta `src/engine/` do site
 (veja [Uma regra só](#uma-regra-só-a-api-usa-as-regras-do-site)).

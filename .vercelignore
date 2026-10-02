@@ -1,0 +1,5 @@
+# A Vercel trata uma pasta api/ na raiz como funções serverless dela e tenta
+# compilar cada arquivo. A nossa api/ é a API do Render (veja render.yaml),
+# e o site não usa nada dela, então a Vercel nem precisa receber essa pasta.
+/api
+/render.yaml
