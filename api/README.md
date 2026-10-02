@@ -47,8 +47,9 @@ comunicados, a conversa com balões e as mensagens pro professor, com a API cria
 mensagens automáticas. A **fase 5** levou as entregas das missões de entrega, com os arquivos
 no Supabase Storage. Com ela, nada do jogo fica mais só no navegador.
 
-O desenvolvimento das fases acontece na branch `feat/backend`; a `main` continua sendo a
-versão só com localStorage, publicada na Vercel como demonstração, até a migração terminar.
+As fases foram feitas na branch `feat/backend` e, depois de testadas de ponta a ponta no
+Preview da Vercel (com a API no Render, o banco no Neon e os arquivos no Supabase), entraram
+na `main`. Hoje o site oficial e a API são publicados a partir da `main`.
 
 ## Tecnologias utilizadas
 
@@ -229,7 +230,7 @@ valores reais.
 | `ADMIN_PASSWORD` | Senha do primeiro ADM | (uma senha forte) |
 | `STORAGE_DRIVER` | Onde ficam os arquivos das entregas: `local` (pasta da API) ou `supabase` (fase 5) | `local` |
 | `UPLOADS_DIR` | A pasta dos arquivos com `STORAGE_DRIVER=local` | `uploads` |
-| `SUPABASE_URL` | Endereço do projeto no Supabase (só com `supabase`) | `https://xxxx.supabase.co` |
+| `SUPABASE_URL` | Endereço do projeto no Supabase (só com `supabase`). Só o endereço, **sem** `/rest/v1` | `https://xxxx.supabase.co` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Chave **secreta** do Supabase: só a API usa, nunca vai pro navegador | (a chave service_role) |
 | `SUPABASE_ANON_KEY` | Chave **pública** do Supabase, enviada junto no upload direto do navegador | (a chave anon) |
 | `SUPABASE_BUCKET` | O bucket dos arquivos das entregas | `entregas` |
@@ -268,6 +269,7 @@ export const env = _env.data
 - `.default(...)` usa um valor padrão quando a variável não existe.
 - No resto do código usamos `env.PORT`, `env.DATABASE_URL`..., já com o tipo certo.
 - Na fase 5 entraram as variáveis do storage (veja a tabela acima). Com `STORAGE_DRIVER=supabase`, o `env.ts` também confere se o `SUPABASE_URL` e a `SUPABASE_SERVICE_ROLE_KEY` vieram; sem elas, a API não sobe.
+- O `SUPABASE_URL` tem que ser só o endereço do projeto. O painel do Supabase também mostra o endereço com `/rest/v1` (o "RESTful endpoint"), e com ele as chamadas do Storage caem no PostgREST, que responde `404 PGRST125 Invalid path specified in request URL`. Aconteceu no primeiro deploy; desde então o `env.ts` recusa um endereço com caminho (a API nem sobe, com uma mensagem explicando) e tira a barra do fim, se tiver.
 
 ## Banco de dados com Docker
 
@@ -1441,7 +1443,7 @@ async rewrites() {
 - O front chama `/api/auth/me`, e o Next.js repassa para `${API_URL}/auth/me`.
 - Local: crie um `.env.local` na raiz do site com `API_URL=http://localhost:3333` e reinicie o `npm run dev` do site.
 - Vercel: em **Settings → Environment Variables**, crie `API_URL` com a URL da API no Render.
-- Sem `API_URL`, nada é repassado. Desde a fase 2, na branch `feat/backend`, o site depende da API para login e cadastro, então sem ela ninguém entra (a tela mostra "O servidor da CodeGuilds não está configurado").
+- Sem `API_URL`, nada é repassado. Desde a fase 2, o site depende da API para login e cadastro, então sem ela ninguém entra (a tela mostra "O servidor da CodeGuilds não está configurado").
 
 Nas chamadas feitas pelo navegador, o cookie vai sozinho. Exemplo de como o front vai falar
 com a API:
@@ -2400,7 +2402,7 @@ configuração toda (comandos, filtros, região, a rota de checagem e as variáv
 clique em **New → Blueprint**, escolha o repositório `code-guilds` e confirme. O Render pede
 só os valores secretos (`DATABASE_URL` e as três do Supabase) e cria a API.
 
-- O Blueprint publica a branch `feat/backend`. Depois de juntar a branch na `main`, troque o `branch:` do `render.yaml` pra `main`.
+- O Blueprint publica a branch `main` (o `branch:` do `render.yaml`). Na tela do Blueprint, escolha a `main` também: é dela que o Render lê o `render.yaml`. Enquanto a API estava em desenvolvimento, os dois apontavam pra `feat/backend`.
 - A região é `ohio`: crie o banco do Neon em **AWS US East 2 (Ohio)**, pra API e banco ficarem perto (cada tela faz várias consultas; banco longe deixa tudo lento).
 - O Supabase precisa existir **antes** (seção 5): com `STORAGE_DRIVER=supabase`, a API não sobe sem as chaves dele.
 
@@ -2490,7 +2492,7 @@ Vercel pula o deploy; se mudou (saída 1), ela publica o site normalmente. Uma m
    - **Public bucket: desligado** (privado). Ninguém baixa um arquivo sem passar pela API, que confere se é o aluno que enviou, o professor que corrige ou o ADM.
    - **Restrict file size**: `25 MB` (o mesmo limite do site). Assim nem um envio "na mão" passa disso.
 3. Em **Project Settings → API**, copie:
-   - a **Project URL** → `SUPABASE_URL`;
+   - a **Project URL** → `SUPABASE_URL` (só `https://xxxx.supabase.co`; **não** use o endereço com `/rest/v1`);
    - a chave **anon / public** → `SUPABASE_ANON_KEY` (essa pode ir pro navegador);
    - a chave **service_role / secret** → `SUPABASE_SERVICE_ROLE_KEY`. Essa é secreta: dá acesso total ao projeto. Ela fica só nas variáveis do Render, nunca no site nem no git.
 4. Coloque as variáveis no Render (seção 2) com `STORAGE_DRIVER=supabase` e faça um novo deploy.

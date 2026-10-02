@@ -9,7 +9,7 @@ services:
     plan: free
     # Ohio, pra ficar perto do banco no Neon (crie o projeto do Neon em "AWS US East 2 (Ohio)")
     region: ohio
-    branch: feat/backend
+    branch: main
 
     # Sem rootDir: a API importa as regras do jogo de src/engine/ (fora da pasta api/)
     buildCommand: cd api && npm install --include=dev && npm run build && npm run migrate

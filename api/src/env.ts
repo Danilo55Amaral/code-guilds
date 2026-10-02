@@ -19,7 +19,15 @@ const envSchema = z.object({
     //   é apagado a cada deploy).
     STORAGE_DRIVER: z.enum(['local', 'supabase']).default('local'),
     UPLOADS_DIR: z.string().default('uploads'),
-    SUPABASE_URL: z.url().optional(),
+    // Só o endereço do projeto (https://xxxx.supabase.co). O painel do Supabase
+    // também mostra o endereço com /rest/v1, mas com ele as chamadas do Storage
+    // caem no lugar errado (erro 404 PGRST125). A barra do fim é tirada aqui.
+    SUPABASE_URL: z.url()
+        .refine((url) => new URL(url).pathname === '/', {
+            message: 'Use só o endereço do projeto, sem caminho no fim (ex.: https://xxxx.supabase.co, sem /rest/v1).',
+        })
+        .transform((url) => new URL(url).origin)
+        .optional(),
     // A chave secreta (service_role): só a API usa, nunca vai pro navegador
     SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
     // A chave pública (anon): vai junto no envio direto do navegador pro Supabase
