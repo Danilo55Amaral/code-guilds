@@ -3,8 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Mission, SUBMISSION_FILE_TYPES } from "@/engine/missions";
 import { Student } from "@/engine/students";
-import { SUBMISSION_MAX_FILES, SUBMISSION_MAX_FILE_MB, SUBMISSION_TEXT_MAX, checkFiles, submissionHistoryIn } from "@/engine/submissions";
-import { formatFileSize } from "@/engine/fileStore";
+import { SUBMISSION_MAX_FILES, SUBMISSION_MAX_FILE_MB, SUBMISSION_TEXT_MAX, checkFiles, formatFileSize, submissionHistoryIn } from "@/engine/submissions";
 import { useSubmissions } from "@/engine/store";
 import { CoinIcon, DifficultyBadge, RarityBadge } from "./GameUI";
 import { SubmissionContent, SubmissionStatusBadge, formatSubmissionDate } from "./SubmissionParts";
@@ -56,7 +55,7 @@ export default function TaskSubmissionModal({ mission, student, onClose }: { mis
 
   async function send() {
     setSending(true);
-    const result = await submit({ mission, studentId: student.id, text, files });
+    const result = await submit({ mission, text, files });
     setSending(false);
     if (!result.ok) {
       setError(result.error);

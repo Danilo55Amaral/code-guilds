@@ -23,7 +23,6 @@ export default function TeacherList({
   onSelect: (teacher: Teacher) => void;
 }) {
   const [search, setSearch] = useState("");
-  const [showPasswords, setShowPasswords] = useState(false);
   const q = normalizeSearch(search);
   const found = teachers.filter((t) => !q || normalizeSearch(t.name).includes(q) || t.email.includes(q));
   const pager = usePagination(found, TEACHERS_PER_PAGE, search);
@@ -32,14 +31,9 @@ export default function TeacherList({
     <div className="cg-card mb-6 p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-slate-300">Professores cadastrados ({teachers.length})</p>
-        <div className="flex gap-2">
-          <button onClick={() => setShowPasswords((v) => !v)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
-            {showPasswords ? "🙈 Esconder senhas" : "👁 Mostrar senhas"}
-          </button>
-          <button onClick={onNew} className="cg-btn-primary !px-3 !py-1.5 text-xs">
-            + Novo Professor
-          </button>
-        </div>
+        <button onClick={onNew} className="cg-btn-primary !px-3 !py-1.5 text-xs">
+          + Novo Professor
+        </button>
       </div>
 
       <SearchInput value={search} onChange={setSearch} placeholder="Buscar professor por nome ou e-mail…" className="mb-3" />
@@ -61,9 +55,7 @@ export default function TeacherList({
                     {t.name}
                     {t.isAdmin && <span className="rounded-full border border-violet-500/40 px-2 py-0.5 text-[10px] font-semibold text-violet-300">🛡 ADM</span>}
                   </p>
-                  <p className="break-all text-xs text-slate-500">
-                    {t.email} • senha <span className="font-mono">{showPasswords ? t.password : "•".repeat(t.password.length)}</span>
-                  </p>
+                  <p className="break-all text-xs text-slate-500">{t.email}</p>
                 </div>
                 <div className="flex items-center gap-3 text-xs">
                   <span className="text-slate-400">

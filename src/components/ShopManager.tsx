@@ -28,28 +28,48 @@ export default function ShopManager() {
     setTimeout(() => setNotice(null), 4000);
   }
 
-  function add(collection: CosmeticCollection) {
-    const n = addCollection(collection);
+  // Tudo aqui fala com a API; os erros aparecem no aviso (ou no editor do item).
+  async function add(collection: CosmeticCollection) {
+    const result = await addCollection(collection);
     const theme = COLLECTION_THEME[collection];
+    if (!result.ok) {
+      flash(`⚠️ ${result.error}`);
+      return;
+    }
+    const n = result.count;
     flash(`${theme.emoji} ${n} ${n === 1 ? "item entrou" : "itens entraram"} na Loja (${theme.title})!`);
   }
 
-  function remove(collection: CosmeticCollection) {
+  async function remove(collection: CosmeticCollection) {
     if (confirmRemove !== collection) {
       setConfirmRemove(collection);
       return;
     }
-    const n = removeCollection(collection);
     setConfirmRemove(null);
+    const result = await removeCollection(collection);
+    if (!result.ok) {
+      flash(`⚠️ ${result.error}`);
+      return;
+    }
+    const n = result.count;
     flash(`🧹 ${n} ${n === 1 ? "item saiu" : "itens saíram"} da Loja (${COLLECTION_THEME[collection].title}) — quem comprou continua com eles.`);
   }
 
-  function handleSave(data: ShopItemData): string | null {
+  async function handleSave(data: ShopItemData): Promise<string | null> {
     const error = validateShopItem(data, existing?.id);
     if (error) return error;
-    if (existing) editItem(existing.id, data);
-    else addItem(data);
+    const apiError = existing ? await editItem(existing.id, data) : await addItem(data);
+    if (apiError) return apiError;
     setTarget(null);
+    return null;
+  }
+
+  /** Edição rápida: salva um item de cada vez e para no primeiro erro. */
+  async function saveQuickEdits(changes: { id: string; data: ShopItemData }[]): Promise<string | null> {
+    for (const change of changes) {
+      const error = await editItem(change.id, change.data);
+      if (error) return error;
+    }
     return null;
   }
 
@@ -137,7 +157,7 @@ export default function ShopManager() {
       )}
 
       {items.length > 0 && view === "rapida" ? (
-        <ShopQuickEdit items={items} onSave={(changes) => changes.forEach((c) => editItem(c.id, c.data))} />
+        <ShopQuickEdit items={items} onSave={saveQuickEdits} />
       ) : items.length === 0 ? (
         <p className="text-sm text-slate-500">A Loja está vazia — clique em &quot;+ Novo item&quot; pra colocar o primeiro à venda.</p>
       ) : (
@@ -188,9 +208,10 @@ export default function ShopManager() {
           onSave={handleSave}
           onDelete={
             existing
-              ? () => {
-                  removeItem(existing.id);
-                  setTarget(null);
+              ? async () => {
+                  const error = await removeItem(existing.id);
+                  if (!error) setTarget(null);
+                  return error;
                 }
               : undefined
           }

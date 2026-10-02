@@ -34,6 +34,7 @@ export function WriteToTeacherModal({
   const [missionId, setMissionId] = useState("");
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
   const showMission = topic === "duvida-missao" || topic === "ajuda-entrega";
 
   useEffect(() => {
@@ -42,10 +43,14 @@ export function WriteToTeacherModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function submit() {
-    const result = send({ studentId: student.id, topic, missionId: showMission && missionId ? missionId : undefined, body });
-    if (!result.ok) {
-      setError(result.error);
+  // A mensagem vai pela API, pro professor atual do aluno
+  async function submit() {
+    if (sending) return;
+    setSending(true);
+    const problem = await send({ topic, missionId: showMission && missionId ? missionId : undefined, body });
+    setSending(false);
+    if (problem) {
+      setError(problem);
       return;
     }
     onSent();
@@ -117,10 +122,10 @@ export function WriteToTeacherModal({
         <div className="border-t border-slate-800 px-6 py-4">
           <button
             onClick={submit}
-            disabled={!body.trim()}
+            disabled={!body.trim() || sending}
             className="w-full rounded-full bg-gradient-to-r from-sky-500 to-violet-500 px-5 py-3 text-sm font-black text-cg-onaccent shadow-lg shadow-sky-500/25 transition-transform hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
           >
-            ✉️ Enviar pro professor
+            {sending ? "Enviando…" : "✉️ Enviar pro professor"}
           </button>
         </div>
       </div>

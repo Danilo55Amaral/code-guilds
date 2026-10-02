@@ -40,8 +40,10 @@ export default function ShopItemEditor({
   /** Visuais que já estão à venda (em outros itens) — não dá pra repetir. */
   taken: ShopItem["cosmetic"][];
   /** Devolve a mensagem de erro, ou null se salvou. */
-  onSave: (data: ShopItemData) => string | null;
-  onDelete?: () => void;
+  /** Salva na API; devolve a mensagem de erro, ou null se salvou. */
+  onSave: (data: ShopItemData) => Promise<string | null>;
+  /** Tira da Loja na API; devolve a mensagem de erro, ou null. */
+  onDelete?: () => Promise<string | null>;
   onClose: () => void;
 }) {
   const firstFree = COSMETIC_CATALOG.find((o) => !taken.some((t) => sameCosmetic(t, o))) ?? COSMETIC_CATALOG[0];
@@ -65,6 +67,7 @@ export default function ShopItemEditor({
   const [xp, setXp] = useState(existing?.xp ?? 0);
   const [featured, setFeatured] = useState(existing?.featured ?? false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   function pickCosmetic(option: CosmeticOption) {
@@ -83,8 +86,19 @@ export default function ShopItemEditor({
     setKind(k);
   }
 
-  function handleSave() {
-    const problem = onSave({
+  async function handleDelete() {
+    if (!onDelete || busy) return;
+    setBusy(true);
+    const problem = await onDelete();
+    setBusy(false);
+    setError(problem);
+    setConfirmDelete(false);
+  }
+
+  async function handleSave() {
+    if (busy) return;
+    setBusy(true);
+    const problem = await onSave({
       name,
       icon: icon.trim() || "🎁",
       description: description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
@@ -101,6 +115,7 @@ export default function ShopItemEditor({
         collection: kind === "visual" ? cosmetic.collection : existing?.collection,
       }),
     });
+    setBusy(false);
     setError(problem);
   }
 
@@ -329,7 +344,7 @@ export default function ShopItemEditor({
           {onDelete ? (
             <button
               type="button"
-              onClick={() => (confirmDelete ? onDelete() : setConfirmDelete(true))}
+              onClick={() => (confirmDelete ? handleDelete() : setConfirmDelete(true))}
               onBlur={() => setConfirmDelete(false)}
               className={`rounded-full border px-4 py-2 text-xs font-medium transition-colors ${
                 confirmDelete ? "border-rose-400 bg-rose-400/20 text-rose-200" : "border-rose-500/30 bg-rose-500/5 text-rose-300 hover:bg-rose-500/10"
@@ -340,8 +355,8 @@ export default function ShopItemEditor({
           ) : (
             <span />
           )}
-          <button onClick={handleSave} className="cg-btn-primary">
-            {existing ? "Salvar alterações" : forSale ? "Colocar à venda" : "Criar item"}
+          <button onClick={handleSave} disabled={busy} className="cg-btn-primary disabled:opacity-50">
+            {busy ? "Salvando…" : existing ? "Salvar alterações" : forSale ? "Colocar à venda" : "Criar item"}
           </button>
         </div>
       </div>

@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { SUBMISSION_FILE_TYPES } from "@/engine/missions";
-import { SUBMISSION_STATUS_META, Submission, SubmissionFile, SubmissionStatus } from "@/engine/submissions";
-import { downloadFile, formatFileSize } from "@/engine/fileStore";
+import { SUBMISSION_STATUS_META, Submission, SubmissionFile, SubmissionStatus, formatFileSize } from "@/engine/submissions";
+import { downloadSubmissionFile } from "@/engine/submissionsApi";
 
 // ============================================================================
 // PEÇAS DAS ENTREGAS — usadas pelo aluno (janela da entrega) e pelo professor
@@ -16,15 +15,9 @@ export function SubmissionStatusBadge({ status }: { status: SubmissionStatus }) 
   return <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${meta.className}`}>{meta.label}</span>;
 }
 
-/** Arquivos da entrega, cada um com o botão de baixar (o arquivo vem do IndexedDB deste navegador). */
+/** Arquivos da entrega, cada um com o botão de baixar (o arquivo vem da API, de qualquer computador). */
 export function SubmissionFileList({ files }: { files: SubmissionFile[] }) {
-  const [missing, setMissing] = useState<string | null>(null);
   if (files.length === 0) return null;
-
-  async function download(f: SubmissionFile) {
-    const ok = await downloadFile(f.id, f.name).catch(() => false);
-    setMissing(ok ? null : f.name);
-  }
 
   return (
     <div className="flex flex-col gap-1.5">
@@ -37,12 +30,14 @@ export function SubmissionFileList({ files }: { files: SubmissionFile[] }) {
               {SUBMISSION_FILE_TYPES[f.kind]?.label ?? "Arquivo"} • {formatFileSize(f.size)}
             </span>
           </span>
-          <button onClick={() => download(f)} className="shrink-0 rounded-lg border border-slate-600 px-2.5 py-1 text-xs font-semibold text-slate-200 transition-colors hover:border-slate-400">
+          <button
+            onClick={() => downloadSubmissionFile(f.id)}
+            className="shrink-0 rounded-lg border border-slate-600 px-2.5 py-1 text-xs font-semibold text-slate-200 transition-colors hover:border-slate-400"
+          >
             ⬇ Baixar
           </button>
         </div>
       ))}
-      {missing && <p className="text-[11px] text-rose-300">Não achei o arquivo &quot;{missing}&quot; neste navegador (ele fica salvo só no computador onde foi enviado).</p>}
     </div>
   );
 }

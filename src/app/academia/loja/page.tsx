@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useStudents, useShop } from "@/engine/store";
+import { useStudents, useShop, useGameActions } from "@/engine/store";
 import { ShopItem } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
 import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "@/components/collections";
-import { Student, equipItem, freeSlots, getStudent, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
+import { Student, freeSlots, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "@/components/Avatar";
 import { CoinIcon, RarityBadge } from "@/components/GameUI";
@@ -67,8 +67,10 @@ function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: nu
 }
 
 export default function LojaPage() {
-  const { activeStudent, patchActive } = useStudents();
+  const { activeStudent } = useStudents();
   const { items: allItems, ready, buy } = useShop();
+  const { equipCosmetic } = useGameActions();
+  const [busy, setBusy] = useState(false);
   // Itens "fora da vitrine" só o ADM dá (presente ou recompensa de missão): não aparecem aqui.
   const items = allItems.filter((i) => !i.hidden);
   const [tab, setTab] = useState<Tab>("todos");
@@ -104,9 +106,12 @@ export default function LojaPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function confirmBuy() {
-    if (!confirming) return;
-    const result = buy(me.id, confirming.id);
+  // A compra é decidida pela API (moedas, espaço e visual repetido)
+  async function confirmBuy() {
+    if (!confirming || busy) return;
+    setBusy(true);
+    const result = await buy(confirming);
+    setBusy(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -119,9 +124,7 @@ export default function LojaPage() {
 
   function equipNow() {
     if (!bought) return;
-    // relê o aluno já com o item comprado (o estado da tela ainda pode estar um passo atrás)
-    const fresh = getStudent(me.id);
-    if (fresh) patchActive({ equipped: equipItem(fresh, bought.inventoryId).equipped });
+    void equipCosmetic(bought.inventoryId);
     setBought(null);
   }
 

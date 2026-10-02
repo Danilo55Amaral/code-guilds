@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMessages } from "@/engine/store";
+import { useInboxPolling, useMessages } from "@/engine/store";
 import { formatMessageDate } from "@/engine/messages";
 import { MessageAudienceBadge, MessageKindBadge } from "./GameUI";
 
@@ -13,6 +13,8 @@ const MESSAGES_HREF = "/academia/casa/mensagens";
 export default function NotificationBell({ studentId }: { studentId: string }) {
   const router = useRouter();
   const { messages, unreadCount, markRead, markAllRead } = useMessages(studentId);
+  // O sininho pergunta à API se chegou mensagem nova a cada 20s (com a aba visível)
+  useInboxPolling();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 

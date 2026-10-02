@@ -5,7 +5,7 @@ import { Mission } from "@/engine/missions";
 import { Student, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import { FEEDBACK_MAX, Submission } from "@/engine/submissions";
-import { useSubmissions } from "@/engine/store";
+import { useInboxPolling, useSubmissions } from "@/engine/store";
 import Avatar from "./Avatar";
 import { CoinIcon } from "./GameUI";
 import { PaginationFooter, usePagination } from "./Pagination";
@@ -22,26 +22,20 @@ const PER_PAGE = 5;
 
 type Tab = "pendentes" | "corrigidas";
 
-function ReviewCard({
-  submission,
-  student,
-  mission,
-  reviewerName,
-}: {
-  submission: Submission;
-  student: Student | undefined;
-  mission: Mission | undefined;
-  reviewerName: string;
-}) {
+function ReviewCard({ submission, student, mission }: { submission: Submission; student: Student | undefined; mission: Mission | undefined }) {
   const { review } = useSubmissions();
   const [feedback, setFeedback] = useState("");
   const [error, setError] = useState<string | null>(null);
+  // Aprovar fala com a API (que dá a recompensa): um clique por vez
+  const [busy, setBusy] = useState(false);
   const house = student?.houseId ? getHouse(student.houseId) : null;
   const pending = submission.status === "pendente";
 
-  function decide(decision: "aprovada" | "refazer") {
-    if (!mission) return;
-    const result = review(submission.id, decision, feedback, mission, reviewerName);
+  async function decide(decision: "aprovada" | "refazer") {
+    if (!mission || busy) return;
+    setBusy(true);
+    const result = await review(submission.id, decision, feedback);
+    setBusy(false);
     setError(result.ok ? null : result.error);
   }
 
@@ -97,17 +91,17 @@ function ReviewCard({
           <div className="mt-3 flex flex-wrap justify-end gap-2">
             <button
               onClick={() => decide("refazer")}
-              disabled={!mission}
+              disabled={!mission || busy}
               className="rounded-full border border-rose-400/60 bg-rose-500/10 px-4 py-2 text-xs font-bold text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-40"
             >
               ↩ Pedir pra refazer
             </button>
             <button
               onClick={() => decide("aprovada")}
-              disabled={!mission || !student}
+              disabled={!mission || !student || busy}
               className="rounded-full bg-emerald-500 px-4 py-2 text-xs font-black text-cg-onaccent transition-transform hover:scale-[1.03] disabled:opacity-40"
             >
-              ✅ Aprovar e dar a recompensa
+              {busy ? "Salvando…" : "✅ Aprovar e dar a recompensa"}
             </button>
           </div>
         </div>
@@ -127,16 +121,16 @@ export default function SubmissionReviewer({
   submissions,
   students,
   missions,
-  reviewerName,
   headerRight,
 }: {
   /** As entregas que essa pessoa corrige (professor: das missões dele; ADM: todas ou as da turma escolhida). */
   submissions: Submission[];
   students: Student[];
   missions: Mission[];
-  reviewerName: string;
   headerRight?: React.ReactNode;
 }) {
+  // Entregas novas chegam sem recarregar o painel (a API é consultada a cada 20s)
+  useInboxPolling();
   const [tab, setTab] = useState<Tab>("pendentes");
   const pending = submissions.filter((s) => s.status === "pendente").sort((a, b) => a.submittedAt.localeCompare(b.submittedAt));
   const reviewed = submissions.filter((s) => s.status !== "pendente").sort((a, b) => (b.reviewedAt ?? "").localeCompare(a.reviewedAt ?? ""));
@@ -185,7 +179,6 @@ export default function SubmissionReviewer({
               submission={s}
               student={students.find((st) => st.id === s.studentId)}
               mission={missions.find((m) => m.id === s.missionId)}
-              reviewerName={reviewerName}
             />
           ))}
         </div>

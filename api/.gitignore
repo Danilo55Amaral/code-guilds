@@ -1,0 +1,11 @@
+# Dependências
+node_modules
+
+# Build de produção
+build
+
+# Enviroment
+.env
+
+# Arquivos das entregas guardados localmente (STORAGE_DRIVER=local)
+uploads

@@ -27,7 +27,14 @@ function dataOf(item: ShopItem): ShopItemData {
  * de vários itens numa tabela, salvando tudo de uma vez. Dá pra filtrar por
  * coleção, buscar e ajustar o preço dos itens filtrados em % (promoção).
  */
-export default function ShopQuickEdit({ items, onSave }: { items: ShopItem[]; onSave: (changes: { id: string; data: ShopItemData }[]) => void }) {
+export default function ShopQuickEdit({
+  items,
+  onSave,
+}: {
+  items: ShopItem[];
+  /** Salva as alterações na API; devolve a mensagem de erro (a primeira que der), ou null. */
+  onSave: (changes: { id: string; data: ShopItemData }[]) => Promise<string | null>;
+}) {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("todos");
@@ -64,11 +71,12 @@ export default function ShopQuickEdit({ items, onSave }: { items: ShopItem[]; on
     });
   }
 
-  function save() {
-    onSave(changed.map((item) => ({ id: item.id, data: { ...dataOf(item), ...current(item), price: Math.max(1, current(item).price) } })));
-    setSaved(`✓ ${changed.length} ${changed.length === 1 ? "item atualizado" : "itens atualizados"} na Loja.`);
+  async function save() {
+    const count = changed.length;
+    const error = await onSave(changed.map((item) => ({ id: item.id, data: { ...dataOf(item), ...current(item), price: Math.max(1, current(item).price) } })));
+    setSaved(error ? `⚠️ ${error}` : `✓ ${count} ${count === 1 ? "item atualizado" : "itens atualizados"} na Loja.`);
     setTimeout(() => setSaved(null), 3500);
-    setDrafts({});
+    if (!error) setDrafts({});
   }
 
   const inputClass = "w-20 rounded-lg border border-slate-700 bg-cg-sunken px-2 py-1 text-xs text-slate-100 focus:border-slate-400 focus:outline-none disabled:opacity-40";

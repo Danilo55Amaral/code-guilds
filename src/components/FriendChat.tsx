@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { getHouse } from "@/engine/houses";
 import { Student, wornAvatar } from "@/engine/students";
 import { CHAT_PHRASE_GROUPS, ChatMessage, getPhrase } from "@/engine/friends";
+import { CHAT_POLL_MS } from "@/engine/messagesApi";
+import { useInboxPolling } from "@/engine/store";
 import Avatar from "./Avatar";
 
 // ============================================================================
@@ -60,7 +62,7 @@ export default function FriendChat({
   me: Student;
   friend: Student;
   conversation: ChatMessage[];
-  onSend: (phraseId: string) => { ok: true } | { ok: false; error: string };
+  onSend: (phraseId: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   onMarkRead: () => void;
   onOpenProfile: () => void;
 }) {
@@ -69,6 +71,9 @@ export default function FriendChat({
   const [coolingDown, setCoolingDown] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const historyRef = useRef<HTMLDivElement>(null);
+
+  // Conversa aberta: os balões do amigo chegam rápido (a API é consultada a cada 4s)
+  useInboxPolling(CHAT_POLL_MS);
 
   const group = CHAT_PHRASE_GROUPS.find((g) => g.id === groupId) ?? CHAT_PHRASE_GROUPS[0];
   const selected = selectedId ? getPhrase(selectedId) : undefined;
@@ -86,16 +91,17 @@ export default function FriendChat({
     if (el) el.scrollTop = el.scrollHeight;
   }, [conversation.length, friend.id]);
 
-  function send(phraseId: string) {
+  async function send(phraseId: string) {
     if (coolingDown) return;
-    const result = onSend(phraseId);
+    setCoolingDown(true);
+    const result = await onSend(phraseId);
     if (!result.ok) {
       setError(result.error);
+      setCoolingDown(false);
       return;
     }
     setError(null);
     setSelectedId(null);
-    setCoolingDown(true);
     window.setTimeout(() => setCoolingDown(false), SEND_COOLDOWN_MS);
   }
 

@@ -13,24 +13,35 @@ type Target = "turma" | HouseId;
 
 const HISTORY_PER_PAGE = 5;
 
-/** Card do painel do professor: envia um comunicado pra turma toda (os alunos dele) ou pra uma casa. */
-export default function BroadcastComposer({ students, senderId }: { students: Student[]; senderId: string }) {
-  const { broadcasts, broadcast } = useBroadcasts(senderId);
+/**
+ * Card do painel do professor: envia um comunicado pra turma toda (os alunos
+ * dele) ou pra uma casa. A API escolhe os alunos e grava uma cópia pra cada
+ * um; o histórico (com quantos leram) também vem da API.
+ */
+export default function BroadcastComposer({ students }: { students: Student[] }) {
+  const { broadcasts, broadcast } = useBroadcasts();
   const [target, setTarget] = useState<Target>("turma");
   const [kind, setKind] = useState<MessageKind>("aviso");
   const [body, setBody] = useState("");
-  const [sentMsg, setSentMsg] = useState<string | null>(null);
+  const [sentMsg, setSentMsg] = useState<{ text: string; tone: "ok" | "erro" } | null>(null);
+  const [sending, setSending] = useState(false);
   const pager = usePagination(broadcasts, HISTORY_PER_PAGE);
 
   const recipients = target === "turma" ? students : students.filter((s) => s.houseId === target);
 
-  function handleSend() {
+  async function handleSend() {
     const text = body.trim();
-    if (!text || recipients.length === 0) return;
+    if (!text || recipients.length === 0 || sending) return;
     const audience = target === "turma" ? ({ type: "turma" } as const) : ({ type: "casa", houseId: target } as const);
-    broadcast({ studentIds: recipients.map((s) => s.id), audience, kind, body: text });
-    const n = recipients.length;
-    setSentMsg(`${MESSAGE_KIND_META[kind].icon} Enviado para ${audienceLabel(audience)} (${n} ${n === 1 ? "aluno" : "alunos"}).`);
+    setSending(true);
+    const result = await broadcast({ audience, kind, body: text });
+    setSending(false);
+    if (!result.ok) {
+      setSentMsg({ text: result.error, tone: "erro" });
+      return;
+    }
+    const n = result.sent;
+    setSentMsg({ text: `${MESSAGE_KIND_META[kind].icon} Enviado para ${audienceLabel(audience)} (${n} ${n === 1 ? "aluno" : "alunos"}).`, tone: "ok" });
     setTimeout(() => setSentMsg(null), 3000);
     setBody("");
   }
@@ -91,14 +102,22 @@ export default function BroadcastComposer({ students, senderId }: { students: St
         </span>
         <button
           onClick={handleSend}
-          disabled={!body.trim() || recipients.length === 0}
+          disabled={!body.trim() || recipients.length === 0 || sending}
           className="cg-btn-primary !px-4 !py-2 text-sm disabled:cursor-not-allowed disabled:opacity-30"
         >
-          Enviar para {recipients.length} {recipients.length === 1 ? "aluno" : "alunos"}
+          {sending ? "Enviando…" : `Enviar para ${recipients.length} ${recipients.length === 1 ? "aluno" : "alunos"}`}
         </button>
       </div>
 
-      {sentMsg && <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">{sentMsg}</p>}
+      {sentMsg && (
+        <p
+          className={`mt-3 rounded-xl border px-4 py-3 text-xs ${
+            sentMsg.tone === "ok" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200" : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+          }`}
+        >
+          {sentMsg.text}
+        </p>
+      )}
 
       {broadcasts.length > 0 && (
         <div className="mt-5 border-t border-slate-800 pt-4">

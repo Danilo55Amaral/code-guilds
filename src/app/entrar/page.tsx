@@ -52,6 +52,8 @@ export default function EntrarPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("entrar");
   const [error, setError] = useState<string | null>(null);
+  // Esperando a resposta do servidor (o botão fica travado)
+  const [busy, setBusy] = useState(false);
 
   // entrar
   const [loginUser, setLoginUser] = useState("");
@@ -71,9 +73,11 @@ export default function EntrarPage() {
     setError(null);
   }
 
-  function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    const result = login(loginUser, loginPass);
+    setBusy(true);
+    const result = await login(loginUser, loginPass);
+    setBusy(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -81,13 +85,14 @@ export default function EntrarPage() {
     router.push(nextRoute(result.student));
   }
 
-  function handleSignUp(e: React.FormEvent) {
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim() || !email.trim() || !turma.trim()) return;
     if (!teachers.some((t) => t.id === teacherId)) {
       setError("Escolha o seu professor.");
       return;
     }
+    // O login repetido quem confere é o servidor; aqui só o formato
     const problem = validateCredentials(username, password);
     if (problem) {
       setError(problem);
@@ -97,7 +102,13 @@ export default function EntrarPage() {
       setError("As senhas não conferem.");
       return;
     }
-    signUp({ name, email, turma, username, password, teacherId });
+    setBusy(true);
+    const result = await signUp({ name: name.trim(), email: email.trim(), turma: turma.trim(), username, password, teacherId });
+    setBusy(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
     router.push("/casa-selecao");
   }
 
@@ -159,8 +170,8 @@ export default function EntrarPage() {
               <Label>Senha</Label>
               <PasswordInput value={loginPass} onChange={setLoginPass} placeholder="••••••" />
             </div>
-            <button type="submit" className="cg-btn-primary mt-2 w-full">
-              Entrar na Academia →
+            <button type="submit" disabled={busy} className="cg-btn-primary mt-2 w-full disabled:cursor-wait disabled:opacity-60">
+              {busy ? "Entrando…" : "Entrar na Academia →"}
             </button>
             <p className="text-center text-xs text-slate-500">
               Ainda não tem conta?{" "}
@@ -218,8 +229,8 @@ export default function EntrarPage() {
                 <PasswordInput value={confirm} onChange={setConfirm} placeholder="repita a senha" />
               </div>
             </div>
-            <button type="submit" className="cg-btn-primary mt-2 w-full">
-              Iniciar Jornada →
+            <button type="submit" disabled={busy} className="cg-btn-primary mt-2 w-full disabled:cursor-wait disabled:opacity-60">
+              {busy ? "Criando sua conta…" : "Iniciar Jornada →"}
             </button>
             <p className="text-center text-[11px] text-slate-600">Ao continuar, você aceita o juramento das 4 Casas</p>
           </form>

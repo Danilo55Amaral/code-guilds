@@ -1,0 +1,18 @@
+# Banco de dados PostgreSQL para desenvolvimento local.
+# A porta 5433 (e não a padrão 5432) evita conflito com o container do SPE System.
+services:
+  codeguilds-db:
+    image: postgres:16-alpine
+    container_name: codeguilds-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codeguilds
+      POSTGRES_PASSWORD: codeguilds
+      POSTGRES_DB: codeguilds
+    ports:
+      - "5433:5432"
+    volumes:
+      - codeguilds-db-data:/var/lib/postgresql/data
+
+volumes:
+  codeguilds-db-data:

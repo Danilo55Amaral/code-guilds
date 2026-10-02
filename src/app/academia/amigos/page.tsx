@@ -46,6 +46,9 @@ export default function AmigosPage() {
   const [tab, setTab] = useState<Tab>("amigos");
   const [chatWith, setChatWith] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
+  // Aceitar/recusar/cancelar falam com a API: um pedido por vez, e o erro aparece na lista
+  const [busy, setBusy] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   // Veio do perfil de um amigo ("💬 Conversar"): abre a conversa dele.
   useEffect(() => {
@@ -69,6 +72,14 @@ export default function AmigosPage() {
     .sort((a, b) => (friends.unreadByFriend[b.id] ?? 0) - (friends.unreadByFriend[a.id] ?? 0) || a.name.localeCompare(b.name, "pt-BR"));
   const chatFriend = friendList.find((s) => s.id === chatWith) ?? null;
   const profile = profileId ? byId(profileId) : undefined;
+
+  async function run(action: () => Promise<{ ok: true } | { ok: false; error: string }>) {
+    if (busy) return;
+    setBusy(true);
+    const result = await action();
+    setBusy(false);
+    setLinkError(result.ok ? null : result.error);
+  }
 
   return (
     <div>
@@ -153,10 +164,18 @@ export default function AmigosPage() {
                         <div key={link.id} className="rounded-xl border border-pink-500/30 bg-pink-500/5 p-2">
                           <StudentRow student={s} onClick={() => setProfileId(s.id)} />
                           <div className="mt-2 flex gap-2">
-                            <button onClick={() => friends.accept(link)} className="flex-1 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-black text-cg-onaccent">
+                            <button
+                              onClick={() => run(() => friends.accept(link))}
+                              disabled={busy}
+                              className="flex-1 rounded-full bg-emerald-500 px-3 py-1.5 text-xs font-black text-cg-onaccent disabled:opacity-50"
+                            >
                               ✅ Aceitar
                             </button>
-                            <button onClick={() => friends.dismiss(link)} className="flex-1 rounded-full border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-400">
+                            <button
+                              onClick={() => run(() => friends.dismiss(link))}
+                              disabled={busy}
+                              className="flex-1 rounded-full border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-300 hover:border-slate-400 disabled:opacity-50"
+                            >
                               Recusar
                             </button>
                           </div>
@@ -180,7 +199,7 @@ export default function AmigosPage() {
                           key={link.id}
                           student={s}
                           right={
-                            <button onClick={() => friends.dismiss(link)} className="shrink-0 text-[11px] text-slate-400 underline hover:text-white">
+                            <button onClick={() => run(() => friends.dismiss(link))} disabled={busy} className="shrink-0 text-[11px] text-slate-400 underline hover:text-white">
                               ⏳ Cancelar
                             </button>
                           }
@@ -190,6 +209,7 @@ export default function AmigosPage() {
                   </div>
                 )}
               </div>
+              {linkError && <p className="text-xs text-rose-300">{linkError}</p>}
             </div>
           )}
         </div>

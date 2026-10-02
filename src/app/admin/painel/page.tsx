@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useShop, useEventRuns, useGifts, useSubmissions, useGameActions } from "@/engine/store";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
-import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
 import { Teacher, validateTeacher } from "@/engine/teachers";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
@@ -22,7 +22,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import ShopManager from "@/components/ShopManager";
 import EventMissionsManager from "@/components/EventMissionsManager";
 import { eventMissionItemKey, resolveEventItem } from "@/engine/eventItems";
-import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, missingPresets } from "@/engine/specialEvents";
+import { EventId, eventMissionFields, eventMissionLabel, getEvent, missingPresets } from "@/engine/specialEvents";
 
 type Tab = "professores" | "alunos" | "missoes" | "entregas" | "eventos" | "loja";
 
@@ -33,7 +33,8 @@ const ALL_TEACHERS = "todos";
 export default function PainelAdminPage() {
   const router = useRouter();
   const { teachers, currentTeacher, ready: teachersReady, logout, addTeacher, editTeacher, deleteTeacher } = useTeachers();
-  const { students, ready, patchStudent, deleteStudent } = useStudents();
+  const { students, ready, updateAccount, setPassword, deleteStudent } = useStudents();
+  const { removeStudentItem } = useGameActions();
   const { missions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { items: shopItems } = useShop();
   const { give } = useGifts();
@@ -82,21 +83,24 @@ export default function PainelAdminPage() {
 
   // ---- professores ----
 
-  function handleSaveTeacher(data: { name: string; email: string; password: string }): string | null {
+  // Cadastro, edição e exclusão acontecem na API; o editor mostra o erro que voltar.
+  async function handleSaveTeacher(data: { name: string; email: string; password: string }): Promise<string | null> {
     const existing = teacherTarget && teacherTarget !== "new" ? teacherTarget : null;
-    const error = validateTeacher(data, existing?.id);
+    const error = validateTeacher(data, !!existing);
     if (error) return error;
-    if (existing) editTeacher(existing.id, data);
-    else addTeacher(data);
+    const apiError = existing ? await editTeacher(existing.id, data) : await addTeacher(data);
+    if (apiError) return apiError;
     setTeacherTarget(null);
     return null;
   }
 
-  function handleDeleteTeacher(heirId: string) {
-    if (!teacherTarget || teacherTarget === "new") return;
-    deleteTeacher(teacherTarget.id, heirId);
+  async function handleDeleteTeacher(heirId: string): Promise<string | null> {
+    if (!teacherTarget || teacherTarget === "new") return null;
+    const error = await deleteTeacher(teacherTarget.id, heirId);
+    if (error) return error;
     if (teacherFilter === teacherTarget.id) setTeacherFilter(ALL_TEACHERS);
     setTeacherTarget(null);
+    return null;
   }
 
   // ---- missões ----
@@ -107,19 +111,25 @@ export default function PainelAdminPage() {
     setNewKind("quiz");
   }
 
-  function handleSaveMission(data: MissionContent, teacherId?: string) {
+  // Salvar e excluir falam com a API; se ela recusar, o editor continua aberto mostrando o erro.
+  async function handleSaveMission(data: MissionContent, teacherId?: string): Promise<string | null> {
     const owner = teacherId ?? admin.id;
-    if (editorTarget && editorTarget !== "new") {
-      editMission(editorTarget.id, { ...data, teacherId: owner });
-    } else {
-      addMission({ ...data, teacherId: owner, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
-    }
+    const error =
+      editorTarget && editorTarget !== "new"
+        ? await editMission(editorTarget.id, { ...data, teacherId: owner })
+        : await addMission({ ...data, teacherId: owner, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
+    if (error) return error;
     closeEditor();
+    return null;
   }
 
-  function handleDeleteMission() {
-    if (editorTarget && editorTarget !== "new") removeMission(editorTarget.id);
+  async function handleDeleteMission(): Promise<string | null> {
+    if (editorTarget && editorTarget !== "new") {
+      const error = await removeMission(editorTarget.id);
+      if (error) return error;
+    }
     closeEditor();
+    return null;
   }
 
   // ---- eventos (do professor escolhido na aba Eventos) ----
@@ -142,52 +152,64 @@ export default function PainelAdminPage() {
   // ---- alunos ----
 
   /** Doa um item da Loja (igualzinho ao da Loja, inclusive se for visual pra equipar) — só o ADM faz isso. */
-  function handleGrantItem(item: GiftItem) {
-    if (!selectedStudent) return;
-    // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
-    give([selectedStudent.id], item, { id: admin.id, name: admin.name, role: "adm" });
+  // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
+  async function handleGrantItem(item: GiftItem): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const result = await give([selectedStudent.id], item);
+    return result.ok ? null : result.error;
   }
 
+  // O item sai no servidor; a ficha acompanha pelo cache
   function handleRemoveItem(itemId: string) {
     if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { inventory: removeItem(selectedStudent, itemId).inventory });
+    void removeStudentItem(selectedStudent.id, itemId);
   }
 
-  function handleSendMessage(data: { kind: MessageKind; body: string }) {
-    if (!selectedStudent) return;
-    sendMessage({ studentId: selectedStudent.id, senderId: admin.id, ...data });
+  // A mensagem vai pela API; devolve o erro (ou null) pra ficha mostrar
+  async function handleSendMessage(data: { kind: MessageKind; body: string }): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return sendMessage({ studentId: selectedStudent.id, ...data });
   }
 
-  function handleUpdateProfile(profile: StudentProfile): string | null {
+  // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
+  // devolve a mensagem de erro (ou null) pra ficha do aluno mostrar.
+
+  async function handleUpdateProfile(profile: StudentProfile): Promise<string | null> {
     if (!selectedStudent) return null;
     const error = validateStudentProfile(profile);
     if (error) return error;
-    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
-    return null;
+    return updateAccount(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
   }
 
-  function handleChangeHouse(houseId: HouseId) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
-  }
-
-  function handleUpdateCredentials(username: string, password: string): string | null {
+  // Se o aluno ainda estava escolhendo a casa, a API já o passa pra etapa do avatar
+  async function handleChangeHouse(houseId: HouseId): Promise<string | null> {
     if (!selectedStudent) return null;
-    const error = validateCredentials(username, password, selectedStudent.id);
+    return updateAccount(selectedStudent.id, { houseId });
+  }
+
+  // Senha em branco = mantém a atual (só vale se o aluno já tem senha)
+  async function handleUpdateCredentials(username: string, password: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = validateCredentials(username, password, selectedStudent.hasPassword);
     if (error) return error;
-    patchStudent(selectedStudent.id, { username: normalizeUsername(username), password });
-    return null;
+    const login = normalizeUsername(username);
+    if (login !== selectedStudent.username) {
+      const loginError = await updateAccount(selectedStudent.id, { username: login });
+      if (loginError) return loginError;
+    }
+    return password ? setPassword(selectedStudent.id, password) : null;
   }
 
-  function handleChangeTeacher(teacherId: string) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { teacherId });
+  async function handleChangeTeacher(teacherId: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return updateAccount(selectedStudent.id, { teacherId });
   }
 
-  function handleDeleteStudent() {
-    if (!selectedStudent) return;
-    deleteStudent(selectedStudent.id);
-    setSelectedStudentId(null);
+  async function handleDeleteStudent(): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = await deleteStudent(selectedStudent.id);
+    if (!error) setSelectedStudentId(null);
+    return error;
   }
 
   function handleLogout() {
@@ -283,7 +305,6 @@ export default function PainelAdminPage() {
         <GiftComposer
           key={`presentes-${teacherFilter}`}
           students={visibleStudents}
-          giver={{ id: admin.id, name: admin.name, role: "adm" }}
           shopItems={shopItems}
           missions={missions}
           isAdmin
@@ -311,7 +332,6 @@ export default function PainelAdminPage() {
           submissions={teacherFilter === ALL_TEACHERS ? submissions : submissions.filter((s) => s.teacherId === teacherFilter)}
           students={students}
           missions={missions}
-          reviewerName={`ADM ${admin.name}`}
           headerRight={teacherFilterSelect}
         />
       )}
@@ -357,7 +377,7 @@ export default function PainelAdminPage() {
           ranking={{ students, missions }}
           onStart={(eventId) => startEvent(eventTeacher, eventId)}
           onEnd={(eventId) => endEvent(eventTeacher, eventId)}
-          onReleasePhase={(eventId) => releasePhase(eventTeacher, eventId, eventPhases(getEvent(eventId)!).length)}
+          onReleasePhase={(eventId) => releasePhase(eventTeacher, eventId)}
           onEdit={setEditorTarget}
           onCreate={createEventMission}
           onAssign={(missionId, eventId, phase) => editMission(missionId, eventMissionFields(eventId, phase))}

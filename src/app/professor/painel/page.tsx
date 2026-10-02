@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useShop, useGifts, useSubmissions, useTeacherMessages } from "@/engine/store";
+import { useStudents, useMissions, useMessages, useTeachers, useEventRuns, useShop, useGifts, useSubmissions, useTeacherMessages, useGameActions } from "@/engine/store";
 import StudentMessagesInbox from "@/components/StudentMessagesInbox";
 import SubmissionReviewer from "@/components/SubmissionReviewer";
 import { Mission, MissionContent, MissionKind } from "@/engine/missions";
-import { removeItem, validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile, houseChangePatch } from "@/engine/students";
+import { validateCredentials, normalizeUsername, validateStudentProfile, StudentProfile } from "@/engine/students";
 import { MessageKind } from "@/engine/messages";
 import { HOUSES, HouseId } from "@/engine/houses";
 import MissionEditor from "@/components/MissionEditor";
@@ -22,12 +22,13 @@ import TutorialModal from "@/components/TutorialModal";
 import ThemeToggle from "@/components/ThemeToggle";
 import { teacherTutorial } from "@/engine/tutorial";
 import { eventMissionItemKey, resolveEventItem } from "@/engine/eventItems";
-import { EventId, eventMissionFields, eventMissionLabel, eventPhases, getEvent, missingPresets } from "@/engine/specialEvents";
+import { EventId, eventMissionFields, eventMissionLabel, getEvent, missingPresets } from "@/engine/specialEvents";
 
 export default function PainelProfessorPage() {
   const router = useRouter();
   const { currentTeacher, ready: teachersReady, logout: teacherLogout, finishTutorial } = useTeachers();
-  const { students: allStudents, ready, patchStudent, deleteStudent } = useStudents();
+  const { students: allStudents, ready, updateAccount, setPassword, deleteStudent } = useStudents();
+  const { removeStudentItem } = useGameActions();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
   const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
   const { items: shopItems } = useShop();
@@ -71,20 +72,24 @@ export default function PainelProfessorPage() {
     setNewKind("quiz");
   }
 
-  function handleSave(data: MissionContent) {
-    if (editorTarget && editorTarget !== "new") {
-      editMission(editorTarget.id, data);
-    } else {
-      addMission({ ...data, teacherId: teacher.id, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
-    }
+  // Salvar e excluir falam com a API; se ela recusar, o editor continua aberto mostrando o erro.
+  async function handleSave(data: MissionContent): Promise<string | null> {
+    const error =
+      editorTarget && editorTarget !== "new"
+        ? await editMission(editorTarget.id, data)
+        : await addMission({ ...data, teacherId: teacher.id, ...(newMissionEvent && eventMissionFields(newMissionEvent.eventId, newMissionEvent.phase)) });
+    if (error) return error;
     closeEditor();
+    return null;
   }
 
-  function handleDelete() {
+  async function handleDelete(): Promise<string | null> {
     if (editorTarget && editorTarget !== "new") {
-      removeMission(editorTarget.id);
+      const error = await removeMission(editorTarget.id);
+      if (error) return error;
     }
     closeEditor();
+    return null;
   }
 
   function createEventMission(eventId: EventId, phase: number) {
@@ -104,47 +109,59 @@ export default function PainelProfessorPage() {
 
   const selectedStudent = students.find((s) => s.id === selectedStudentId) ?? null;
 
-  function handleGrantItem(item: GiftItem) {
-    if (!selectedStudent) return;
-    // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
-    give([selectedStudent.id], item, { id: teacher.id, name: teacher.name, role: "professor" });
+  // sem espaço no inventário, o presente fica esperando espaço (nada se perde)
+  async function handleGrantItem(item: GiftItem): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const result = await give([selectedStudent.id], item);
+    return result.ok ? null : result.error;
   }
 
+  // O item sai no servidor; a ficha acompanha pelo cache
   function handleRemoveItem(itemId: string) {
     if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, { inventory: removeItem(selectedStudent, itemId).inventory });
+    void removeStudentItem(selectedStudent.id, itemId);
   }
 
-  function handleSendMessage(data: { kind: MessageKind; body: string }) {
-    if (!selectedStudent) return;
-    sendMessage({ studentId: selectedStudent.id, senderId: teacher.id, ...data });
+  // A mensagem vai pela API; devolve o erro (ou null) pra ficha mostrar
+  async function handleSendMessage(data: { kind: MessageKind; body: string }): Promise<string | null> {
+    if (!selectedStudent) return null;
+    return sendMessage({ studentId: selectedStudent.id, ...data });
   }
 
-  function handleUpdateProfile(profile: StudentProfile): string | null {
+  // A conta do aluno (dados, casa, login e senha) muda na API; cada handler
+  // devolve a mensagem de erro (ou null) pra ficha do aluno mostrar.
+
+  async function handleUpdateProfile(profile: StudentProfile): Promise<string | null> {
     if (!selectedStudent) return null;
     const error = validateStudentProfile(profile);
     if (error) return error;
-    patchStudent(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
-    return null;
+    return updateAccount(selectedStudent.id, { name: profile.name.trim(), email: profile.email.trim(), turma: profile.turma.trim() });
   }
 
-  function handleChangeHouse(houseId: HouseId) {
-    if (!selectedStudent) return;
-    patchStudent(selectedStudent.id, houseChangePatch(selectedStudent, houseId));
-  }
-
-  function handleUpdateCredentials(username: string, password: string): string | null {
+  // Se o aluno ainda estava escolhendo a casa, a API já o passa pra etapa do avatar
+  async function handleChangeHouse(houseId: HouseId): Promise<string | null> {
     if (!selectedStudent) return null;
-    const error = validateCredentials(username, password, selectedStudent.id);
-    if (error) return error;
-    patchStudent(selectedStudent.id, { username: normalizeUsername(username), password });
-    return null;
+    return updateAccount(selectedStudent.id, { houseId });
   }
 
-  function handleDeleteStudent() {
-    if (!selectedStudent) return;
-    deleteStudent(selectedStudent.id);
-    setSelectedStudentId(null);
+  // Senha em branco = mantém a atual (só vale se o aluno já tem senha)
+  async function handleUpdateCredentials(username: string, password: string): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = validateCredentials(username, password, selectedStudent.hasPassword);
+    if (error) return error;
+    const login = normalizeUsername(username);
+    if (login !== selectedStudent.username) {
+      const loginError = await updateAccount(selectedStudent.id, { username: login });
+      if (loginError) return loginError;
+    }
+    return password ? setPassword(selectedStudent.id, password) : null;
+  }
+
+  async function handleDeleteStudent(): Promise<string | null> {
+    if (!selectedStudent) return null;
+    const error = await deleteStudent(selectedStudent.id);
+    if (!error) setSelectedStudentId(null);
+    return error;
   }
 
   function closeTutorial() {
@@ -216,21 +233,18 @@ export default function PainelProfessorPage() {
         submissions={submissions.filter((s) => s.teacherId === teacher.id)}
         students={students}
         missions={missions}
-        reviewerName={`Professor ${teacher.name}`}
       />
 
       <StudentMessagesInbox
         messages={teacherMessages.filter((m) => m.teacherId === teacher.id)}
         students={students}
         missions={missions}
-        replier={{ id: teacher.id, name: `Professor ${teacher.name}` }}
       />
 
-      <BroadcastComposer students={students} senderId={teacher.id} />
+      <BroadcastComposer students={students} />
 
       <GiftComposer
         students={students}
-        giver={{ id: teacher.id, name: teacher.name, role: "professor" }}
         shopItems={shopItems}
         missions={missions}
         isAdmin={false}
@@ -269,7 +283,7 @@ export default function PainelProfessorPage() {
         ranking={{ students, missions }}
         onStart={(eventId) => startEvent(teacher.id, eventId)}
         onEnd={(eventId) => endEvent(teacher.id, eventId)}
-          onReleasePhase={(eventId) => releasePhase(teacher.id, eventId, eventPhases(getEvent(eventId)!).length)}
+          onReleasePhase={(eventId) => releasePhase(teacher.id, eventId)}
         onEdit={setEditorTarget}
         onCreate={createEventMission}
         onAssign={(missionId, eventId, phase) => editMission(missionId, eventMissionFields(eventId, phase))}

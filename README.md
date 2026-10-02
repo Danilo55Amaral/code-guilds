@@ -11,6 +11,18 @@ npm run dev
 
 Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ainda não tem conta clica em "Criar conta" e passa por: cadastro → escolha de casa → criação de avatar → academia.
 
+## Back end (API)
+
+A API fica na pasta [`api/`](api/README.md): Fastify + Kysely + PostgreSQL (Docker em desenvolvimento, Neon em produção), com login seguro (senhas com Argon2, sessões em cookie `httpOnly`), permissões de aluno, professor e ADM e limite de tentativas de login. A documentação completa (como rodar, banco, migrations, rotas, deploy gratuito no Render) está em [`api/README.md`](api/README.md).
+
+- **Fase 1 (API)**: professores, alunos, login, sessões e permissões.
+- **Fase 2 (site usando a API)**: as contas saíram do localStorage. Login, cadastro, perfil do aluno (casa, avatar, primeiro acesso), professores e a gestão de alunos nos painéis falam com a API (`src/engine/accounts.ts` + `src/services/api.ts`).
+- **Fase 3 (o jogo no servidor)**: tudo que vale XP, moedas ou itens passou pra API, que confere e aplica cada regra: progresso do aluno, missões (o quiz é corrigido no servidor), Loja, inventário, presentes, amizades, Mercado, trocas, agenda e recompensas dos eventos, Chave do Multiverso e a recompensa das entregas aprovadas. A API importa as regras de `src/engine/` (uma regra só pro site e pro servidor); as chamadas ficam em `gameApi.ts`, `shopApi.ts`, `socialApi.ts` e `eventsApi.ts`, e os localStorage viraram cache do que a API devolve. Detalhes em [`api/README.md`](api/README.md#fase-3-o-jogo-no-servidor).
+- **Fase 4 (mensagens no servidor)**: o sininho, os comunicados, a conversa com balões e as mensagens pro professor vêm da API (`messagesApi.ts`), e a própria API cria as mensagens automáticas (missão, compra, venda, troca, presente, amizade, entrega) na mesma transação de cada ação. O site pergunta se chegou mensagem nova de tempos em tempos (`useInboxPolling`: 20 s no sininho, 4 s com uma conversa aberta). Detalhes em [`api/README.md`](api/README.md#fase-4-as-mensagens-no-servidor).
+- **Fase 5 (entregas no servidor)**: as entregas das missões de entrega ficam na API e os arquivos (até 25 MB) no Supabase Storage (numa pasta local da API em desenvolvimento). Como a Vercel recusa corpos acima de 4,5 MB, o navegador manda cada arquivo **direto** pro storage, com um endereço assinado que a API gera; o download passa pela API, que confere quem pode baixar (`submissionsApi.ts`). O professor corrige de qualquer computador, e o IndexedDB (`fileStore.ts`) saiu. Detalhes em [`api/README.md`](api/README.md#fase-5-as-entregas-no-servidor).
+- Pra rodar: API no ar (`npm run dev` em `api/`) e o `.env.local` do site com `API_URL=http://localhost:3333` (o `next.config.js` repassa `/api/*` pra ela). Detalhes em [`api/README.md`](api/README.md#fase-2-o-site-usando-a-api).
+- O trabalho do back end está na branch `feat/backend`; a `main` segue como a demonstração só com localStorage.
+
 ## Fluxo completo
 
 1. `/entrar` — tela de login com duas abas: **Entrar** (login + senha) e **Criar conta** (nome, e-mail, turma, **professor**, login, senha). Vários alunos podem ter conta no mesmo navegador
@@ -24,7 +36,7 @@ Abra http://localhost:3000 — toda entrada começa pela tela de login. Quem ain
 9. `/professor` → `/professor/painel` — login e painel do professor: cada professor só vê e altera os próprios alunos e as próprias missões
 10. `/admin` → `/admin/painel` — login e Painel ADM (mesmas credenciais do Professor Danilo): professores, alunos e missões de toda a plataforma
 
-**Login do Professor Danilo / ADM (demo):** `danilo@codeguilds.com` / `prof123`, ou o código mestre `KAIROIS2024` nos dois campos. Outros professores são cadastrados pelo ADM e entram com o e-mail e a senha definidos lá.
+**Login do ADM:** na branch `feat/backend` as contas são da API: o ADM é criado pelo `npm run seed` da pasta `api/` (e-mail e senha do `api/.env`) e não existe mais código mestre. Outros professores são cadastrados pelo ADM e entram com o e-mail e a senha definidos lá. (Na `main`, a versão só com localStorage, continua valendo `danilo@codeguilds.com` / `prof123` ou o código mestre `KAIROIS2024`.)
 
 ## Estrutura
 
@@ -41,10 +53,16 @@ src/
     avatar.ts       -> opções do avatar (10 tons de pele, 8 cores de olhos, 9 cabelos, 11 cores de cabelo, 4 expressões, 6 detalhes de rosto, 4 roupas, 8 cores de roupa, 7 óculos, 7 chapéus) + conversão de avatares salvos no formato antigo
     missionsStore.ts  -> CRUD de missões em localStorage (semeado com as 4 padrão)
     messages.ts       -> mensagens/avisos do professor pro aluno, com status de lida (localStorage)
-    market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar)
-    trades.ts         -> trocas de itens entre amigos (cg-trades): propor, aceitar, recusar, cancelar; os itens oferecidos ficam guardados na proposta
+    market.ts         -> ofertas de venda de itens entre alunos (item fica reservado até o colega comprar ou recusar). Na branch feat/backend: regras puras (usadas pela API) + cache cg-offers
+    trades.ts         -> trocas de itens entre amigos (cg-trades): propor, aceitar, recusar, cancelar; os itens oferecidos ficam guardados na proposta. Na branch feat/backend: regras puras (usadas pela API) + cache
+    gameApi.ts        -> (feat/backend) as ações do jogo pela API: inventário, quiz, compra, Mercado, trocas, presentes, eventos e aprovar entrega; o aluno que volta vai pro cache
+    socialApi.ts      -> (feat/backend) pedidos de amizade e amizades pela API
+    eventsApi.ts      -> (feat/backend) agenda dos eventos pela API (iniciar, liberar fase, encerrar)
+    shopApi.ts        -> (feat/backend) cadastro da Loja pelo ADM pela API (itens e coleções)
+    messagesApi.ts    -> (feat/backend) caixa do aluno, mensagens e comunicados do professor, mensagens pro professor e a atualização periódica da caixa
+    submissionsApi.ts -> (feat/backend) entregas: os 3 passos do envio (os arquivos vão direto pro storage), a correção e o download
     submissions.ts    -> entregas das missões de entrega (cg-submissions): enviar, corrigir (aprovar dá a recompensa; refazer volta com comentário), histórico de tentativas
-    fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar)
+    fileStore.ts      -> arquivos das entregas no IndexedDB do navegador (salvar, ler, baixar, apagar). Na branch feat/backend saiu: os arquivos vão pro Supabase Storage (submissionsApi.ts)
     multiverse.ts     -> Sala do Multiverso: os mundos dos portais, a Chave do Multiverso pronta, o passe de entrada do aluno (Student.multiverseAccess) e a viagem entre a sala e os mundos (startMultiverseVisit/isOnMultiverseVisit/endMultiverseVisit, só na memória da página)
     elderDragon.ts    -> Mundo 1: poses e medidas do desenho do Dragão Ancestral, os momentos da coreografia e as legendas
     teacherMessages.ts -> mensagens dos alunos pro professor (cg-teacher-messages): enviar, marcar como lida, responder (a resposta vai pra caixa de Mensagens do aluno)
@@ -285,7 +303,7 @@ public/
 
 ## O que ainda não existe (próximos passos sugeridos)
 
-- Persistência real (hoje é 100% localStorage, por dispositivo/navegador — sem backend, sem sincronização entre alunos/professor; uma missão criada pelo professor num navegador não aparece pros alunos em outro dispositivo)
+- Persistência real no site: na branch `feat/backend`, tudo já está na API (fases 1 a 5: contas, progresso, missões, Loja, amizades, Mercado, trocas, eventos, mensagens e entregas com os arquivos). Falta publicar (Render + Neon + Supabase, ver `api/README.md`) e juntar a branch na `main`
 - Mais missões/quizzes de exemplo
 - Autenticação real (o login de aluno e de professor aqui são simplificados: as senhas ficam em texto puro no localStorage, justamente pro professor conseguir ver — serve pra demonstração, não pra produção)
 

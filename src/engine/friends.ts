@@ -3,8 +3,8 @@
 // amigos. A conversa é só com balões prontos (CHAT_PHRASES): o aluno não
 // digita nada. Cada mensagem guarda apenas o id do balão, e a tela só mostra
 // balões que existem no catálogo, então nenhum texto livre aparece na
-// conversa, nem mexendo no localStorage.
-// Mesmo padrão de CRUD em localStorage dos outros engines.
+// conversa, nem mexendo no localStorage. A API (fase 4) também confere o
+// balão pelo catálogo antes de gravar: este arquivo não pode importar "@/".
 // ============================================================================
 
 // ---------------------------------------------------------------------------
@@ -283,7 +283,7 @@ export interface FriendLink {
   toId: string;
   status: "pendente" | "aceito";
   createdAt: string;
-  acceptedAt?: string;
+  acceptedAt?: string | null;
 }
 
 /** A situação entre o aluno logado e outro aluno. */
@@ -306,8 +306,28 @@ function write<T>(key: string, items: T[]) {
   window.localStorage.setItem(key, JSON.stringify(items));
 }
 
+// Desde a fase 3 do back end, os pedidos e as amizades são da API (tabela
+// friendships): aqui fica só o cache ("cg-friends") dos vínculos do aluno
+// logado. As chamadas (pedir, aceitar, recusar, desfazer) ficam em
+// engine/socialApi.ts.
+
 export function listFriendLinks(): FriendLink[] {
   return read<FriendLink>(FRIENDS_KEY);
+}
+
+/** Troca o cache pelos vínculos que a API devolveu. */
+export function saveFriendLinks(links: FriendLink[]) {
+  write(FRIENDS_KEY, links);
+}
+
+/** Um vínculo novo ou alterado (pedido, amizade aceita) que a API confirmou. */
+export function rememberFriendLink(link: FriendLink) {
+  write(FRIENDS_KEY, [...listFriendLinks().filter((l) => l.id !== link.id), link]);
+}
+
+/** Um vínculo que a API apagou (pedido recusado/cancelado, amizade desfeita). */
+export function forgetFriendLink(linkId: string) {
+  write(FRIENDS_KEY, listFriendLinks().filter((l) => l.id !== linkId));
 }
 
 function linkBetween(links: FriendLink[], a: string, b: string): FriendLink | undefined {
@@ -325,39 +345,8 @@ export function areFriends(a: string, b: string): boolean {
   return linkBetween(listFriendLinks(), a, b)?.status === "aceito";
 }
 
-export type FriendRequestResult = { ok: true; accepted: boolean } | { ok: false; error: string };
-
-/**
- * Manda um pedido de amizade. Se o outro aluno já tinha mandado um pedido pra
- * este, os dois viram amigos na hora (`accepted: true`).
- */
-export function sendFriendRequest(fromId: string, toId: string): FriendRequestResult {
-  if (fromId === toId) return { ok: false, error: "Você não pode mandar um pedido pra você mesmo." };
-  const links = listFriendLinks();
-  const existing = linkBetween(links, fromId, toId);
-  if (existing?.status === "aceito") return { ok: false, error: "Vocês já são amigos." };
-  if (existing && existing.fromId === fromId) return { ok: false, error: "Você já mandou um pedido pra esse aluno." };
-  if (existing) {
-    acceptFriendRequest(existing.id);
-    return { ok: true, accepted: true };
-  }
-  const link: FriendLink = { id: `f_${Date.now()}_${Math.round(Math.random() * 9999)}`, fromId, toId, status: "pendente", createdAt: new Date().toISOString() };
-  write(FRIENDS_KEY, [...links, link]);
-  return { ok: true, accepted: false };
-}
-
-export function acceptFriendRequest(linkId: string) {
-  write(FRIENDS_KEY, listFriendLinks().map((l) => (l.id === linkId ? { ...l, status: "aceito" as const, acceptedAt: new Date().toISOString() } : l)));
-}
-
-/** Recusar (quem recebeu) ou cancelar (quem mandou): o pedido some, e dá pra mandar outro depois. */
-export function deleteFriendRequest(linkId: string) {
-  write(FRIENDS_KEY, listFriendLinks().filter((l) => l.id !== linkId));
-}
-
-/** Desfaz a amizade e apaga a conversa dos dois. */
-export function removeFriend(a: string, b: string) {
-  write(FRIENDS_KEY, listFriendLinks().filter((l) => !((l.fromId === a && l.toId === b) || (l.fromId === b && l.toId === a))));
+/** Amizade desfeita: a conversa dos dois some deste navegador. */
+export function deleteChatBetween(a: string, b: string) {
   write(CHATS_KEY, listChatMessages().filter((m) => !isBetween(m, a, b)));
 }
 
@@ -398,25 +387,32 @@ export function conversationIn(all: ChatMessage[], a: string, b: string): ChatMe
 
 export type SendChatResult = { ok: true } | { ok: false; error: string };
 
-/** Manda um balão pro amigo. Só funciona entre amigos e só com balões do catálogo. */
-export function sendChatPhrase(fromId: string, toId: string, phraseId: string): SendChatResult {
-  if (!getPhrase(phraseId)) return { ok: false, error: "Esse balão não existe." };
-  if (!areFriends(fromId, toId)) return { ok: false, error: "Vocês precisam ser amigos pra conversar." };
-  const message: ChatMessage = { id: `c_${Date.now()}_${Math.round(Math.random() * 9999)}`, fromId, toId, phraseId, sentAt: new Date().toISOString(), readAt: null };
-  const all = [...listChatMessages(), message];
-  // Guarda só as últimas CHAT_HISTORY_LIMIT mensagens de cada conversa.
-  const conversation = all.filter((m) => isBetween(m, fromId, toId));
-  const tooOld = new Set(conversation.slice(0, Math.max(0, conversation.length - CHAT_HISTORY_LIMIT)).map((m) => m.id));
-  write(CHATS_KEY, all.filter((m) => !tooOld.has(m.id)));
-  return { ok: true };
+// Desde a fase 4 do back end, a conversa fica na API (tabela chat_messages):
+// aqui é o cache ("cg-chats") das conversas do aluno logado. Mandar um balão
+// e marcar como lida ficam em engine/socialApi.ts.
+
+/** Troca o cache pelas mensagens que a API devolveu. */
+export function saveChatMessages(messages: ChatMessage[]) {
+  write(CHATS_KEY, messages);
 }
 
-/** O aluno abriu a conversa: as mensagens que o amigo mandou ficam lidas. */
-export function markConversationRead(meId: string, friendId: string) {
-  const all = listChatMessages();
-  if (!all.some((m) => m.fromId === friendId && m.toId === meId && !m.readAt)) return;
+/** Um balão que a API confirmou. Guarda só as últimas CHAT_HISTORY_LIMIT mensagens de cada conversa. */
+export function rememberChatMessage(message: ChatMessage) {
+  const all = [...listChatMessages().filter((m) => m.id !== message.id), message];
+  const conversation = all.filter((m) => isBetween(m, message.fromId, message.toId)).sort((x, y) => x.sentAt.localeCompare(y.sentAt));
+  const tooOld = new Set(conversation.slice(0, Math.max(0, conversation.length - CHAT_HISTORY_LIMIT)).map((m) => m.id));
+  write(CHATS_KEY, all.filter((m) => !tooOld.has(m.id)));
+}
+
+/** A conversa foi aberta: no cache, o que o amigo mandou fica lido (a API já marcou). */
+export function markConversationReadInCache(meId: string, friendId: string) {
   const now = new Date().toISOString();
-  write(CHATS_KEY, all.map((m) => (m.fromId === friendId && m.toId === meId && !m.readAt ? { ...m, readAt: now } : m)));
+  write(CHATS_KEY, listChatMessages().map((m) => (m.fromId === friendId && m.toId === meId && !m.readAt ? { ...m, readAt: now } : m)));
+}
+
+/** O amigo mandou algo que o aluno ainda não leu? */
+export function hasUnreadFrom(meId: string, friendId: string): boolean {
+  return listChatMessages().some((m) => m.fromId === friendId && m.toId === meId && !m.readAt);
 }
 
 /** Mensagens não lidas que chegaram pro aluno, por amigo. */

@@ -1,46 +1,48 @@
 // ============================================================================
-// MISSIONS STORE — as missões agora são editáveis pelo professor, então
-// migram de um array fixo (em missions.ts) para localStorage — mesmo padrão
-// de CRUD usado em students.ts. Na primeira vez que o app roda num
-// navegador, o localStorage é semeado com as 4 missões padrão.
-// Cada missão pertence a um professor (teacherId); as padrão e as salvas
-// antes de existir professor ficam com o professor padrão (Danilo).
+// MISSIONS STORE — as missões dos professores.
+//
+// Desde a fase 3 do back end, as missões são da API (tabela missions): o
+// professor cria, edita e exclui lá, e as 4 missões de exemplo são criadas
+// pelo seed da API como missões do ADM. Aqui o localStorage ("cg-missions")
+// é só um cache do que a API devolveu, pras telas lerem na hora; quem
+// atualiza o cache é o refreshFromApi (engine/accounts.ts) e as funções abaixo.
+// Cada missão pertence a um professor (teacherId); o aluno vê as do professor dele.
 // ============================================================================
 
-import { Mission, MISSIONS as SEED_MISSIONS, normalizeRewardItem } from "./missions";
-import { DEFAULT_TEACHER_ID } from "./teachers";
+import { api, describeError } from "@/services/api";
+import { Mission, normalizeRewardItem } from "./missions";
 
 const MISSIONS_KEY = "cg-missions";
 
-const DEFAULT_MISSIONS: Mission[] = SEED_MISSIONS.map((m) => ({ ...m, teacherId: DEFAULT_TEACHER_ID }));
+/** Missão como a API manda: os campos opcionais vêm como null. */
+type MissionFromApi = Omit<Mission, "task" | "eventId" | "eventPhase" | "kind"> & {
+  kind?: Mission["kind"] | null;
+  task?: Mission["task"] | null;
+  eventId?: string | null;
+  eventPhase?: number | null;
+};
 
-function slugify(text: string): string {
-  const base = text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-+|-+$)/g, "");
-  return base || `missao-${Date.now()}`;
+/** Deixa a missão no formato do site (null vira "sem valor"). */
+function fromApi(m: MissionFromApi): Mission {
+  return {
+    ...m,
+    kind: m.kind ?? undefined,
+    task: m.task ?? undefined,
+    eventId: m.eventId ?? undefined,
+    eventPhase: m.eventPhase ?? undefined,
+    rewardItem: { ...m.rewardItem, ...normalizeRewardItem(m.rewardItem) },
+  };
 }
 
 function readAll(): Mission[] {
-  if (typeof window === "undefined") return DEFAULT_MISSIONS;
+  if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(MISSIONS_KEY);
-    if (!raw) {
-      writeAll(DEFAULT_MISSIONS);
-      return DEFAULT_MISSIONS;
-    }
-    // Missões salvas antes de o item ter valor/XP ganham os padrões da raridade;
-    // as de antes de existir professor ficam com o professor padrão.
-    return (JSON.parse(raw) as Mission[]).map((m) => ({
-      ...m,
-      teacherId: m.teacherId ?? DEFAULT_TEACHER_ID,
-      rewardItem: normalizeRewardItem(m.rewardItem),
-    }));
+    if (!raw) return [];
+    // missões de antes do back end (do professor-semente "t_danilo") não valem mais
+    return (JSON.parse(raw) as Mission[]).filter((m) => !m.teacherId.startsWith("t_"));
   } catch {
-    return DEFAULT_MISSIONS;
+    return [];
   }
 }
 
@@ -57,36 +59,52 @@ export function getMissionById(id: string): Mission | undefined {
   return readAll().find((m) => m.id === id);
 }
 
-export function createMission(data: Omit<Mission, "id">): Mission {
-  const all = readAll();
-  let id = slugify(data.title);
-  let n = 1;
-  while (all.some((m) => m.id === id)) {
-    id = `${slugify(data.title)}-${n++}`;
+/** Troca o cache pela lista que a API devolveu (as missões que a pessoa logada pode ver). */
+export function saveMissions(missions: MissionFromApi[]) {
+  writeAll(missions.map(fromApi));
+}
+
+/** Guarda (ou atualiza) uma missão que a API devolveu. */
+function saveMission(mission: MissionFromApi) {
+  const saved = fromApi(mission);
+  writeAll([...readAll().filter((m) => m.id !== saved.id), saved]);
+}
+
+export type MissionResult = { ok: true; mission: Mission } | { ok: false; error: string };
+
+/** Cria a missão na API. O id é gerado lá (a partir do título). */
+export async function createMission(data: Omit<Mission, "id">): Promise<MissionResult> {
+  try {
+    const { mission } = await api.post<{ mission: MissionFromApi }>("/missions", data);
+    saveMission(mission);
+    return { ok: true, mission: fromApi(mission) };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
   }
-  const mission: Mission = { ...data, id };
-  writeAll([...all, mission]);
-  return mission;
 }
 
-/** O id nunca muda numa edição — evita quebrar completedMissionIds já gravados nos alunos. */
-export function updateMission(id: string, patch: Omit<Partial<Mission>, "id">) {
-  const all = readAll();
-  const idx = all.findIndex((m) => m.id === id);
-  if (idx === -1) return;
-  all[idx] = { ...all[idx], ...patch, id };
-  writeAll(all);
+/**
+ * Altera só os campos do patch. O id nunca muda numa edição (evita quebrar as
+ * missões feitas já gravadas nos alunos). Campo com undefined no patch (ex.:
+ * tirar a missão do evento) vai como null, que pra API quer dizer "tirar".
+ */
+export async function updateMission(id: string, patch: Omit<Partial<Mission>, "id">): Promise<MissionResult> {
+  try {
+    const body = Object.fromEntries(Object.entries(patch).map(([key, value]) => [key, value === undefined ? null : value]));
+    const { mission } = await api.put<{ mission: MissionFromApi }>(`/missions/${id}`, body);
+    saveMission(mission);
+    return { ok: true, mission: fromApi(mission) };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
 }
 
-export function deleteMission(id: string) {
-  writeAll(readAll().filter((m) => m.id !== id));
-}
-
-/** Passa todas as missões de um professor para outro (usado antes de excluir um professor). */
-export function reassignMissions(fromTeacherId: string, toTeacherId: string) {
-  writeAll(readAll().map((m) => (m.teacherId === fromTeacherId ? { ...m, teacherId: toTeacherId } : m)));
-}
-
-export function resetToDefaultMissions() {
-  writeAll(DEFAULT_MISSIONS);
+export async function deleteMission(id: string): Promise<string | null> {
+  try {
+    await api.delete(`/missions/${id}`);
+    writeAll(readAll().filter((m) => m.id !== id));
+    return null;
+  } catch (error) {
+    return describeError(error);
+  }
 }

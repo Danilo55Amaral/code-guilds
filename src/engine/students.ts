@@ -1,20 +1,25 @@
 // ============================================================================
-// STUDENTS — cadastro de alunos, avatar, progressão (XP/nível/moedas) e
-// inventário. Mesmo padrão de CRUD em localStorage usado no projeto do
-// Rejuvenation Lab Simulator (people.ts) — vários alunos podem existir no
-// mesmo navegador, com um "aluno ativo" por vez.
+// STUDENTS — alunos, avatar, progressão (XP/nível/moedas) e inventário.
 //
-// Cada aluno tem login e senha. A sessão ("aluno ativo") fica no
-// sessionStorage: dura só enquanto a aba está aberta, então toda nova entrada
-// na plataforma começa pela tela de login. A senha fica em texto puro de
-// propósito — o professor precisa conseguir ver (é um app de demonstração,
-// sem backend; não é autenticação de verdade).
+// Desde a ligação com o back end (pasta api/), o aluno é da API: a conta
+// (cadastro, login, senha, perfil) e, desde a fase 3, o PROGRESSO DO JOGO
+// (nível, XP, moedas, inventário, missões feitas, visuais equipados...).
+// Quem fala com a API é o engine/accounts.ts (contas) e o engine/gameApi.ts
+// (ações do jogo). O localStorage ("cg-students") virou um cache do que a
+// API devolveu, pras telas lerem na hora.
+//
+// As funções de regra deste arquivo (addXp, storeItems, consumeItem,
+// applyMissionReward...) são as MESMAS que a API usa pra decidir cada ação:
+// a API importa este arquivo. Por isso elas precisam continuar puras (sem
+// React e sem depender do navegador fora dos "typeof window").
+// Vários alunos podem estar no mesmo navegador, com um "aluno ativo" por vez
+// (o id dele fica no sessionStorage, espelhando o cookie de login da API).
+// A senha nunca fica no site: o aluno só tem o hasPassword (true/false).
 // ============================================================================
 
 import { HouseId, getHouse } from "./houses";
 import { Mission, Rarity, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH, normalizeRewardItem, normalizeSearch } from "./missions";
-import { AvatarConfig, Cosmetic, CosmeticSlot, DEFAULT_AVATAR, applyCosmetic, normalizeAvatar, sameCosmetic } from "./avatar";
-import { DEFAULT_TEACHER_ID } from "./teachers";
+import { AvatarConfig, Cosmetic, CosmeticSlot, applyCosmetic, normalizeAvatar, sameCosmetic } from "./avatar";
 
 export interface InventoryItem {
   id: string;
@@ -43,8 +48,8 @@ export interface Student {
   name: string;
   email: string;
   turma: string;
-  username: string; // login, sempre minúsculo e sem espaços
-  password: string; // "" = aluno antigo, ainda sem senha (o professor define)
+  username: string; // login, sempre minúsculo e sem espaços ("" nos colegas: a API não manda)
+  hasPassword: boolean; // false = conta ainda sem senha (o professor define); a senha em si fica só na API
   teacherId: string; // professor escolhido no cadastro — o aluno só vê as missões dele
   houseId: HouseId | null;
   avatar: AvatarConfig;
@@ -81,6 +86,7 @@ export function xpToNextLevel(level: number): number {
 
 const STUDENTS_KEY = "cg-students";
 const ACTIVE_KEY = "cg-active-student";
+const VISIBLE_KEY = "cg-visible-students";
 
 /** Deixa o login no formato aceito: minúsculo, sem acento e só com letras, números, ponto, hífen e _. */
 export function normalizeUsername(raw: string): string {
@@ -97,33 +103,23 @@ function readAll(): Student[] {
   try {
     const raw = window.localStorage.getItem(STUDENTS_KEY);
     if (!raw) return [];
-    const taken = new Set<string>();
-    // Alunos salvos no formato antigo são completados na leitura: avatar convertido
-    // e, se não tiverem login, ganham um tirado do e-mail (sem senha até o professor definir).
-    return (JSON.parse(raw) as Student[]).map((s) => {
-      let username = s.username;
-      if (!username) {
-        const base = normalizeUsername(s.email.split("@")[0] || s.name) || "aluno";
-        username = base;
-        for (let n = 2; taken.has(username); n++) username = `${base}${n}`;
-      }
-      taken.add(username);
-      return {
-        ...s,
-        username,
-        password: s.password ?? "",
-        // alunos de antes de existir professor ficam com o Danilo
-        teacherId: s.teacherId ?? DEFAULT_TEACHER_ID,
-        avatar: normalizeAvatar(s.avatar ?? {}),
-        equipped: s.equipped ?? {},
-        events: s.events ?? {},
-        bonusSlots: s.bonusSlots ?? 0,
-        pendingItems: (s.pendingItems ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
-        // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
-        // itens de antes do ícone próprio ficam com o ícone da raridade
-        inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
-      };
-    });
+    return (
+      (JSON.parse(raw) as Student[])
+        // alunos criados antes do back end (ids "s_...") não têm conta na API
+        .filter((s) => !s.id.startsWith("s_"))
+        .map((s) => ({
+          ...s,
+          hasPassword: s.hasPassword ?? false,
+          avatar: normalizeAvatar(s.avatar ?? {}),
+          equipped: s.equipped ?? {},
+          events: s.events ?? {},
+          bonusSlots: s.bonusSlots ?? 0,
+          pendingItems: (s.pendingItems ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+          // itens de antes do mercado ganham valor pela raridade e não são consumíveis;
+          // itens de antes do ícone próprio ficam com o ícone da raridade
+          inventory: (s.inventory ?? []).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+        }))
+    );
   } catch {
     return [];
   }
@@ -145,27 +141,167 @@ export function setActiveStudentId(id: string | null) {
   else window.sessionStorage.removeItem(ACTIVE_KEY);
 }
 
+/**
+ * Quais alunos as telas podem mostrar: os que a API devolveu na última
+ * consulta (os do professor, ou a comunidade toda pro aluno). O cache pode ter
+ * mais gente (outros alunos que já usaram este navegador), mas só esses aparecem.
+ */
+function visibleIds(): Set<string> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(VISIBLE_KEY);
+    return raw ? new Set(JSON.parse(raw) as string[]) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setVisibleStudentIds(ids: string[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(VISIBLE_KEY, JSON.stringify(ids));
+}
+
 export function listStudents(): Student[] {
-  return readAll().sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const visible = visibleIds();
+  const activeId = getActiveStudentId();
+  return readAll()
+    .filter((s) => !visible || visible.has(s.id) || s.id === activeId)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export function getStudent(id: string): Student | undefined {
   return readAll().find((s) => s.id === id);
 }
 
+// ============================================================================
+// CONTAS VINDAS DA API — o engine/accounts.ts chama estas funções pra guardar
+// no cache o que a API devolveu. O perfil sempre vem da API; o progresso do
+// jogo de quem já está no cache é mantido.
+// ============================================================================
+
+/**
+ * Um aluno como a API manda. O próprio aluno e o professor recebem tudo; a
+ * comunidade manda só os dados públicos (sem e-mail, turma, login, itens
+ * esperando espaço, missões feitas e eventos).
+ */
+export interface StudentAccount {
+  id: string;
+  teacherId: string;
+  name: string;
+  houseId: HouseId | null;
+  avatar: unknown;
+  onboardingStep: OnboardingStep;
+  createdAt: string;
+  level?: number;
+  xp?: number;
+  coins?: number;
+  email?: string;
+  turma?: string;
+  username?: string;
+  tutorialDone?: boolean;
+  hasPassword?: boolean;
+  inventory?: InventoryItem[];
+  pendingItems?: InventoryItem[];
+  equipped?: Student["equipped"];
+  completedMissionIds?: string[];
+  events?: Record<string, EventProgress>;
+  bonusSlots?: number;
+  multiverseAccess?: string | null;
+}
+
+/** Presente de boas-vindas que todo aluno ganha ao criar a conta. */
+export function welcomeItem(): InventoryItem {
+  return {
+    id: `i_${Date.now()}`,
+    name: "Fragmento Inicial",
+    icon: "✨",
+    description: "Presente de boas-vindas da Academia. Usar dá um pouco de XP pra começar a jornada.",
+    rarity: "comum",
+    value: 5,
+    xp: 20,
+    obtainedAt: new Date().toISOString(),
+  };
+}
+
+/** Progresso inicial de um aluno que ainda não estava no cache (a API manda o de verdade). */
+type LocalProgress = Pick<Student, "level" | "xp" | "coins" | "inventory" | "completedMissionIds" | "equipped" | "events" | "bonusSlots" | "pendingItems">;
+
+function newLocalProgress(account: StudentAccount): LocalProgress {
+  return {
+    level: account.level ?? 1,
+    xp: account.xp ?? 0,
+    coins: account.coins ?? 0,
+    inventory: [],
+    completedMissionIds: [],
+    equipped: {},
+    events: {},
+    bonusSlots: 0,
+    pendingItems: [],
+  };
+}
+
+/**
+ * Guarda no cache os alunos que a API devolveu. Tudo que a API mandou vale
+ * (inclusive o progresso do jogo, que é do servidor); o que ela não mandou
+ * (ex.: o e-mail ou as missões feitas de um colega, na lista da comunidade)
+ * continua o que o cache já tinha.
+ */
+export function saveStudentAccounts(accounts: StudentAccount[]) {
+  const byId = new Map(readAll().map((s) => [s.id, s]));
+  for (const account of accounts) {
+    const old = byId.get(account.id);
+    const base = old ?? newLocalProgress(account);
+    byId.set(account.id, {
+      ...(old ?? {}),
+      ...base,
+      level: account.level ?? base.level,
+      xp: account.xp ?? base.xp,
+      coins: account.coins ?? base.coins,
+      inventory: (account.inventory ?? base.inventory).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+      pendingItems: (account.pendingItems ?? base.pendingItems).map((i) => ({ ...i, ...normalizeRewardItem(i) })),
+      equipped: account.equipped ?? base.equipped,
+      completedMissionIds: account.completedMissionIds ?? base.completedMissionIds,
+      events: account.events ?? base.events,
+      bonusSlots: account.bonusSlots ?? base.bonusSlots,
+      // null = a API disse que não tem passe; undefined = a API não mandou (fica o do cache)
+      multiverseAccess: account.multiverseAccess === undefined ? old?.multiverseAccess : account.multiverseAccess ?? undefined,
+      id: account.id,
+      teacherId: account.teacherId,
+      name: account.name,
+      houseId: account.houseId,
+      avatar: normalizeAvatar((account.avatar ?? {}) as Partial<AvatarConfig>),
+      onboardingStep: account.onboardingStep,
+      createdAt: account.createdAt,
+      email: account.email ?? old?.email ?? "",
+      turma: account.turma ?? old?.turma ?? "",
+      username: account.username ?? old?.username ?? "",
+      tutorialDone: account.tutorialDone ?? old?.tutorialDone,
+      hasPassword: account.hasPassword ?? old?.hasPassword ?? false,
+    } as Student);
+  }
+  writeAll([...byId.values()]);
+}
+
 export const MIN_USERNAME_LENGTH = 3;
 export const MIN_PASSWORD_LENGTH = 4;
 
-/**
- * Valida login e senha (cadastro e edição pelo professor). Devolve a mensagem
- * de erro pra mostrar na tela, ou null se estiver tudo certo.
- * `exceptId` ignora o próprio aluno na checagem de login repetido.
- */
-export function validateCredentials(username: string, password: string, exceptId?: string): string | null {
+/** Confere o formato do login. Se ele já está em uso, quem diz é a API. Devolve a mensagem de erro, ou null. */
+export function validateUsername(username: string): string | null {
   const login = normalizeUsername(username);
   if (login.length < MIN_USERNAME_LENGTH) return `O login precisa ter pelo menos ${MIN_USERNAME_LENGTH} caracteres (letras, números, ponto, hífen ou _).`;
+  return null;
+}
+
+/**
+ * Confere login e senha antes de mandar pra API (cadastro e troca pelo
+ * professor). Com `passwordOptional`, senha em branco = continua a mesma.
+ * Devolve a mensagem de erro pra mostrar na tela, ou null se estiver tudo certo.
+ */
+export function validateCredentials(username: string, password: string, passwordOptional = false): string | null {
+  const usernameError = validateUsername(username);
+  if (usernameError) return usernameError;
+  if (passwordOptional && !password) return null;
   if (password.length < MIN_PASSWORD_LENGTH) return `A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres.`;
-  if (readAll().some((s) => s.username === login && s.id !== exceptId)) return `O login "${login}" já está em uso — escolha outro.`;
   return null;
 }
 
@@ -183,54 +319,7 @@ export function validateStudentProfile(data: StudentProfile): string | null {
   return null;
 }
 
-/**
- * Troca de casa feita pelo professor/ADM. Se o aluno ainda estava escolhendo a
- * casa no primeiro acesso, ele já segue pro avatar (a escolha do professor vale).
- */
-export function houseChangePatch(student: Student, houseId: HouseId): Partial<Student> {
-  return { houseId, onboardingStep: student.onboardingStep === "casa" ? "avatar" : student.onboardingStep };
-}
-
 export type LoginResult = { ok: true; student: Student } | { ok: false; error: string };
-
-/** Confere login e senha; se baterem, o aluno vira o ativo desta aba. */
-export function login(username: string, password: string): LoginResult {
-  const student = readAll().find((s) => s.username === normalizeUsername(username));
-  if (!student) return { ok: false, error: "Login não encontrado. Confira ou crie uma conta." };
-  if (!student.password) return { ok: false, error: "Sua conta ainda não tem senha — peça ao professor para definir uma." };
-  if (student.password !== password) return { ok: false, error: "Senha incorreta." };
-  setActiveStudentId(student.id);
-  return { ok: true, student };
-}
-
-/** Quem chama deve validar antes com validateCredentials(). */
-export function createStudent(data: { name: string; email: string; turma: string; username: string; password: string; teacherId: string }): Student {
-  const student: Student = {
-    id: `s_${Date.now()}_${Math.round(Math.random() * 9999)}`,
-    name: data.name.trim(),
-    email: data.email.trim(),
-    turma: data.turma.trim(),
-    username: normalizeUsername(data.username),
-    password: data.password,
-    teacherId: data.teacherId,
-    houseId: null,
-    avatar: DEFAULT_AVATAR,
-    level: 1,
-    xp: 0,
-    coins: 0,
-    inventory: [{ id: `i_${Date.now()}`, name: "Fragmento Inicial", icon: "✨", description: "Presente de boas-vindas da Academia. Usar dá um pouco de XP pra começar a jornada.", rarity: "comum", value: 5, xp: 20, obtainedAt: new Date().toISOString() }],
-    completedMissionIds: [],
-    onboardingStep: "casa",
-    equipped: {},
-    events: {},
-    bonusSlots: 0,
-    pendingItems: [],
-    createdAt: new Date().toISOString(),
-  };
-  writeAll([...readAll(), student]);
-  setActiveStudentId(student.id);
-  return student;
-}
 
 export function updateStudent(id: string, patch: Partial<Student>) {
   const all = readAll();
@@ -245,7 +334,7 @@ export function removeStudent(id: string) {
   if (getActiveStudentId() === id) setActiveStudentId(null);
 }
 
-/** Passa todos os alunos de um professor para outro (usado antes de excluir um professor). */
+/** Passa todos os alunos de um professor para outro (espelha no cache o que a API fez ao excluir um professor). */
 export function reassignStudents(fromTeacherId: string, toTeacherId: string) {
   writeAll(readAll().map((s) => (s.teacherId === fromTeacherId ? { ...s, teacherId: toTeacherId } : s)));
 }

@@ -5,7 +5,7 @@ import { Student } from "@/engine/students";
 import { HOUSES, HouseId, getHouse } from "@/engine/houses";
 import { Mission } from "@/engine/missions";
 import { ShopItem } from "@/engine/shop";
-import { GiftItem, Giver } from "@/engine/gifts";
+import { GiftItem } from "@/engine/gifts";
 import { useGifts } from "@/engine/store";
 import GiftItemPicker from "./GiftItemPicker";
 
@@ -20,7 +20,6 @@ type Target = "todos" | HouseId;
 
 export default function GiftComposer({
   students,
-  giver,
   shopItems,
   missions,
   isAdmin,
@@ -29,7 +28,6 @@ export default function GiftComposer({
 }: {
   /** Quem pode receber (professor: a turma dele; ADM: a plataforma toda ou a turma escolhida). */
   students: Student[];
-  giver: Giver;
   shopItems: ShopItem[];
   missions: Mission[];
   isAdmin: boolean;
@@ -40,7 +38,8 @@ export default function GiftComposer({
   const { give } = useGifts();
   const [target, setTarget] = useState<Target>("todos");
   const [pending, setPending] = useState<GiftItem | null>(null);
-  const [result, setResult] = useState<string | null>(null);
+  const [result, setResult] = useState<{ text: string; tone: "ok" | "erro" } | null>(null);
+  const [sending, setSending] = useState(false);
 
   const recipients = target === "todos" ? students : students.filter((s) => s.houseId === target);
   const targetLabel = target === "todos" ? scopeLabel.toLowerCase() : getHouse(target).name;
@@ -50,18 +49,26 @@ export default function GiftComposer({
     ...HOUSES.map((h) => ({ id: h.id, label: h.name, count: students.filter((s) => s.houseId === h.id).length, colorClass: h.colorClass })),
   ];
 
-  function confirm() {
-    if (!pending) return;
-    const { delivered, waiting } = give(
+  async function confirm() {
+    if (!pending || sending) return;
+    setSending(true);
+    const outcome = await give(
       recipients.map((s) => s.id),
       pending,
-      giver,
     );
-    setResult(
-      `${pending.icon} "${pending.name}" entregue para ${delivered} ${delivered === 1 ? "aluno" : "alunos"} (${targetLabel}).` +
+    setSending(false);
+    if (!outcome.ok) {
+      setResult({ text: outcome.error, tone: "erro" });
+      return;
+    }
+    const { delivered, waiting } = outcome;
+    setResult({
+      text:
+        `${pending.icon} "${pending.name}" entregue para ${delivered} ${delivered === 1 ? "aluno" : "alunos"} (${targetLabel}).` +
         (waiting > 0 ? ` ${waiting} ${waiting === 1 ? "estava" : "estavam"} com o inventário cheio: o item ficou esperando espaço.` : "") +
         " A mensagem de presente já foi enviada.",
-    );
+      tone: "ok",
+    });
     setPending(null);
     setTimeout(() => setResult(null), 6000);
   }
@@ -120,14 +127,26 @@ export default function GiftComposer({
             <button onClick={() => setPending(null)} className="cg-btn-secondary !px-3 !py-1.5 text-xs">
               Cancelar
             </button>
-            <button onClick={confirm} className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-black text-cg-onaccent transition-transform hover:scale-[1.03]">
-              ✅ Confirmar presente
+            <button
+              onClick={confirm}
+              disabled={sending}
+              className="rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-black text-cg-onaccent transition-transform hover:scale-[1.03] disabled:cursor-wait disabled:opacity-50"
+            >
+              {sending ? "Entregando…" : "✅ Confirmar presente"}
             </button>
           </div>
         </div>
       )}
 
-      {result && <p className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-xs text-emerald-200">{result}</p>}
+      {result && (
+        <p
+          className={`mt-3 rounded-xl border px-4 py-3 text-xs ${
+            result.tone === "ok" ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-200" : "border-rose-500/30 bg-rose-500/10 text-rose-200"
+          }`}
+        >
+          {result.text}
+        </p>
+      )}
     </div>
   );
 }

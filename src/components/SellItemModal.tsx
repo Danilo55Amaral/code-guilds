@@ -25,13 +25,14 @@ export default function SellItemModal({
   buyers: Student[];
   onSellToSystem: () => void;
   /** Devolve a mensagem de erro, ou null se a oferta foi enviada. */
-  onOffer: (buyerId: string, price: number) => string | null;
+  onOffer: (buyerId: string, price: number) => Promise<string | null>;
   onClose: () => void;
 }) {
   const [mode, setMode] = useState<Mode>("sistema");
   const [buyerId, setBuyerId] = useState<string | null>(null);
   const [price, setPrice] = useState(item.value);
   const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -39,9 +40,12 @@ export default function SellItemModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  function sendOffer() {
-    if (!buyerId) return;
-    setError(onOffer(buyerId, price));
+  async function sendOffer() {
+    if (!buyerId || sending) return;
+    setSending(true);
+    const problem = await onOffer(buyerId, price);
+    setSending(false);
+    setError(problem);
   }
 
   return (
@@ -129,8 +133,8 @@ export default function SellItemModal({
                 </p>
               </div>
               {error && <p className="text-xs text-rose-300">{error}</p>}
-              <button onClick={sendOffer} disabled={!buyerId} className="cg-btn-primary w-full disabled:cursor-not-allowed disabled:opacity-30">
-                🤝 Enviar oferta
+              <button onClick={sendOffer} disabled={!buyerId || sending} className="cg-btn-primary w-full disabled:cursor-not-allowed disabled:opacity-30">
+                {sending ? "Enviando…" : "🤝 Enviar oferta"}
               </button>
             </div>
           )}

@@ -3,10 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTeachers } from "@/engine/store";
-import { MASTER_CODE } from "@/engine/teachers";
-
-const DEMO_EMAIL = "danilo@codeguilds.com";
-const DEMO_PASSWORD = "prof123";
 
 const VARIANTS = {
   professor: {
@@ -23,24 +19,31 @@ const VARIANTS = {
     title: "PAINEL ADM",
     subtitle: "Acesso exclusivo do administrador",
     heading: "Administração da Academia",
-    intro: "Entre com as credenciais do Professor Danilo para gerenciar professores, alunos e missões de toda a plataforma.",
+    intro: "Entre com o e-mail e a senha do ADM para gerenciar professores, alunos e missões de toda a plataforma.",
     submit: "Entrar no Painel ADM →",
     target: "/admin/painel",
   },
 };
 
-/** Login do professor (/professor) e do ADM (/admin) — o ADM usa as mesmas credenciais do Professor Danilo. */
+/**
+ * Login do professor (/professor) e do ADM (/admin) — o ADM usa as mesmas
+ * credenciais de professor dele. Quem confere o e-mail e a senha é a API.
+ */
 export default function TeacherLoginCard({ variant }: { variant: keyof typeof VARIANTS }) {
   const router = useRouter();
   const { login } = useTeachers();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const v = VARIANTS[variant];
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const result = login(email, password, variant === "admin");
+    setBusy(true);
+    const result = await login(email, password, variant === "admin");
+    setBusy(false);
     if (!result.ok) {
       setError(result.error);
       return;
@@ -65,35 +68,37 @@ export default function TeacherLoginCard({ variant }: { variant: keyof typeof VA
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
           <div>
             <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">E-mail</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="professor@codeguilds.com ou código" className="cg-input" />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="professor@codeguilds.com" required autoComplete="username" className="cg-input" />
           </div>
           <div>
-            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Senha ou código secreto</label>
-            <input type="text" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="sua senha" className="cg-input" />
+            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Senha</label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="sua senha"
+                required
+                autoComplete="current-password"
+                className="cg-input !pr-11"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                title={showPassword ? "Esconder senha" : "Mostrar senha"}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-60 hover:opacity-100"
+              >
+                {showPassword ? "🙈" : "👁"}
+              </button>
+            </div>
           </div>
-          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-300">
-            💡 Dica: {MASTER_CODE} nos dois campos entra como o Professor Danilo (ADM)
-          </p>
 
           {error && <p className="text-xs text-rose-400">{error}</p>}
 
-          <button type="submit" className="cg-btn-primary mt-1 w-full">
-            {v.submit}
+          <button type="submit" disabled={busy} className="cg-btn-primary mt-1 w-full disabled:cursor-wait disabled:opacity-60">
+            {busy ? "Entrando…" : v.submit}
           </button>
         </form>
-
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="rounded-lg border border-slate-800 bg-cg-sunken p-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Professor Danilo (ADM)</p>
-            <p className="mt-0.5 text-xs font-mono text-slate-300">{DEMO_EMAIL}</p>
-          </div>
-          <div className="rounded-lg border border-slate-800 bg-cg-sunken p-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Senha / Código</p>
-            <p className="mt-0.5 text-xs font-mono text-slate-300">
-              {DEMO_PASSWORD} • {MASTER_CODE}
-            </p>
-          </div>
-        </div>
 
         <div className="mt-6 flex items-center justify-between text-xs">
           <a href="/academia/missoes" className="text-slate-500 hover:text-slate-300">
