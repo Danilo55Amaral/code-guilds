@@ -4,6 +4,8 @@ import { db } from "../src/database";
 import { checkMissionContent, missionBodySchema, newMissionId } from "../src/routes/missions";
 import { normalizeEmail } from "../src/utils/normalize";
 import { Json } from "../src/types/database";
+import { getEvent } from "../../src/engine/specialEvents";
+import { Mission } from "../../src/engine/missions";
 
 // ============================================================================
 // IMPORTAR MISSÕES — cadastra de uma vez as missões de um ou mais arquivos pra
@@ -13,10 +15,27 @@ import { Json } from "../src/types/database";
 //   ex.: npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
 //
 // Cada arquivo exporta (export default) uma lista de missões no formato do site
+// (ou uma função que monta a lista a partir das missões que o professor já tem)
 // (MissionContent, em src/engine/missions.ts). Cada missão passa pelas mesmas
-// regras da rota POST /missions. Se o professor já tem uma missão com o mesmo
+// regras da rota POST /missions; missões de evento levam o eventId (e o
+// eventPhase, nos eventos em fases). Se o professor já tem uma missão com o mesmo
 // título, ela é pulada: dá pra rodar o comando de novo sem duplicar nada.
 // ============================================================================
+
+// As missões de quiz do professor (sem as de evento), no formato do site e
+// sempre na mesma ordem
+async function quizMissionsOf(teacherId: string): Promise<Mission[]> {
+    const rows = await db
+        .selectFrom('missions')
+        .selectAll()
+        .where('teacherId', '=', teacherId)
+        .where('kind', '=', 'quiz')
+        .where('eventId', 'is', null)
+        .orderBy('id')
+        .execute()
+
+    return rows as unknown as Mission[]
+}
 
 async function importMissions() {
     const [rawEmail, ...files] = process.argv.slice(2)
@@ -45,7 +64,12 @@ async function importMissions() {
 
     for (const file of files) {
         const module = await import(pathToFileURL(resolve(file)).href)
-        missions.push(...(module.default?.default ?? module.default))
+        const exported = module.default?.default ?? module.default
+
+        // O arquivo pode exportar uma função em vez de uma lista: ela recebe
+        // as missões de quiz que o professor já tem no banco e monta as novas
+        // a partir delas (ex.: scripts/missions/halloween.ts)
+        missions.push(...(typeof exported === 'function' ? exported(await quizMissionsOf(teacher.id)) : exported))
     }
 
     // Confere todas antes de gravar a primeira: um erro num arquivo não deixa
@@ -53,6 +77,12 @@ async function importMissions() {
     const bodies = missions.map((mission) => {
         const body = missionBodySchema.parse(mission)
         checkMissionContent(body)
+
+        // Missão de evento (ex.: Halloween): o evento tem que existir no site
+        if (body.eventId && !getEvent(body.eventId)) {
+            throw new Error(`A missão "${body.title}" é de um evento que não existe: ${body.eventId}.`)
+        }
+
         return body
     })
 
@@ -86,10 +116,13 @@ async function importMissions() {
                 rewardItem: JSON.stringify(body.rewardItem) as Json,
                 questions: JSON.stringify(body.questions ?? []) as Json,
                 kind: body.kind ?? 'quiz',
+                eventId: body.eventId ?? null,
+                eventPhase: body.eventPhase ?? null,
             })
             .execute()
 
-        console.log(`+ "${body.title}" (${body.questions?.length ?? 0} perguntas)`)
+        const event = body.eventId ? ` no evento ${getEvent(body.eventId)!.title}` : ''
+        console.log(`+ "${body.title}" (${body.questions?.length ?? 0} perguntas)${event}`)
         created++
     }
 
