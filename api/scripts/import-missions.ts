@@ -6,23 +6,23 @@ import { normalizeEmail } from "../src/utils/normalize";
 import { Json } from "../src/types/database";
 
 // ============================================================================
-// IMPORTAR MISSÕES — cadastra de uma vez as missões de um arquivo pra um
-// professor, sem digitar pergunta por pergunta no editor do site.
+// IMPORTAR MISSÕES — cadastra de uma vez as missões de um ou mais arquivos pra
+// um professor, sem digitar pergunta por pergunta no editor do site.
 //
-//   npm run missions:import -- <e-mail do professor> <arquivo de missões>
-//   ex.: npm run missions:import -- professor@escola.com scripts/missions/scratch-ods.ts
+//   npm run missions:import -- <e-mail do professor> <arquivo> [outros arquivos...]
+//   ex.: npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
 //
-// O arquivo exporta (export default) uma lista de missões no formato do site
+// Cada arquivo exporta (export default) uma lista de missões no formato do site
 // (MissionContent, em src/engine/missions.ts). Cada missão passa pelas mesmas
 // regras da rota POST /missions. Se o professor já tem uma missão com o mesmo
 // título, ela é pulada: dá pra rodar o comando de novo sem duplicar nada.
 // ============================================================================
 
 async function importMissions() {
-    const [rawEmail, file] = process.argv.slice(2)
+    const [rawEmail, ...files] = process.argv.slice(2)
 
-    if (!rawEmail || !file) {
-        console.log('Uso: npm run missions:import -- <e-mail do professor> <arquivo de missões>')
+    if (!rawEmail || files.length === 0) {
+        console.log('Uso: npm run missions:import -- <e-mail do professor> <arquivo> [outros arquivos...]')
         process.exitCode = 1
         return
     }
@@ -41,10 +41,14 @@ async function importMissions() {
         return
     }
 
-    const module = await import(pathToFileURL(resolve(file)).href)
-    const missions: unknown[] = module.default?.default ?? module.default
+    const missions: unknown[] = []
 
-    // Confere todas antes de gravar a primeira: um erro no arquivo não deixa
+    for (const file of files) {
+        const module = await import(pathToFileURL(resolve(file)).href)
+        missions.push(...(module.default?.default ?? module.default))
+    }
+
+    // Confere todas antes de gravar a primeira: um erro num arquivo não deixa
     // metade das missões cadastrada
     const bodies = missions.map((mission) => {
         const body = missionBodySchema.parse(mission)
