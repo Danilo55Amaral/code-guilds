@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "noEmit": true
   },
-  "include": ["src", "db", "kysely.config.ts"]
+  "include": ["src", "db", "scripts", "kysely.config.ts"]
 }

@@ -10,6 +10,7 @@
 - [Kysely, o query builder](#kysely-o-query-builder)
 - [Migrations com o kysely-ctl](#migrations-com-o-kysely-ctl)
 - [Seeds: criando o primeiro ADM](#seeds-criando-o-primeiro-adm)
+- [Importando missões de um arquivo](#importando-missões-de-um-arquivo)
 - [Tipos do banco gerados automaticamente](#tipos-do-banco-gerados-automaticamente)
 - [O servidor Fastify](#o-servidor-fastify)
 - [Validação de dados com Zod](#validação-de-dados-com-zod)
@@ -80,6 +81,9 @@ api/
 ├── db/
 │   ├── migrations/        → histórico de mudanças do banco (uma por tabela)
 │   └── seeds/             → dados iniciais (o primeiro ADM, as missões de exemplo e a Loja)
+├── scripts/
+│   ├── import-missions.ts → cadastra de uma vez as missões de um arquivo pra um professor
+│   └── missions/          → os arquivos de missões prontos pra importar
 ├── src/
 │   ├── middlewares/
 │   │   └── auth.ts        → descobre quem está logado + ensureAuthenticated/Student/Teacher/Admin
@@ -212,6 +216,7 @@ sobe sozinho com o Docker, por causa do `restart: unless-stopped`).
 | `npm run migrate:down` | Desfaz a última migration |
 | `npm run migrate:reset` | Desfaz TODAS as migrations (apaga as tabelas e os dados!) |
 | `npm run seed` | Roda os seeds (cria o ADM se ele ainda não existir) |
+| `npm run missions:import -- email arquivo...` | Cadastra as missões de um ou mais arquivos pro professor desse e-mail ([Importando missões](#importando-missões-de-um-arquivo)) |
 | `npm run db:types` | Gera de novo o `src/types/database.ts` a partir do banco |
 
 ## Variáveis de ambiente
@@ -619,6 +624,38 @@ Rodando de novo:
 
 ```
 O ADM danilo@codeguilds.com já existe.
+```
+
+## Importando missões de um arquivo
+
+Montar um quiz de 10 perguntas comentadas no editor do site leva tempo. O script
+`scripts/import-missions.ts` cadastra de uma vez todas as missões de um arquivo pra um
+professor:
+
+```bash
+npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
+```
+
+```
++ "ODS" (10 perguntas)
++ "Introdução ao Scratch" (10 perguntas)
++ "O Mundo da Programação" (10 perguntas)
++ "Blocos de Código no Scratch" (10 perguntas)
+4 missões criadas para Danilo.
+```
+
+- O arquivo exporta (`export default`) uma lista de missões no mesmo formato do site (`MissionContent`, em `src/engine/missions.ts`). Os arquivos prontos ficam em `scripts/missions/`: o `programacao-12-anos.ts` tem 4 quizzes para turmas de 12 anos (ODS, Introdução ao Scratch, O Mundo da Programação e Blocos de Código no Scratch), o `programacao-12-anos-parte-2.ts` tem mais 5 (ODS parte 2, Scratch parte 2, MIT App Inventor, HTML e CSS) o `programacao-12-anos-parte-3.ts` tem mais 7 (ODS parte 3, Scratch parte 3, Roblox Studio, JavaScript, Linguagem Lua, Informática e Hardware), o `programacao-12-anos-parte-4.ts` tem mais 6 de linguagens (JavaScript parte 2, Java, Java parte 2, Python, Python parte 2 e Linguagem Lua parte 2) e o `programacao-12-anos-parte-5.ts` tem mais 6 (Pacote Office, Cultura Geek, Cultura Geek parte 2, Hardware parte 2, Roblox Studio parte 2 e Informática parte 2), todos com 10 perguntas comentadas.
+- Cada missão passa pelas **mesmas regras** da rota `POST /missions`: o script usa o `missionBodySchema` e o `checkMissionContent` exportados de `src/routes/missions.ts`. E ele confere o arquivo inteiro antes de gravar a primeira missão, então um erro no arquivo não deixa metade cadastrada.
+- Dá pra passar vários arquivos de uma vez: `npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos-parte-4.ts scripts/missions/programacao-12-anos-parte-5.ts`.
+- O id sai do título, como no site (`newMissionId`: "Introdução ao Scratch" vira `introducao-ao-scratch`).
+- Se o professor já tem uma missão com o mesmo título, ela é pulada: dá pra rodar de novo sem duplicar.
+- A missão fica do professor, igual a uma criada por ele: aparece no painel dele, ele pode editar ou excluir, e só os alunos dele a veem.
+
+Pra importar **em produção**, rode na pasta `api/` com a `DATABASE_URL` do Neon, do mesmo
+jeito que o seed do deploy (no cmd do Windows):
+
+```bat
+set "DATABASE_URL=postgresql://...neon.tech/codeguilds?sslmode=require" && npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos.ts
 ```
 
 ## Tipos do banco gerados automaticamente
@@ -2503,6 +2540,48 @@ O Supabase gratuito pausa o projeto depois de uma semana sem uso. O ping do cron
 nas férias) o projeto pode pausar. Os arquivos não se perdem, mas ninguém envia nem baixa
 entregas até você entrar no painel do Supabase e clicar em **Restore**. Vale conferir antes
 de passar uma missão de entrega.
+
+### 6. Backup do banco (com alunos de verdade)
+
+Desde outubro de 2026 a plataforma tem alunos de verdade. A regra é: **nenhuma mudança pode
+afetar os dados deles** (progresso, XP, moedas, itens, mensagens e entregas). Por isso:
+
+- As migrations só **acrescentam**: tabela nova, coluna nova com valor padrão ou que aceita `null`. Nada de apagar ou renomear colunas, nem de reescrever dados, sem um plano combinado e um backup feito antes.
+- Teste tudo primeiro no banco local (Docker). O banco de produção só recebe o que já funcionou aqui.
+- Antes de qualquer mudança arriscada no banco, faça um backup completo.
+
+**Fazendo o backup.** O `pg_dump` gera uma cópia completa do banco num arquivo. Não precisa
+instalar o PostgreSQL: ele roda num container do Docker. No cmd, numa pasta **fora do
+projeto** (o backup tem os dados dos alunos e nunca pode ir pro git):
+
+```bat
+docker run --rm -v "%cd%":/backup postgres:18-alpine pg_dump "COLE_AQUI_A_URL_DO_NEON" -Fc -f /backup/codeguilds-2026-10-05.dump
+```
+
+- A `DATABASE_URL` é a mesma do Render (ou do botão **Connect** do Neon). Use a imagem `postgres:18` (ou mais nova): o `pg_dump` precisa ser da mesma versão do banco ou mais novo.
+- O `-Fc` gera o formato "custom" do PostgreSQL: compactado e próprio pro `pg_restore`.
+- Guarde o arquivo num lugar seguro (um HD externo ou uma pasta particular na nuvem). Ele tem e-mails e dados dos alunos.
+- Os **arquivos** das entregas ficam no Supabase, não no banco, então não entram no backup. Eles só somem se uma entrega, um aluno ou uma missão forem excluídos.
+
+**Conferindo o backup.** Um backup que nunca foi testado não é garantia. Restaure no banco
+local (o container `codeguilds-db` do Docker) e compare a quantidade de registros:
+
+```bat
+docker exec codeguilds-db psql -U codeguilds -d codeguilds -c "create database restore_teste"
+docker run --rm -v "%cd%":/backup postgres:18-alpine pg_restore --no-owner --no-privileges -d "postgresql://codeguilds:SENHA_DO_ENV_LOCAL@host.docker.internal:5433/restore_teste" /backup/codeguilds-2026-10-05.dump
+docker exec codeguilds-db psql -U codeguilds -d restore_teste -c "select count(*) from students"
+```
+
+- O `host.docker.internal` é como um container chega na porta 5433 do seu computador (onde está o banco local).
+- O `--no-owner --no-privileges` ignora os usuários do Neon, que não existem no banco local.
+- Restaurando num banco local mais antigo (o container usa o PostgreSQL 16), pode aparecer o aviso `unrecognized configuration parameter "transaction_timeout"`. Ele é inofensivo: é uma configuração das versões novas, e os dados entram normalmente.
+- Depois de conferir, apague o banco de teste: `docker exec codeguilds-db psql -U codeguilds -d codeguilds -c "drop database restore_teste"`.
+
+**E se precisar voltar um backup em produção?** Nunca por cima do banco que está no ar sem
+antes conversar e planejar. O Neon tem dois recursos que ajudam: as **branches** (uma cópia
+instantânea do banco, ótima pra testar uma migration arriscada antes de rodar no banco
+principal) e o **restore** para um momento anterior, dentro do período de histórico do plano
+(o gratuito guarda pouco tempo; confira o prazo no painel do Neon).
 
 ### Migrando para um plano pago depois
 

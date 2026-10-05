@@ -3,3 +3,6 @@ node_modules
 out
 .env*.local
 *.log
+
+# Backups do banco (têm dados dos alunos: nunca vão pro git)
+*.dump

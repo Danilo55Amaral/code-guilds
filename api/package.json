@@ -18,6 +18,7 @@
     "migrate:down": "kysely migrate:down --no-outdated-check",
     "migrate:reset": "kysely migrate:rollback --all --no-outdated-check",
     "seed": "kysely seed:run --no-outdated-check",
+    "missions:import": "tsx scripts/import-missions.ts",
     "db:types": "kysely-codegen --camel-case --out-file src/types/database.ts"
   },
   "keywords": [],
