@@ -25,6 +25,7 @@ import { Teacher } from "@/engine/teachers";
 import { Message, MessageKind, MESSAGE_KIND_META, COMPOSABLE_MESSAGE_KINDS, MESSAGE_MAX_LENGTH, formatMessageDate } from "@/engine/messages";
 import Avatar from "./Avatar";
 import { CoinIcon, HousePill, ItemStats, LevelPill, MessageAudienceBadge, MessageKindBadge, RarityBadge, XPBar } from "./GameUI";
+import { OnlineBadge } from "./OnlineStatus";
 
 const ONBOARDING_LABELS: Record<OnboardingStep, string> = {
   casa: "Escolhendo a casa",
@@ -298,6 +299,7 @@ export default function StudentDetails({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <p className="text-xl font-bold text-white">{student.name}</p>
+                <OnlineBadge studentId={student.id} />
                 <LevelPill level={student.level} />
                 {house && <HousePill house={house} />}
               </div>

@@ -7,13 +7,15 @@ import Avatar from "./Avatar";
 import { CoinIcon } from "./GameUI";
 import SearchInput from "./SearchInput";
 import { PaginationFooter, usePagination } from "./Pagination";
+import { OnlineDot } from "./OnlineStatus";
 
 // ============================================================================
 // RANKING GERAL — todos os alunos de todas as casas da plataforma, em Minha
 // Casa. Ordem: XP total, depois moedas, depois nome. A posição é sempre a do
 // ranking geral, mesmo filtrando por casa ou buscando. Pódio com os 3
 // primeiros, filtro por casa, busca (nome, nível ou casa) e 10 por página.
-// Clicar num aluno abre o perfil público dele (HousemateSheet).
+// Clicar num aluno abre o perfil público dele (HousemateSheet). A bolinha ao
+// lado do nome mostra se o aluno está online (verde) ou offline (vermelha).
 // ============================================================================
 
 const PER_PAGE = 10;
@@ -71,7 +73,10 @@ export default function GeneralRanking({ students, meId, onSelect }: { students:
               >
                 <span className={first ? "text-3xl" : "text-2xl"}>{MEDALS[place - 1]}</span>
                 <Avatar config={wornAvatar(s)} ringColor={house.hex} size={first ? 76 : 58} />
-                <span className="w-full truncate text-sm font-semibold text-white">{s.name}</span>
+                <span className="flex w-full items-center justify-center gap-1.5 text-sm font-semibold text-white">
+                  <OnlineDot studentId={s.id} />
+                  <span className="truncate">{s.name}</span>
+                </span>
                 <span className={`text-[11px] ${house.colorClass}`}>{house.name}</span>
                 <span className="text-xs font-bold text-slate-200">{totalXp(s.level, s.xp)} XP</span>
               </button>
@@ -127,8 +132,11 @@ export default function GeneralRanking({ students, meId, onSelect }: { students:
                   <span className="w-7 shrink-0 text-center text-xs font-bold opacity-70">{place <= 3 ? <span className="text-base">{MEDALS[place - 1]}</span> : `#${place}`}</span>
                   <Avatar config={wornAvatar(s)} ringColor={house.hex} size={34} />
                   <span className="min-w-0">
-                    <span className="block truncate font-medium">
-                      {s.name} {isYou && <span className="text-xs opacity-60">(você)</span>}
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <OnlineDot studentId={s.id} />
+                      <span className="truncate">
+                        {s.name} {isYou && <span className="text-xs opacity-60">(você)</span>}
+                      </span>
                     </span>
                     <span className={`block text-[11px] ${isYou ? "opacity-70" : house.colorClass}`}>
                       {house.name} • Nv {s.level}

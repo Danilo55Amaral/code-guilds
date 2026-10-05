@@ -10,6 +10,7 @@ import Avatar from "@/components/Avatar";
 import { CoinIcon } from "@/components/GameUI";
 import HousemateSheet from "@/components/HousemateSheet";
 import GeneralRanking from "@/components/GeneralRanking";
+import { OnlineDot } from "@/components/OnlineStatus";
 
 export default function CasaPage() {
   const { activeStudent, students } = useStudents();
@@ -90,6 +91,7 @@ export default function CasaPage() {
                 <span className="flex min-w-0 items-center gap-2 text-sm">
                   <span className="w-4 shrink-0 text-xs opacity-60">{i + 1}.</span>
                   <Avatar config={wornAvatar(s)} size={30} />
+                  <OnlineDot studentId={s.id} />
                   <span className="truncate">{s.name}</span>
                   <span className="shrink-0 text-xs opacity-60">Nv {s.level}</span>
                 </span>

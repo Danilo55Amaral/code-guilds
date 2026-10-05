@@ -8,6 +8,7 @@ import { Student, wornAvatar } from "@/engine/students";
 import Avatar from "@/components/Avatar";
 import FriendChat from "@/components/FriendChat";
 import HousemateSheet from "@/components/HousemateSheet";
+import { OnlineDot } from "@/components/OnlineStatus";
 
 // ============================================================================
 // AMIGOS — a lista de amigos (com as mensagens não lidas de cada um), os
@@ -31,7 +32,10 @@ function StudentRow({ student, right, onClick, active = false }: { student: Stud
       <span className="flex min-w-0 items-center gap-2.5">
         <Avatar config={wornAvatar(student)} ringColor={house?.hex} size={36} />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{student.name}</span>
+          <span className="flex items-center gap-1.5 text-sm font-semibold">
+            <OnlineDot studentId={student.id} />
+            <span className="truncate">{student.name}</span>
+          </span>
           {house && <span className={`block text-[11px] ${active ? "opacity-70" : house.colorClass}`}>{house.name} • Nv {student.level}</span>}
         </span>
       </span>

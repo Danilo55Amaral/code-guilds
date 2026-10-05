@@ -7,6 +7,7 @@ import Avatar from "./Avatar";
 import ItemDetailsModal from "./ItemDetailsModal";
 import FriendActions from "./FriendActions";
 import { CoinCount, HousePill, ItemStats, LevelPill, RarityBadge } from "./GameUI";
+import { OnlineBadge } from "./OnlineStatus";
 
 // ============================================================================
 // HOUSEMATE SHEET — o perfil público de um aluno, aberto pelo ranking da casa
@@ -68,6 +69,7 @@ export default function HousemateSheet({
                 {student.name} {isYou && <span className="text-xs font-medium text-slate-400">(você)</span>}
               </p>
               <div className="mt-1 flex flex-wrap items-center justify-center gap-1.5">
+                <OnlineBadge studentId={student.id} />
                 <LevelPill level={student.level} />
                 {house && <HousePill house={house} />}
                 <CoinCount coins={student.coins} />
