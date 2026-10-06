@@ -15,6 +15,7 @@ import { inventoryRoutes } from "./routes/inventory";
 import { messagesRoutes } from "./routes/messages";
 import { missionsRoutes } from "./routes/missions";
 import { offersRoutes } from "./routes/offers";
+import { presenceRoutes } from "./routes/presence";
 import { shopRoutes } from "./routes/shop";
 import { studentsRoutes } from "./routes/students";
 import { submissionsRoutes } from "./routes/submissions";
@@ -163,4 +164,8 @@ app.register(teacherMessagesRoutes, {
 
 app.register(submissionsRoutes, {
     prefix: 'submissions',
+})
+
+app.register(presenceRoutes, {
+    prefix: 'presence',
 })

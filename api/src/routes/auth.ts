@@ -74,6 +74,11 @@ export async function authRoutes(app: FastifyInstance) {
 
     // Saindo da conta
     app.post('/logout', async (request, reply) => {
+        // O aluno fica offline na hora, sem esperar o sinal de vida vencer
+        if (request.user?.role === 'aluno') {
+            await db.deleteFrom('studentPresence').where('studentId', '=', request.user.id).execute()
+        }
+
         await destroySession(request, reply)
 
         return reply.status(200).send()

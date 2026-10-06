@@ -118,6 +118,11 @@ export interface ShopItems {
   xp: Generated<number>;
 }
 
+export interface StudentPresence {
+  lastSeenAt: Generated<Timestamp>;
+  studentId: string;
+}
+
 export interface Students {
   avatar: Generated<Json>;
   bonusSlots: Generated<number>;
@@ -210,6 +215,7 @@ export interface DB {
   offers: Offers;
   sessions: Sessions;
   shopItems: ShopItems;
+  studentPresence: StudentPresence;
   students: Students;
   submissionFiles: SubmissionFiles;
   submissions: Submissions;

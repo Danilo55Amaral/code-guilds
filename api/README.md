@@ -27,6 +27,7 @@
 - [Fase 3: o jogo no servidor](#fase-3-o-jogo-no-servidor)
 - [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)
 - [Fase 5: as entregas no servidor](#fase-5-as-entregas-no-servidor)
+- [Status online dos alunos](#status-online-dos-alunos)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -98,6 +99,7 @@ api/
 │   │   ├── messages.ts    → caixa do aluno, mensagens e comunicados do professor (fase 4)
 │   │   ├── missions.ts    → missões, correção do quiz e das entregas
 │   │   ├── offers.ts      → Mercado: ofertas de venda entre alunos
+│   │   ├── presence.ts    → status online dos alunos (sinal de vida a cada 30 s)
 │   │   ├── shop.ts        → Loja: cadastro do ADM e compra do aluno
 │   │   ├── students.ts    → cadastro e gestão de alunos
 │   │   ├── submissions.ts → entregas das missões de entrega e os arquivos (fase 5)
@@ -1132,6 +1134,8 @@ Resumo:
 | PUT | `/students/:id/password` | O professor dele ou o ADM |
 | DELETE | `/students/:id/items/:itemId` | O professor dele ou o ADM (tira um item do inventário) |
 | DELETE | `/students/:id` | O professor dele ou o ADM |
+| POST | `/presence` | Alunos (sinal de vida; devolve quem está online) |
+| GET | `/presence` | Logados (quem está online) |
 
 As rotas do jogo (inventário, missões, Loja, presentes, amigos, Mercado, trocas e eventos)
 estão em [As rotas da fase 3](#as-rotas-da-fase-3).
@@ -1251,6 +1255,8 @@ só com letras, números, ponto, hífen e `_`. Então `"Ána.Teste "` vira `"ana
 ### POST /auth/logout
 
 Apaga a sessão do banco e limpa o cookie. Pode ser chamada sem corpo. Resposta `200`.
+Se for um aluno, ele também fica offline na hora (o sinal de vida dele é apagado, veja
+[Status online](#status-online-dos-alunos)).
 
 ---
 
@@ -2372,6 +2378,75 @@ Em desenvolvimento (`STORAGE_DRIVER=local`), com o Insomnia ou o PowerShell:
 4. Logado como o professor: `GET /submissions`, `GET /submissions/files/<fileId>` (baixa) e `POST /submissions/<id>/review`.
 
 O arquivo aparece em `api/uploads/submissions/<id da entrega>/<id do arquivo>`.
+
+## Status online dos alunos
+
+O professor, o ADM e os próprios alunos veem quem está na plataforma agora: uma bolinha
+**verde** (online) ou **vermelha** (offline) ao lado do nome nos rankings (geral, da casa e dos
+eventos), na lista de amigos e na lista de alunos do painel. Clicando no aluno, o perfil mostra o
+selo **Online** ou **Offline**. No painel, a lista de alunos mostra quantos estão online e tem o
+botão "Mostrar só os online".
+
+### Como funciona: o sinal de vida
+
+Não existe um jeito de o servidor "ver" quem está com o site aberto. Então o site avisa:
+
+1. Enquanto o aluno está logado, o navegador manda um **sinal de vida** (`POST /presence`) a
+   cada 30 segundos, em qualquer tela (o `PresenceHeartbeat`, montado no layout raiz do site).
+2. A API grava o horário desse sinal na tabela `student_presence`.
+3. **Online é quem deu sinal nos últimos 90 segundos** (`ONLINE_WINDOW_SECONDS`, em
+   `src/routes/presence.ts`). A folga existe porque os navegadores atrasam os timers das abas em
+   segundo plano (até uma vez por minuto): o aluno que só trocou de aba continua online.
+4. Fechou o site? Sem sinal, ele aparece offline em até 90 segundos. Saiu da conta? O
+   `POST /auth/logout` apaga o sinal, e ele fica offline na hora.
+
+O próprio sinal de vida já devolve a lista de quem está online, então o aluno faz uma chamada
+só a cada 30 segundos. O professor e o ADM não mandam sinal (não são alunos): eles consultam
+com `GET /presence`, também a cada 30 segundos, e só com a aba visível.
+
+### A tabela student_presence (e por que ela é separada)
+
+```
+student_presence
+├── student_id   uuid, chave primária → students.id (on delete cascade)
+└── last_seen_at timestamptz (o horário do último sinal)
+```
+
+O sinal de vida é escrito o tempo todo. Se ele ficasse numa coluna da tabela `students`, cada
+sinal mexeria na linha do aluno, a mesma que guarda o progresso. Numa tabela própria, o status
+online **nunca encosta nos dados dos alunos** (desde outubro de 2026 a plataforma tem alunos de
+verdade, e a regra é não arriscar esses dados). A migration só cria a tabela nova: nada do que
+já existe muda. Excluir um aluno apaga a linha dele junto (`on delete cascade`).
+
+Pra não gravar à toa (duas abas abertas mandam dois sinais), o upsert só atualiza se o último
+sinal tem mais de 15 segundos:
+
+```ts
+await db
+    .insertInto('studentPresence')
+    .values({ studentId })
+    .onConflict((oc) => oc
+        .column('studentId')
+        .doUpdateSet({ lastSeenAt: sql`now()` })
+        .where('studentPresence.lastSeenAt', '<', sql<Date>`now() - interval '15 seconds'`))
+    .execute()
+```
+
+### Quem pode ver
+
+Todo mundo logado, como a comunidade (`GET /students/community`): o professor e o ADM
+acompanham a turma, e os alunos veem os amigos e os colegas nos rankings. A resposta é só a
+lista de ids de quem está online:
+
+```json
+{ "online": ["5b0c...", "9e41..."] }
+```
+
+### E o plano gratuito do Neon?
+
+O sinal de vida só acontece enquanto alguém está com o site aberto, e nesses momentos o banco já
+fica acordado (o sininho consulta a API a cada 20 segundos). Com todo mundo fora do site,
+ninguém manda sinal e o Neon pode dormir normalmente.
 
 ## Build da aplicação
 

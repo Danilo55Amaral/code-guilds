@@ -11,6 +11,7 @@ import { EVENT_VISUALS } from "./events/registry";
 import Avatar from "./Avatar";
 import SearchInput from "./SearchInput";
 import { PaginationFooter, usePagination } from "./Pagination";
+import { OnlineDot } from "./OnlineStatus";
 
 // ============================================================================
 // RANKING DO EVENTO — só com a pontuação do evento (engine/specialEvents.ts):
@@ -135,7 +136,10 @@ export default function EventRanking({
                   >
                     <span className={first ? "text-3xl" : "text-2xl"}>{MEDALS[place - 1]}</span>
                     <Avatar config={wornAvatar(st.student)} ringColor={house.hex} size={first ? 72 : 56} />
-                    <span className="w-full truncate text-sm font-semibold text-white">{st.student.name}</span>
+                    <span className="flex w-full items-center justify-center gap-1.5 text-sm font-semibold text-white">
+                      <OnlineDot studentId={st.student.id} />
+                      <span className="truncate">{st.student.name}</span>
+                    </span>
                     <span className={`text-[11px] ${house.colorClass}`}>{house.name}</span>
                     <span className={`text-xs font-bold ${visual.accentClass}`}>{st.points} pts</span>
                   </Tag>
@@ -168,8 +172,11 @@ export default function EventRanking({
                       <span className="w-7 shrink-0 text-center text-xs font-bold opacity-70">{place <= 3 ? <span className="text-base">{MEDALS[place - 1]}</span> : `#${place}`}</span>
                       <Avatar config={wornAvatar(st.student)} ringColor={house.hex} size={34} />
                       <span className="min-w-0">
-                        <span className="block truncate font-medium">
-                          {st.student.name} {isYou && <span className="text-xs opacity-60">(você)</span>}
+                        <span className="flex items-center gap-1.5 font-medium">
+                          <OnlineDot studentId={st.student.id} />
+                          <span className="truncate">
+                            {st.student.name} {isYou && <span className="text-xs opacity-60">(você)</span>}
+                          </span>
                         </span>
                         <span className={`block text-[11px] ${isYou ? "opacity-70" : house.colorClass}`}>
                           {house.name} • {st.missionsDone} {st.missionsDone === 1 ? "missão" : "missões"}

@@ -26,6 +26,8 @@ import {
 } from "./accounts";
 import { Message, MessageKind, MessageAudience, BroadcastSummary, listMessages, deleteMessagesOf } from "./messages";
 import * as messagesApi from "./messagesApi";
+import * as presenceApi from "./presenceApi";
+import { isOnline, onlineCount } from "./presence";
 import {
   FriendLink,
   ChatMessage,
@@ -231,6 +233,46 @@ export function useInboxPolling(intervalMs: number = messagesApi.INBOX_POLL_MS) 
     }, intervalMs);
     return () => window.clearInterval(timer);
   }, [intervalMs]);
+}
+
+/**
+ * Status online: manda o sinal de vida (aluno) ou consulta quem está online
+ * (professor/ADM) a cada 30 segundos. Fica montado no layout raiz
+ * (PresenceHeartbeat), então vale em todas as telas. Ao entrar ou sair de uma
+ * conta, atualiza na hora.
+ */
+export function usePresencePolling() {
+  const [account, setAccount] = useState<string | null>(null);
+
+  const sync = useCallback(() => {
+    setAccount(getActiveStudentId() ?? getTeacherSessionId());
+  }, []);
+
+  useSyncOnChange(sync);
+
+  useEffect(() => {
+    void presenceApi.refreshPresence();
+    const timer = window.setInterval(() => void presenceApi.refreshPresence(), presenceApi.PRESENCE_POLL_MS);
+    return () => window.clearInterval(timer);
+  }, [account]);
+}
+
+/**
+ * Quem está online agora (cache da API, atualizado pelo usePresencePolling).
+ * Devolve isOnline(id) e quantos estão online; a tela redesenha quando muda.
+ */
+export function useOnlineStatus() {
+  const [count, setCount] = useState(0);
+  const [, setVersion] = useState(0);
+
+  const sync = useCallback(() => {
+    setCount(onlineCount());
+    setVersion((v) => v + 1);
+  }, []);
+
+  useSyncOnChange(sync);
+
+  return { isOnline, onlineCount: count };
 }
 
 /**

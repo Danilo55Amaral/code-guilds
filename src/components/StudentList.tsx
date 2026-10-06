@@ -4,9 +4,11 @@ import { useState } from "react";
 import { Student, matchesStudentSearch } from "@/engine/students";
 import { Mission } from "@/engine/missions";
 import { HOUSES } from "@/engine/houses";
+import { useOnlineStatus } from "@/engine/store";
 import { CoinIcon } from "./GameUI";
 import SearchInput from "./SearchInput";
 import { PaginationFooter, usePagination } from "./Pagination";
+import { OnlineCount, OnlineDot } from "./OnlineStatus";
 
 const STUDENTS_PER_PAGE = 10;
 
@@ -33,15 +35,30 @@ export default function StudentList({
   onSelect: (studentId: string) => void;
 }) {
   const [search, setSearch] = useState("");
-  const found = students.filter((s) => matchesStudentSearch(s, search));
-  const pager = usePagination(found, STUDENTS_PER_PAGE, search);
+  const [onlyOnline, setOnlyOnline] = useState(false);
+  const { isOnline } = useOnlineStatus();
+  const found = students.filter((s) => matchesStudentSearch(s, search) && (!onlyOnline || isOnline(s.id)));
+  const pager = usePagination(found, STUDENTS_PER_PAGE, `${search}|${onlyOnline}`);
 
   return (
     <div className="cg-card mb-6 p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-slate-300">
-          {title} ({students.length})
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-sm font-semibold text-slate-300">
+            {title} ({students.length})
+          </p>
+          {students.length > 0 && <OnlineCount studentIds={students.map((s) => s.id)} />}
+          {students.length > 0 && (
+            <button
+              onClick={() => setOnlyOnline((v) => !v)}
+              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold transition-colors ${
+                onlyOnline ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-400 hover:border-slate-500"
+              }`}
+            >
+              {onlyOnline ? "Mostrando só os online" : "Mostrar só os online"}
+            </button>
+          )}
+        </div>
         {headerRight}
       </div>
 
@@ -51,7 +68,11 @@ export default function StudentList({
         <>
           <SearchInput value={search} onChange={setSearch} placeholder="Buscar por nome, nível ou casa…" className="mb-3" />
           {found.length === 0 ? (
-            <p className="text-sm text-slate-500">Nenhum aluno encontrado para &quot;{search.trim()}&quot; — tente outro nome, nível ou casa.</p>
+            <p className="text-sm text-slate-500">
+              {onlyOnline && !search.trim()
+                ? "Nenhum aluno online agora."
+                : <>Nenhum aluno encontrado para &quot;{search.trim()}&quot; — tente outro nome, nível ou casa.</>}
+            </p>
           ) : (
             <div className="flex flex-col gap-2">
               {pager.pageItems.map((s) => {
@@ -64,7 +85,10 @@ export default function StudentList({
                     className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-800 bg-cg-sunken px-4 py-2.5 text-left transition-colors hover:border-slate-600"
                   >
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-white">{s.name}</p>
+                      <p className="flex items-center gap-1.5 text-sm font-medium text-white">
+                        <OnlineDot studentId={s.id} />
+                        {s.name}
+                      </p>
                       <p className="break-all text-xs text-slate-500">
                         {s.email} • {s.turma} • <span className="font-mono">@{s.username}</span>
                       </p>
