@@ -20,6 +20,9 @@ import { ensureAuthenticated, ensureStudent } from "../middlewares/auth";
 
 export const ONLINE_WINDOW_SECONDS = 90
 
+// O dia de hoje no horário de Brasília (o tempo online é somado por dia)
+export const TODAY_IN_BRAZIL = sql`(now() at time zone 'America/Sao_Paulo')::date`
+
 // Os ids dos alunos online agora
 async function onlineStudentIds() {
     const rows = await db
@@ -34,19 +37,53 @@ async function onlineStudentIds() {
 export async function presenceRoutes(app: FastifyInstance) {
     // Sinal de vida do aluno: marca que ele está online e já devolve quem
     // está online (assim o site faz uma chamada só a cada 30 segundos).
-    // O "where" no update evita gravar de novo se o último sinal foi há menos
-    // de 15 segundos (duas abas abertas, por exemplo).
+    // Também soma o tempo online do dia (student_activity_days, que alimenta
+    // o dashboard do aluno): o tempo desde o sinal anterior conta se o aluno
+    // ainda estava online (até ONLINE_WINDOW_SECONDS). Primeiro sinal depois
+    // de sair da conta ou de um tempo fora não soma nada.
+    // Sinal repetido em menos de 15 segundos (duas abas abertas, por exemplo)
+    // não grava nada.
     app.post('/', { preHandler: ensureStudent }, async (request) => {
         const studentId = request.user!.id
 
-        await db
-            .insertInto('studentPresence')
-            .values({ studentId })
-            .onConflict((oc) => oc
-                .column('studentId')
-                .doUpdateSet({ lastSeenAt: sql`now()` })
-                .where('studentPresence.lastSeenAt', '<', sql<Date>`now() - interval '15 seconds'`))
-            .execute()
+        await db.transaction().execute(async (trx) => {
+            // O tempo desde o último sinal, calculado pelo relógio do banco
+            const previous = await trx
+                .selectFrom('studentPresence')
+                .select(sql<number>`extract(epoch from now() - last_seen_at)::float8`.as('elapsed'))
+                .where('studentId', '=', studentId)
+                .forUpdate()
+                .executeTakeFirst()
+
+            if (!previous) {
+                await trx
+                    .insertInto('studentPresence')
+                    .values({ studentId })
+                    .onConflict((oc) => oc.column('studentId').doNothing())
+                    .execute()
+                return
+            }
+
+            if (previous.elapsed < 15) return
+
+            await trx
+                .updateTable('studentPresence')
+                .set({ lastSeenAt: sql`now()` })
+                .where('studentId', '=', studentId)
+                .execute()
+
+            if (previous.elapsed > ONLINE_WINDOW_SECONDS) return
+
+            const seconds = Math.round(previous.elapsed)
+
+            await trx
+                .insertInto('studentActivityDays')
+                .values({ studentId, day: sql`${TODAY_IN_BRAZIL}`, onlineSeconds: seconds })
+                .onConflict((oc) => oc
+                    .columns(['studentId', 'day'])
+                    .doUpdateSet({ onlineSeconds: sql`student_activity_days.online_seconds + ${seconds}` }))
+                .execute()
+        })
 
         return { online: await onlineStudentIds() }
     })

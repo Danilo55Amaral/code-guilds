@@ -340,6 +340,13 @@ export async function missionsRoutes(app: FastifyInstance) {
                 itemWaiting: reward.student.pendingItems.length > student.pendingItems.length,
             }
         }, async (trx, result) => {
+            // toda tentativa fica registrada (acertos e erros), pro dashboard
+            // do aluno; só registro, não muda nada no progresso
+            await trx
+                .insertInto('quizAttempts')
+                .values({ studentId: user.id, missionId: mission.id, correct: result.correctCount, total: result.total, passed: result.passed })
+                .execute()
+
             // a mensagem 🏆 da recompensa, na mesma transação
             if (!result.rewarded) return
 

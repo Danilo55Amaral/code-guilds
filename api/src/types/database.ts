@@ -90,6 +90,16 @@ export interface Offers {
   sellerId: string;
 }
 
+export interface QuizAttempts {
+  correct: number;
+  createdAt: Generated<Timestamp>;
+  id: Generated<string>;
+  missionId: string;
+  passed: boolean;
+  studentId: string;
+  total: number;
+}
+
 export interface Sessions {
   createdAt: Generated<Timestamp>;
   expiresAt: Timestamp;
@@ -116,6 +126,12 @@ export interface ShopItems {
   sold: Generated<number>;
   value: Generated<number>;
   xp: Generated<number>;
+}
+
+export interface StudentActivityDays {
+  day: Timestamp;
+  onlineSeconds: Generated<number>;
+  studentId: string;
 }
 
 export interface StudentPresence {
@@ -213,8 +229,10 @@ export interface DB {
   messages: Messages;
   missions: Missions;
   offers: Offers;
+  quizAttempts: QuizAttempts;
   sessions: Sessions;
   shopItems: ShopItems;
+  studentActivityDays: StudentActivityDays;
   studentPresence: StudentPresence;
   students: Students;
   submissionFiles: SubmissionFiles;
