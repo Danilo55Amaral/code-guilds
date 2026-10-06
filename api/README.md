@@ -28,6 +28,7 @@
 - [Fase 4: as mensagens no servidor](#fase-4-as-mensagens-no-servidor)
 - [Fase 5: as entregas no servidor](#fase-5-as-entregas-no-servidor)
 - [Status online dos alunos](#status-online-dos-alunos)
+- [Dashboard do aluno](#dashboard-do-aluno)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -107,6 +108,7 @@ api/
 │   │   ├── teachers.ts    → cadastro e gestão de professores
 │   │   └── trades.ts      → trocas de itens entre amigos
 │   ├── services/
+│   │   ├── dashboard.ts   → os números do dashboard do aluno (só leitura)
 │   │   ├── escrow.ts      → devolve os itens guardados em ofertas e trocas
 │   │   ├── messages.ts    → grava as mensagens do aluno (as automáticas também) (fase 4)
 │   │   ├── progress.ts    → updateProgress: transação + aluno travado (fase 3)
@@ -1134,6 +1136,7 @@ Resumo:
 | PUT | `/students/:id/password` | O professor dele ou o ADM |
 | DELETE | `/students/:id/items/:itemId` | O professor dele ou o ADM (tira um item do inventário) |
 | DELETE | `/students/:id` | O professor dele ou o ADM |
+| GET | `/students/:id/dashboard` | O professor dele ou o ADM (dashboard do aluno) |
 | POST | `/presence` | Alunos (sinal de vida; devolve quem está online) |
 | GET | `/presence` | Logados (quem está online) |
 
@@ -2447,6 +2450,99 @@ lista de ids de quem está online:
 O sinal de vida só acontece enquanto alguém está com o site aberto, e nesses momentos o banco já
 fica acordado (o sininho consulta a API a cada 20 segundos). Com todo mundo fora do site,
 ninguém manda sinal e o Neon pode dormir normalmente.
+
+## Dashboard do aluno
+
+Na ficha do aluno, o professor (dos alunos dele) e o ADM (de todos) têm o botão
+**📊 Dashboard**. Ele abre a tela `/painel/aluno/[id]` do site, com:
+
+- **indicadores**: missões concluídas, tempo online, média de acertos e último acesso;
+- **cabeçalho**: status online, nível, XP, moedas, último acesso e último login;
+- **gráficos**: tempo online por dia (30 dias), missões concluídas por semana (12 semanas),
+  progresso no catálogo (anel), acertos x erros e média de acertos por missão;
+- **tabelas**: as últimas tentativas de quiz e a situação das entregas.
+
+A tela se atualiza sozinha a cada minuto (com a aba visível) e tem o botão "Atualizar".
+
+### De onde vem cada número
+
+| Número | Fonte | Desde quando |
+|---|---|---|
+| Missões concluídas | `students.completed_mission_ids` | Sempre |
+| Missões por semana | As mensagens 🏆 "Missão concluída" que a API manda a cada missão concluída (quiz ou entrega aprovada) | Sempre |
+| Último login | A sessão mais recente do aluno (`sessions.created_at`) | Sempre |
+| Último acesso | `student_presence.last_seen_at` (o último sinal de vida) | Desde o status online |
+| Tempo online | `student_activity_days` | Desde o dashboard |
+| Acertos e erros | `quiz_attempts` | Desde o dashboard |
+| Entregas | `submissions`, por situação | Sempre |
+
+A tela avisa ("Registrado desde ...") quando um número só conta a partir de quando passou a
+ser gravado, pra ninguém achar que o aluno nunca entrou antes.
+
+### As duas tabelas novas
+
+```
+student_activity_days                    quiz_attempts
+├── student_id     uuid → students.id    ├── id          uuid
+├── day            date (Brasília)       ├── student_id  uuid → students.id
+└── online_seconds integer               ├── mission_id  varchar → missions.id
+    (chave: student_id + day)            ├── correct     integer (acertos)
+                                         ├── total       integer (perguntas)
+                                         ├── passed      boolean (60% ou mais)
+                                         └── created_at  timestamptz
+```
+
+As duas são **só de registro**: nenhuma muda o progresso, os itens ou as missões do aluno. A
+migration só cria as tabelas. Excluir o aluno apaga as linhas dele (`on delete cascade`); excluir
+uma missão apaga as tentativas dela.
+
+**Tempo online.** O sinal de vida (`POST /presence`, a cada 30 segundos) soma no dia de hoje o
+tempo desde o sinal anterior, **se o aluno ainda estava online** (até 90 segundos). Quem saiu da
+conta ou ficou um tempo fora volta sem somar a ausência. Sinal repetido em menos de 15 segundos
+não soma nada (duas abas abertas não contam em dobro). O tempo é calculado pelo relógio do banco,
+não pelo do navegador do aluno.
+
+**Acertos.** A rota `POST /missions/:id/attempt` grava cada tentativa, aprovada ou não, na mesma
+transação da correção (no `alsoSave` do `updateProgress`). A média de acertos é o total de
+perguntas certas dividido pelo total de perguntas respondidas.
+
+### A rota GET /students/:id/dashboard
+
+Só o professor do aluno ou o ADM (`canManageStudent`); o próprio aluno recebe `403`. As consultas
+ficam em `src/services/dashboard.ts` e rodam em paralelo (`Promise.all`). Resposta (resumida):
+
+```json
+{
+  "student": { "id": "...", "name": "Ana", "level": 3, "...": "..." },
+  "online": {
+    "now": true, "lastSeenAt": "...", "lastLoginAt": "...",
+    "totalSeconds": 15600, "activeDays": 6, "since": "2026-10-06",
+    "days": [{ "day": "2026-10-06", "seconds": 2400 }]
+  },
+  "missions": {
+    "completedTotal": 12, "available": 28, "completedAvailable": 11,
+    "completedQuiz": 10, "completedTasks": 1,
+    "weekly": [{ "week": "2026-09-29", "count": 4 }]
+  },
+  "quiz": {
+    "attempts": 15, "passed": 12, "correct": 118, "total": 150, "since": "...",
+    "byMission": [{ "missionId": "ods", "title": "ODS", "icon": "🌍", "attempts": 2, "best": 0.9, "average": 0.8 }],
+    "recent": [{ "missionId": "ods", "title": "ODS", "correct": 9, "total": 10, "passed": true, "createdAt": "..." }]
+  },
+  "submissions": { "aprovada": 1, "pendente": 1 }
+}
+```
+
+Um detalhe do SQL: `hoje - 30` precisa ser `hoje - 30::int`. Sem o cast, o Postgres lê o 30 como
+uma data (data - data dá um número) e a comparação com `day` falha.
+
+### Os gráficos (src/components/dashboard/charts.tsx)
+
+Desenhados em SVG, sem biblioteca, seguindo o guia de visualização de dados: cores por papel em
+variáveis CSS (`--viz-*`), com valores próprios pro tema escuro e pro claro (a paleta passou no
+validador de contraste e daltonismo nos dois temas); barras finas com a ponta arredondada e 2px
+de espaço; tooltip em cada barra (mouse e teclado); acertos e erros sempre com ✓/✗ e o nome, nunca
+só a cor; e "Ver dados em tabela" nos gráficos de barras.
 
 ## Build da aplicação
 

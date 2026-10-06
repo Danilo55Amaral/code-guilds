@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Student, StudentProfile, InventoryItem, OnboardingStep, xpToNextLevel, wornAvatar, inventoryCapacity } from "@/engine/students";
 import { GiftItem } from "@/engine/gifts";
@@ -221,6 +222,12 @@ export default function StudentDetails({
         <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
           <h2 className="text-lg font-bold text-white">Ficha do Aluno</h2>
           <div className="flex flex-wrap items-center justify-end gap-2">
+            <Link
+              href={`/painel/aluno/${student.id}`}
+              className="rounded-full border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-xs font-semibold text-sky-200 transition-colors hover:bg-sky-400/20"
+            >
+              📊 Dashboard
+            </Link>
             <button onClick={() => setComposerOpen((o) => !o)} className="cg-btn-primary !px-3 !py-1.5 text-xs">
               📨 Enviar mensagem
             </button>

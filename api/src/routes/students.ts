@@ -6,6 +6,7 @@ import { existsOrError, notExistsError, NotFoundError, ValidationError } from ".
 import { updateProgress } from "../services/progress";
 import { returnEscrowOfDeletedStudent } from "../services/escrow";
 import { removeFiles } from "../services/storage";
+import { studentDashboard } from "../services/dashboard";
 import { storageKeysOf } from "./submissions";
 import { normalizeUsername } from "../utils/normalize";
 import { hashPassword } from "../utils/password";
@@ -126,6 +127,28 @@ export async function studentsRoutes(app: FastifyInstance) {
             .execute()
 
         return { students }
+    })
+
+    // Dashboard do aluno (o professor dele e o ADM): missões, tempo online,
+    // último acesso, acertos e erros nos quizzes e entregas. Só leitura.
+    app.get('/:id/dashboard', { preHandler: ensureTeacher }, async (request, reply) => {
+        const getDashboardParamsSchema = z.object({
+            id: z.uuid(),
+        })
+
+        const { id } = getDashboardParamsSchema.parse(request.params)
+
+        const student = await db.selectFrom('students').select(['id', 'teacherId']).where('id', '=', id).executeTakeFirst()
+
+        if (!student) {
+            return reply.status(404).send({ message: 'Aluno não encontrado!' })
+        }
+
+        if (!canManageStudent(request.user!, student)) {
+            return reply.status(403).send({ message: 'Você não tem acesso a esse aluno.' })
+        }
+
+        return studentDashboard(id)
     })
 
     // Consultando um único aluno
