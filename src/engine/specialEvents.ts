@@ -3,8 +3,9 @@
 // evento tem uma história contada em cenas de tela cheia (abertura e final,
 // em components/EventScene.tsx), missões exclusivas que o professor cria ou
 // atribui (Mission.eventId) e uma recompensa pra quem finaliza.
-// O evento de Natal é em fases: uma trilha de 3 fases seguidas, cada uma com
-// abertura, missões (Mission.eventPhase), final e um item lendário.
+// Os eventos de Natal e A Noite de Dracoding são em fases: uma trilha de 3
+// fases seguidas, cada uma com abertura, missões (Mission.eventPhase), final e
+// um item lendário.
 // O desenho de cada cena fica em components/events/; o progresso do aluno
 // (viu a abertura? finalizou?) fica em Student.events.
 // ============================================================================
@@ -13,13 +14,19 @@ import { Mission, MissionContent, RewardItem } from "./missions";
 import { EventProgress, Student, addXp, grantItem } from "./students";
 import { HOUSES, HouseId } from "./houses";
 
-export type EventId = "halloween" | "zumbi" | "alien" | "natal";
+export type EventId = "halloween" | "dracoding" | "zumbi" | "alien" | "natal";
 
-/** Quem fala na cena — define o nome no balão, a cor e a voz. */
-export type SceneSpeaker = "narrador" | "mago" | "vilao" | "noel";
+/**
+ * Quem fala na cena — define o nome no balão, a cor e a voz. "vilao" é o vilão
+ * principal de cada evento; "lobisomem" e "espantalho" são os outros dois
+ * vilões de A Noite de Dracoding.
+ */
+export type SceneSpeaker = "narrador" | "mago" | "vilao" | "noel" | "lobisomem" | "espantalho";
 
 /** Efeito sonoro que toca quando a cena começa. */
-export type SceneSound = "sino" | "trovao" | "plim" | "fanfarra" | "alarme" | "gemido" | "ovni" | "laser" | "guizos" | "vento";
+export type SceneSound =
+  | "sino" | "trovao" | "plim" | "fanfarra" | "alarme" | "gemido" | "ovni" | "laser" | "guizos" | "vento"
+  | "uivo" | "orgao" | "corvos" | "circo" | "morcegos";
 
 export interface EventSceneStep {
   art: string; // qual desenho aparece (cada evento tem os seus, em components/events/)
@@ -69,13 +76,13 @@ export interface EventPhase extends EventChapter {
   summary: string;
 }
 
-/** Evento de uma parte só (Halloween, Apocalipse Zumbi, Invasão Alienígena). */
+/** Evento de uma parte só (A Noite do Bug Assombrado, Apocalipse Zumbi, Invasão Alienígena). */
 export interface SingleEvent extends EventBase, EventChapter {
   phases?: undefined;
 }
 
 /**
- * Evento em fases (Natal): uma trilha de fases seguidas. O professor libera
+ * Evento em fases (Natal, A Noite de Dracoding): uma trilha de fases seguidas. O professor libera
  * uma fase por vez (uma por semana) e o aluno só entra numa fase depois de
  * finalizar a anterior. O final da última fase é o final do evento.
  */
@@ -1901,8 +1908,348 @@ const NATAL: PhasedEvent = {
   ],
 };
 
+// ============================================================================
+// 🧛 A NOITE DE DRACODING — o segundo evento de Halloween, em 3 fases (uma por
+// semana), que sai do castelo e toma Codópolis, a cidade aos pés da CodeGuilds.
+// Três vilões: o Espantabyte (Fase 1), o Lobisloop (Fase 2) e o chefe de
+// todos, o Conde Dracoding (Fase 3). As missões não são prontas: o professor
+// importa as dele com scripts/missions/dracoding.ts (na API), que sorteia
+// perguntas das missões que ele já tem.
+// ============================================================================
+
+const DRACODING: PhasedEvent = {
+  id: "dracoding",
+  icon: "🧛",
+  title: "A Noite de Dracoding",
+  tagline: "🧛 Evento de Halloween • 3 fases",
+  summary:
+    "O Conde Dracoding, o vampiro que escreveu o primeiro programa que nunca desliga, acordou depois de 500 anos e quer mergulhar Codópolis, a cidade aos pés da CodeGuilds, numa noite eterna. Com ele vêm o Espantabyte, o Lobisloop e um exército de bruxas, fantasmas, palhaços e morcegos. Uma trilha em três fases, dos campos de abóbora até o castelo do vampiro.",
+  goal: "Complete as três fases, derrote os três vilões e traga o amanhecer de volta pra Codópolis. Cada fase concluída vale um item lendário!",
+  villain: { name: "Conde Dracoding", icon: "🧛", voice: { pitch: 0.25, rate: 0.8 } },
+  phases: [
+    {
+      number: 1,
+      icon: "🌾",
+      title: "A Colheita Maldita",
+      summary:
+        "Nos campos de abóbora de Codópolis, o Espantabyte ganhou vida e acendeu nas abóboras o Fogo Roxo da Noite Eterna, que se espalha de casa em casa. Purifique as abóboras amaldiçoadas antes que a cidade inteira fique no escuro.",
+      goal: "Purifique as abóboras amaldiçoadas e derrote o Espantabyte.",
+      missionHint: "Cada missão que você vencer purifica uma abóbora amaldiçoada: o fogo roxo apaga e ela volta a brilhar laranja.",
+      finishCall: {
+        title: "Todas as abóboras foram purificadas!",
+        text: "O Espantabyte está perdendo a força... Só falta o último passo pra desmontar o espantalho e ganhar o item lendário da Fase 1.",
+      },
+      intro: [
+        {
+          art: "cidade",
+          speaker: "narrador",
+          sound: "sino",
+          text: "Era a noite de 31 de outubro em Codópolis, a cidade aos pés do castelo da CodeGuilds. As ruas estavam cheias de abóboras acesas e as crianças batiam de porta em porta pedindo doces... até que o relógio da praça bateu meia-noite. E depois bateu mais uma vez. Treze badaladas.",
+        },
+        {
+          art: "plantacao",
+          speaker: "narrador",
+          sound: "corvos",
+          text: "Nos campos de abóbora, na beira da cidade, os corvos fugiram todos de uma vez. No meio do milharal, um espantalho velho, de cabeça de abóbora, abriu dois olhos de fogo.",
+        },
+        {
+          art: "espantabyte",
+          speaker: "espantalho",
+          sound: "trovao",
+          text: "Hihihi! Eu sou o Espantabyte! Fui plantado aqui pra espantar os bugs da colheita, mas o meu mestre me deu um presente: VIDA! E agora quem vai espantar Codópolis inteira sou eu!",
+        },
+        {
+          art: "maldicao-roxa",
+          speaker: "espantalho",
+          sound: "vento",
+          text: "Vejam as minhas abóboras! Acendi em cada uma o Fogo Roxo da Noite Eterna. Elas vão pular de casa em casa, e cada casa que elas tocarem vai ficar escura pra sempre. Hihihihi!",
+        },
+        {
+          art: "invasao",
+          speaker: "narrador",
+          sound: "morcegos",
+          text: "E o espantalho não estava sozinho. Bruxas cruzaram a lua montadas em vassouras, fantasmas apareceram nas janelas, aranhas teceram teias entre os postes e, na praça, surgiu do nada um circo de lona rasgada, cheio de palhaços de sorriso torto.",
+        },
+        {
+          art: "mago-1",
+          speaker: "mago",
+          sound: "plim",
+          text: "Aprendiz, que bom que você veio! Essa magia é do Conde Dracoding, um vampiro que dorme há 500 anos. Se o espantalho dele acordou, ele também está acordando... Mas primeiro, as abóboras! Cada missão que você vencer purifica uma abóbora amaldiçoada.",
+        },
+        {
+          art: "sombra-dracoding",
+          speaker: "vilao",
+          sound: "orgao",
+          text: "Boa noite, pequenos programadores... Aproveitem a última noite de Halloween de vocês. Quando a minha lua sangrar, o sol nunca mais vai nascer em Codópolis. Muahahahaha!",
+        },
+        {
+          art: "chamado-1",
+          speaker: "mago",
+          sound: "plim",
+          text: "Ouviu essa voz? Não temos tempo a perder! Esta é só a primeira fase: a cada semana, uma fase nova, até o castelo do vampiro. Acenda a sua lanterna, aprendiz: vamos salvar Codópolis!",
+        },
+      ],
+      outro: [
+        {
+          art: "aboboras-purificadas",
+          speaker: "narrador",
+          sound: "plim",
+          text: "A última abóbora piscou... e o fogo roxo virou uma chama laranja e quentinha. Uma por uma, as abóboras da cidade se acenderam de novo, iluminando as ruas de Codópolis.",
+        },
+        {
+          art: "espantabyte-derrotado",
+          speaker: "espantalho",
+          sound: "vento",
+          text: "Nããão! As minhas abóboras... a minha palha... Eu estou me desmanchando! O mestre disse que eu ia viver pra sempre! Ele mentiu pra mim!",
+        },
+        {
+          art: "palha",
+          speaker: "narrador",
+          sound: "corvos",
+          text: "O Espantabyte desabou num monte de palha, e a cabeça de abóbora rolou pelo campo, apagada. Os corvos voltaram e pousaram em cima, como se nada tivesse acontecido. Só o chapéu dele ficou ali, inteirinho.",
+        },
+        {
+          art: "lua-sangrando",
+          speaker: "vilao",
+          sound: "uivo",
+          text: "Então derrotaram o meu espantalho? Que pena... Olhem pro céu: a minha lua já começou a sangrar. E, sob a Lua de Sangue, os meus lobos acordam. Estão ouvindo?",
+        },
+        {
+          art: "recompensa-1",
+          speaker: "mago",
+          sound: "fanfarra",
+          text: "Você salvou os campos, aprendiz! E olha só: o chapéu do Espantabyte, purificado e cheio de folhas de outono, quer ficar com você. É o seu prêmio lendário! Descanse bem: na próxima fase, os lobisomens tomam as ruas.",
+        },
+      ],
+      reward: {
+        xp: 250,
+        coins: 150,
+        item: {
+          name: "Chapéu do Espantabyte",
+          icon: "🌾",
+          description:
+            "O chapéu remendado do Espantabyte, purificado e enfeitado com folhas de outono, com palha saindo pelas bordas e um corvinho de guarda na aba. Equipe no Inventário e use no seu avatar.",
+          rarity: "lendario",
+          value: 200,
+          xp: 0,
+          cosmetic: { slot: "hat", value: "chapeu-espantalho" },
+        },
+      },
+      presetMissions: [],
+    },
+    {
+      number: 2,
+      icon: "🐺",
+      title: "A Lua de Sangue",
+      summary:
+        "O Conde Dracoding pintou a lua de vermelho e quebrou a luz prateada dela em pedaços. Sob a Lua de Sangue, o Lobisloop e a alcateia dele prendem a cidade em loops infinitos. Restaure os Fragmentos da Lua e devolva a luz prateada a Codópolis.",
+      goal: "Restaure os Fragmentos da Lua e liberte Codópolis dos loops infinitos do Lobisloop.",
+      missionHint: "Cada missão que você vencer restaura um Fragmento da Lua, e a luz prateada volta a brilhar um pouco mais.",
+      finishCall: {
+        title: "Todos os fragmentos da lua foram restaurados!",
+        text: "A Lua de Sangue está perdendo a cor... Só falta o último passo pra devolver a luz prateada, quebrar o loop do Lobisloop e ganhar o item lendário da Fase 2.",
+      },
+      intro: [
+        {
+          art: "lua-de-sangue",
+          speaker: "narrador",
+          sound: "uivo",
+          text: "Na semana seguinte, a lua cheia nasceu vermelha como sangue sobre Codópolis. Das montanhas, dos telhados e dos becos, uivos ecoavam pela cidade inteira.",
+        },
+        {
+          art: "lobisloop",
+          speaker: "lobisomem",
+          sound: "uivo",
+          text: "AUUUUU! Eu sou o Lobisloop, o líder da alcateia! Sob a Lua de Sangue, a minha força não tem fim... igualzinho aos meus loops! Grrr!",
+        },
+        {
+          art: "loop-infinito",
+          speaker: "lobisomem",
+          sound: "trovao",
+          text: "Quem cruza o meu caminho fica preso num while (true): anda em círculos pela praça, sem parar, pra sempre! Ninguém nunca escreveu um break pra sair dos meus loops! Hahaha... AUUU!",
+        },
+        {
+          art: "circo",
+          speaker: "narrador",
+          sound: "circo",
+          text: "Na praça, o circo de lona rasgada acendeu as luzes. O carrossel começou a girar ao contrário, os palhaços sombrios faziam malabarismo com abóboras, e aranhas enormes desciam pelos fios até a rua.",
+        },
+        {
+          art: "fragmentos",
+          speaker: "mago",
+          sound: "plim",
+          text: "Aprendiz, olhe pra lua! O feitiço do Dracoding quebrou a luz prateada dela em pedaços, que caíram pela cidade. Cada missão que você vencer restaura um Fragmento da Lua. Com a lua prateada de volta, os lobos perdem a força!",
+        },
+        {
+          art: "chamado-2",
+          speaker: "mago",
+          sound: "plim",
+          text: "A cidade inteira está presa num loop, e só você pode escrever o break! Cuidado com os palhaços e com as aranhas. Avante, aprendiz: devolva a luz da lua a Codópolis!",
+        },
+      ],
+      outro: [
+        {
+          art: "lua-prateada",
+          speaker: "narrador",
+          sound: "plim",
+          text: "O último fragmento voltou pro lugar, e a lua brilhou prateada, mais forte do que nunca. A luz desceu pelas ruas e, um por um, os moradores pararam de andar em círculos. O loop tinha acabado!",
+        },
+        {
+          art: "lobisloop-derrotado",
+          speaker: "lobisomem",
+          sound: "vento",
+          text: "Não... a luz prateada... A minha força está indo embora... Eu estou encolhendo... os meus pelos estão sumindo... O que está acontecendo comigo?!",
+        },
+        {
+          art: "lupercio",
+          speaker: "narrador",
+          sound: "sino",
+          text: "No lugar do lobisomem gigante, apareceu um senhor de bigode, de boné e com uma lanterna na mão: era o Seu Lupércio, o vigia da torre do relógio! O Conde Dracoding tinha transformado ele em lobisomem pra vigiar a cidade... pro vampiro.",
+        },
+        {
+          art: "castelo-carmesim",
+          speaker: "narrador",
+          sound: "orgao",
+          text: "Então a névoa da montanha se abriu e todos viram: lá no alto do penhasco, um castelo enorme, com janelas vermelhas como brasa e uma revoada de morcegos em volta das torres. O Castelo de Dracoding.",
+        },
+        {
+          art: "convite",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Bravo, bravo... Derrotaram o meu espantalho e o meu lobo. Então venham ao meu castelo, se tiverem coragem. Lá dentro, o relógio parou às 23:59... e o amanhecer nunca chega.",
+        },
+        {
+          art: "recompensa-2",
+          speaker: "mago",
+          sound: "fanfarra",
+          text: "A própria lua te agradeceu, aprendiz: ela te deu um pedaço da luz prateada dela! É o seu prêmio lendário. Descanse bem: na última fase, vamos invadir o castelo do vampiro!",
+        },
+      ],
+      reward: {
+        xp: 350,
+        coins: 200,
+        item: {
+          name: "Aura da Lua Prateada",
+          icon: "🌕",
+          description:
+            "Um pedaço da luz prateada da lua de Codópolis, presente dela por você ter quebrado o loop do Lobisloop. A lua cheia brilha atrás de você, com morcegos voando e um lobo uivando no penhasco. Equipe no Inventário e ela brilha em volta do seu avatar.",
+          rarity: "lendario",
+          value: 250,
+          xp: 0,
+          cosmetic: { slot: "aura", value: "lua-prateada" },
+        },
+      },
+      presetMissions: [],
+    },
+    {
+      number: 3,
+      icon: "🏰",
+      title: "O Castelo de Dracoding",
+      summary:
+        "No alto do penhasco, o Conde Dracoding parou o Relógio do Amanhecer às 23:59 pra que a noite nunca acabe. Atravesse a ponte dos morcegos, enfrente o exército de vampiros e as bruxas do castelo, acenda os Vitrais do Amanhecer e traga o sol de volta!",
+      goal: "Acenda os Vitrais do Amanhecer, derrote o Conde Dracoding e traga o sol de volta.",
+      missionHint: "Cada missão que você vencer acende um Vitral do Amanhecer na torre do castelo.",
+      finishCall: {
+        title: "Todos os vitrais do amanhecer estão acesos!",
+        text: "A luz do sol está batendo na porta do castelo... Só falta o último passo pra derrotar o Conde Dracoding, salvar Codópolis e ganhar o item lendário final.",
+      },
+      intro: [
+        {
+          art: "ponte",
+          speaker: "narrador",
+          sound: "trovao",
+          text: "Chegou a última semana. O aprendiz, o Mago e o Seu Lupércio, com a lanterna na mão, subiram o penhasco e atravessaram a ponte de pedra até o castelo. Lá embaixo, só escuridão. Lá em cima, raios e morcegos.",
+        },
+        {
+          art: "exercito",
+          speaker: "narrador",
+          sound: "morcegos",
+          text: "No pátio do castelo, um exército inteiro esperava: vampiros de capa e olhos vermelhos, lobisomens da alcateia e, em volta de um caldeirão borbulhante, as bruxas do castelo, rindo e mexendo uma poção de escuridão.",
+        },
+        {
+          art: "dracoding",
+          speaker: "vilao",
+          sound: "orgao",
+          text: "Sejam bem-vindos ao meu castelo! Eu sou o Conde Dracoding. Há 500 anos, eu escrevi o primeiro programa que nunca desliga. Nunca dorme, nunca para, nunca termina... igualzinho a mim.",
+        },
+        {
+          art: "relogio",
+          speaker: "vilao",
+          sound: "sino",
+          text: "Eu odeio a luz: a luz do sol e a luz do conhecimento de vocês! Por isso parei o Relógio do Amanhecer às 23:59. Enquanto ele estiver parado, Codópolis vai viver na noite eterna, e todos vão ser meus servos!",
+        },
+        {
+          art: "vitrais",
+          speaker: "mago",
+          sound: "plim",
+          text: "Aprendiz, olhe a torre do relógio! Ali estão os três Vitrais do Amanhecer, que guardam a primeira luz do dia, e o Dracoding apagou todos. Cada missão que você vencer acende um vitral. Com os três acesos, o relógio volta a andar!",
+        },
+        {
+          art: "chamado-3",
+          speaker: "mago",
+          sound: "plim",
+          text: "Chegou a hora, aprendiz. O Seu Lupércio segura a lanterna, eu cuido das bruxas, e você enfrenta os desafios. É a última fase: vamos trazer o sol de volta pra Codópolis!",
+        },
+      ],
+      outro: [
+        {
+          art: "vitrais-acesos",
+          speaker: "narrador",
+          sound: "sino",
+          text: "O último vitral se acendeu. As três janelas brilharam em vermelho, dourado e azul, e o Relógio do Amanhecer deu um estalo... 23:59... MEIA-NOITE... e os ponteiros começaram a girar, cada vez mais rápido, até as seis da manhã!",
+        },
+        {
+          art: "dracoding-derrotado",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Nããão! A luz! O meu programa eterno... está dando timeout! Impossível! Eu nunca escrevi um fim pra mim mesmo!",
+        },
+        {
+          art: "revoada",
+          speaker: "narrador",
+          sound: "morcegos",
+          text: "Os raios de sol atravessaram os vitrais e encheram o salão. O Conde Dracoding girou, girou e se desfez numa nuvem de morcegos, que fugiram pelas janelas. O exército de vampiros virou um bando de morceguinhos assustados, e as bruxas fugiram montadas nas vassouras.",
+        },
+        {
+          art: "amanhecer",
+          speaker: "narrador",
+          sound: "sino",
+          text: "O sol nasceu sobre Codópolis. Os fantasmas subiram em paz, os palhaços voltaram a ser artistas de circo de verdade, e a cidade inteira saiu às ruas pra comemorar. A noite de Halloween mais longa da história finalmente tinha acabado.",
+        },
+        {
+          art: "dracoding-mini",
+          speaker: "narrador",
+          sound: "plim",
+          text: "Mas um morceguinho ficou pra trás. Pequenininho, de capa e de óculos escuros pra aguentar o sol: era o Conde Dracoding, encolhido pela luz do amanhecer! Ele pousou no ombro do aprendiz e prometeu: chega de noite eterna. Agora, só programas que terminam.",
+        },
+        {
+          art: "recompensa-3",
+          speaker: "mago",
+          sound: "fanfarra",
+          text: "Você salvou Codópolis, aprendiz! E o Dracoding de Bolso quer ser o seu mascote, pra aprender a escrever código do bem. Com o Chapéu do Espantabyte e a Aura da Lua Prateada, você é o herói do Halloween. Feliz Halloween, CodeGuilds!",
+        },
+      ],
+      reward: {
+        xp: 500,
+        coins: 300,
+        item: {
+          name: "Dracoding de Bolso",
+          icon: "🧛",
+          description:
+            "O Conde Dracoding, encolhido pela luz do amanhecer até ficar do tamanho de um morcego. Agora usa óculos escuros pra aguentar o sol e jura que só escreve programas que terminam. Equipe no Inventário e ele vira o mascote no seu ombro.",
+          rarity: "lendario",
+          value: 300,
+          xp: 0,
+          cosmetic: { slot: "pet", value: "dracoding" },
+        },
+      },
+      presetMissions: [],
+    },
+  ],
+};
+
 /** Todos os eventos, na ordem em que aparecem na tela de Eventos. */
-export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, ZOMBIE, ALIEN, NATAL];
+export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, DRACODING, ZOMBIE, ALIEN, NATAL];
 
 export function getEvent(id: string): AcademyEvent | undefined {
   return ACADEMY_EVENTS.find((e) => e.id === id);

@@ -2,7 +2,8 @@
 // ITENS DOS EVENTOS — todos os itens que os eventos especiais dão: a
 // recompensa de cada fase (ou a recompensa final) e o item de cada missão
 // pronta do evento. Eles entram na Loja, na coleção do evento (o Natal na
-// coleção de Natal, e assim por diante), e podem ser dados de presente pelo
+// coleção de Natal, os dois eventos de Halloween na de Halloween, e assim por
+// diante), e podem ser dados de presente pelo
 // professor ou pelo ADM.
 //
 // Só o ADM altera esses itens: editando o item na Loja (preço, XP, valor,
@@ -25,6 +26,7 @@ export interface EventItemEntry {
 /** A coleção da Loja de cada evento. */
 export const EVENT_COLLECTION: Record<EventId, CosmeticCollection> = {
   halloween: "halloween",
+  dracoding: "halloween",
   zumbi: "zumbi",
   alien: "alien",
   natal: "natal",

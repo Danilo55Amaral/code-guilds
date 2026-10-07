@@ -367,6 +367,70 @@
   0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
   100% { transform: translate(var(--cg-dx, 0px), var(--cg-dy, -120px)) rotate(var(--cg-spin, 180deg)) scale(0.4); opacity: 0; }
 }
+/* evento A Noite de Dracoding (components/events/dracoding/) */
+@keyframes cg-swing {
+  0%, 100% { transform: rotate(calc(var(--cg-angle, 4deg) * -1)); }
+  50% { transform: rotate(var(--cg-angle, 4deg)); }
+}
+@keyframes cg-cape {
+  0%, 100% { transform: skewX(-2.5deg) scaleX(1); }
+  50% { transform: skewX(2.5deg) scaleX(1.035); }
+}
+@keyframes cg-howl {
+  0%, 100% { transform: rotate(0deg) translateY(0); }
+  30%, 70% { transform: rotate(-16deg) translateY(-6px); }
+}
+@keyframes cg-collapse {
+  0% { transform: translateY(0) rotate(0deg) scale(1, 1); opacity: 1; filter: brightness(1); }
+  18% { transform: translateY(-2%) rotate(-4deg) scale(1.02, 1.02); opacity: 1; }
+  32% { transform: translateY(0) rotate(5deg) scale(1, 1); }
+  100% { transform: translateY(42%) rotate(-24deg) scale(1.15, 0.2); opacity: 0; filter: brightness(0.4); }
+}
+@keyframes cg-assemble {
+  0% { transform: translate(var(--cg-dx, 0px), var(--cg-dy, 80px)) rotate(var(--cg-spin, 120deg)) scale(0.5); opacity: 0; }
+  60% { opacity: 1; }
+  100% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+}
+@keyframes cg-morph-out {
+  0% { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+  30% { transform: scale(1.04); filter: blur(0) brightness(1.6); }
+  100% { transform: scale(0.55) translateY(18%); opacity: 0; filter: blur(10px) brightness(2.4); }
+}
+@keyframes cg-morph-in {
+  0% { transform: scale(1.25); opacity: 0; filter: blur(12px) brightness(2.5); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0) brightness(1); }
+}
+@keyframes cg-dissolve {
+  0% { transform: scale(1) rotate(0deg); opacity: 1; filter: blur(0); }
+  20% { transform: scale(1.05) rotate(-3deg); opacity: 1; }
+  100% { transform: scale(1.3) rotate(8deg); opacity: 0; filter: blur(14px); }
+}
+@keyframes cg-spider {
+  0% { transform: translateY(-120%); }
+  55% { transform: translateY(6%); }
+  70% { transform: translateY(-4%); }
+  85%, 100% { transform: translateY(0); }
+}
+@keyframes cg-dangle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(14px); }
+}
+@keyframes cg-kenburns {
+  from { transform: scale(1) translate(0, 0); }
+  to { transform: scale(1.08) translate(var(--cg-pan-x, 0%), var(--cg-pan-y, -1.5%)); }
+}
+@keyframes cg-beam-in {
+  0% { transform: scaleY(0); opacity: 0; }
+  100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes cg-pulse-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes cg-clock-run {
+  from { transform: rotate(var(--cg-from, 0deg)); }
+  to { transform: rotate(var(--cg-to, 360deg)); }
+}
 /* auras do avatar (components/Avatar.tsx) */
 @keyframes cg-aura-pulse {
   0%, 100% { transform: scale(1); opacity: 0.82; }
@@ -685,6 +749,22 @@
   .cg-anim-sleigh { animation: cg-sleigh var(--cg-duration, 9s) linear var(--cg-delay, 0s) infinite both; }
   .cg-anim-shatter { animation: cg-shatter 1.4s cubic-bezier(0.2, 0.7, 0.3, 1) var(--cg-delay, 0.9s) both; }
   .cg-anim-shiver { animation: cg-shiver 0.3s linear infinite; }
+  /* evento A Noite de Dracoding (--cg-origin = ponto de giro; --cg-angle = quanto balança) */
+  .cg-anim-swing { animation: cg-swing var(--cg-dur, 3s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: var(--cg-origin, 50% 0%); }
+  .cg-anim-cape { animation: cg-cape var(--cg-dur, 4.5s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 0%; }
+  .cg-anim-howl { animation: cg-howl var(--cg-dur, 4s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 90%; }
+  .cg-anim-collapse { animation: cg-collapse 2.4s cubic-bezier(0.5, 0, 0.75, 0.3) var(--cg-delay, 0.8s) both; transform-origin: 50% 100%; }
+  .cg-anim-assemble { animation: cg-assemble 1.6s cubic-bezier(0.2, 0.8, 0.2, 1) var(--cg-delay, 0s) both; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-morph-out { animation: cg-morph-out 2.2s ease-in var(--cg-delay, 0.6s) both; transform-origin: 50% 100%; }
+  .cg-anim-morph-in { animation: cg-morph-in 1.4s ease-out var(--cg-delay, 2.2s) both; transform-origin: 50% 100%; }
+  .cg-anim-dissolve { animation: cg-dissolve 2.4s ease-in var(--cg-delay, 1s) both; transform-origin: 50% 50%; }
+  .cg-anim-spider { animation: cg-spider 2.4s cubic-bezier(0.3, 0.7, 0.4, 1) var(--cg-delay, 0s) both, cg-dangle 3.2s ease-in-out calc(var(--cg-delay, 0s) + 2.4s) infinite; }
+  .cg-anim-kenburns { animation: cg-kenburns var(--cg-dur, 16s) ease-out both; transform-origin: 50% 60%; }
+  .cg-anim-beam-in { animation: cg-beam-in 1.6s ease-out var(--cg-delay, 0s) both; transform-box: fill-box; transform-origin: 50% 0%; }
+  .cg-anim-glow { animation: cg-pulse-glow var(--cg-dur, 2.6s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-clock-run { animation: cg-clock-run 4.5s cubic-bezier(0.6, 0, 0.3, 1) var(--cg-delay, 1s) both; transform-box: view-box; transform-origin: var(--cg-origin, 50% 50%); }
+  .cg-anim-orbit { animation: cg-spin var(--cg-dur, 6s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: var(--cg-origin, 50% 50%); }
+  .cg-anim-orbit-rev { animation: cg-spin var(--cg-dur, 6s) linear var(--cg-delay, 0s) infinite reverse; transform-box: fill-box; transform-origin: center; }
   /* auras do avatar: giram/pulsam em volta do centro do avatar (64, 60 no viewBox); o resto, em volta do próprio desenho */
   .cg-anim-aura-spin { animation: cg-spin var(--cg-dur, 16s) linear var(--cg-delay, 0s) infinite; transform-box: view-box; transform-origin: 64px 60px; }
   .cg-anim-aura-spin-rev { animation: cg-spin var(--cg-dur, 22s) linear var(--cg-delay, 0s) infinite reverse; transform-box: view-box; transform-origin: 64px 60px; }
@@ -776,6 +856,9 @@
   .cg-anim-shockwave,
   .cg-anim-level-out,
   .cg-anim-shatter,
+  .cg-anim-collapse,
+  .cg-anim-morph-out,
+  .cg-anim-dissolve,
   .cg-anim-dragon-shockwave,
   .cg-anim-dragon-flash,
   .cg-anim-dragon-bolt,

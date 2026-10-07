@@ -319,7 +319,7 @@ export default function EventoPage() {
 
           {missions.length === 0 ? (
             <div className="mt-5 flex flex-col items-center gap-2 rounded-2xl border border-slate-700/60 bg-black/30 px-6 py-10 text-center">
-              <p className="text-4xl">{phased ? "❄️" : "🕸️"}</p>
+              <p className="text-4xl">{phased ? phase.icon : "🕸️"}</p>
               <p className="text-sm text-slate-300">
                 {phased ? "Seu professor ainda não colocou missões nesta fase. Volte mais tarde!" : "Seu professor ainda não colocou missões neste evento. Volte mais tarde, se tiver coragem!"}
               </p>

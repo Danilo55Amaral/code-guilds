@@ -22,15 +22,15 @@ import { Mission } from "../../src/engine/missions";
 // título, ela é pulada: dá pra rodar o comando de novo sem duplicar nada.
 // ============================================================================
 
-// As missões de quiz do professor (sem as de evento), no formato do site e
-// sempre na mesma ordem
-async function quizMissionsOf(teacherId: string): Promise<Mission[]> {
+// As missões de quiz do professor, no formato do site e sempre na mesma ordem:
+// as normais (`events` = false) ou só as de evento (`events` = true)
+async function quizMissionsOf(teacherId: string, events = false): Promise<Mission[]> {
     const rows = await db
         .selectFrom('missions')
         .selectAll()
         .where('teacherId', '=', teacherId)
         .where('kind', '=', 'quiz')
-        .where('eventId', 'is', null)
+        .where('eventId', events ? 'is not' : 'is', null)
         .orderBy('id')
         .execute()
 
@@ -67,9 +67,9 @@ async function importMissions() {
         const exported = module.default?.default ?? module.default
 
         // O arquivo pode exportar uma função em vez de uma lista: ela recebe
-        // as missões de quiz que o professor já tem no banco e monta as novas
-        // a partir delas (ex.: scripts/missions/halloween.ts)
-        missions.push(...(typeof exported === 'function' ? exported(await quizMissionsOf(teacher.id)) : exported))
+        // as missões de quiz que o professor já tem no banco (as normais e as
+        // de evento) e monta as novas a partir delas (ex.: scripts/missions/halloween.ts)
+        missions.push(...(typeof exported === 'function' ? exported(await quizMissionsOf(teacher.id), await quizMissionsOf(teacher.id, true)) : exported))
     }
 
     // Confere todas antes de gravar a primeira: um erro num arquivo não deixa

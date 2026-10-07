@@ -800,6 +800,302 @@ export function playWinterAmbience(): () => void {
 }
 
 // ============================================================================
+// A NOITE DE DRACODING — o uivo da alcateia, o órgão do castelo do vampiro, os
+// corvos do milharal, a musiquinha do circo sombrio e a revoada de morcegos.
+// ============================================================================
+
+/** Uivo de lobo: um "auuuu" subindo, segurando com vibrato e caindo; um segundo lobo responde lá longe. */
+export function playWolfHowl(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  // [atraso, afinação relativa, volume]: o líder da alcateia e um lobo mais agudo, mais longe
+  const wolves: [number, number, number][] = [
+    [0, 1, 0.42],
+    [1.25, 1.24, 0.16],
+  ];
+  wolves.forEach(([delay, pitch, volume]) => {
+    const at = t + delay;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(volume, at + 0.4);
+    gain.gain.setValueAtTime(volume, at + 1.9);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 2.8);
+    // a vogal "u": um filtro na região grave da voz
+    const formant = ctx.createBiquadFilter();
+    formant.type = "lowpass";
+    formant.frequency.value = 900 * pitch;
+    formant.Q.value = 2;
+    formant.connect(gain).connect(out);
+    const vibrato = ctx.createOscillator();
+    vibrato.frequency.value = 5.2;
+    const vibratoDepth = ctx.createGain();
+    vibratoDepth.gain.setValueAtTime(0, at);
+    vibratoDepth.gain.linearRampToValueAtTime(9 * pitch, at + 1.1);
+    vibrato.connect(vibratoDepth);
+    (["sine", "triangle"] as OscillatorType[]).forEach((type) => {
+      const osc = ctx.createOscillator();
+      osc.type = type;
+      osc.frequency.setValueAtTime(290 * pitch, at);
+      osc.frequency.exponentialRampToValueAtTime(540 * pitch, at + 0.6);
+      osc.frequency.linearRampToValueAtTime(585 * pitch, at + 1.7);
+      osc.frequency.exponentialRampToValueAtTime(350 * pitch, at + 2.8);
+      vibratoDepth.connect(osc.frequency);
+      osc.connect(formant);
+      osc.start(at);
+      osc.stop(at + 2.9);
+    });
+    vibrato.start(at);
+    vibrato.stop(at + 2.9);
+  });
+  return closeScene(ctx);
+}
+
+/** Nota de órgão de igreja: vários "tubos" (harmônicos) soando juntos, com ataque rápido. */
+function playOrganNote(ctx: AudioContext, out: AudioNode, midi: number, at: number, dur: number, volume = 0.05) {
+  const freq = midiToFreq(midi);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, at);
+  gain.gain.exponentialRampToValueAtTime(volume, at + 0.025);
+  gain.gain.setValueAtTime(volume, at + Math.max(0.03, dur - 0.04));
+  gain.gain.exponentialRampToValueAtTime(0.0001, at + dur + 0.25);
+  gain.connect(out);
+  // [harmônico, peso]: como os registros puxados de um órgão
+  const pipes: [number, number][] = [
+    [0.5, 0.5],
+    [1, 1],
+    [2, 0.6],
+    [3, 0.32],
+    [4, 0.22],
+    [8, 0.08],
+  ];
+  pipes.forEach(([ratio, weight], i) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq * ratio * (1 + (i % 2 ? 0.0015 : -0.0015));
+    const pipe = ctx.createGain();
+    pipe.gain.value = weight;
+    osc.connect(pipe).connect(gain);
+    osc.start(at);
+    osc.stop(at + dur + 0.3);
+  });
+}
+
+/**
+ * Órgão do castelo do vampiro: o começo da Tocata e Fuga em Ré menor, de Bach
+ * (domínio público) — "lá-sol-láaa... sol-fá-mi-ré-dó#... ré" — com o acorde grave no fim.
+ */
+export function playOrganSting(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.55);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  // [nota midi, início, duração] — cada nota soa em oitavas
+  const melody: [number, number, number][] = [
+    [81, 0, 0.11],
+    [79, 0.11, 0.11],
+    [81, 0.22, 1.05],
+    [79, 1.5, 0.12],
+    [77, 1.62, 0.12],
+    [76, 1.74, 0.12],
+    [74, 1.86, 0.12],
+    [73, 1.98, 0.62],
+    [74, 2.7, 1.5],
+  ];
+  melody.forEach(([midi, start, dur]) => {
+    playOrganNote(ctx, out, midi, t + start, dur, 0.035);
+    playOrganNote(ctx, out, midi - 12, t + start, dur, 0.035);
+  });
+  // o acorde final de Ré menor, com o pedal bem grave
+  [38, 50, 57, 62, 65].forEach((midi) => playOrganNote(ctx, out, midi, t + 2.7, 1.5, 0.03));
+  return closeScene(ctx);
+}
+
+/** Corvos do milharal: grasnados roucos ("cróóó") de dois corvos e o bater de asas fugindo. */
+export function playCrows(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.4);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  function caw(at: number, pitch: number, volume: number) {
+    const osc = ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(pitch * 1.2, at);
+    osc.frequency.exponentialRampToValueAtTime(pitch, at + 0.05);
+    osc.frequency.exponentialRampToValueAtTime(pitch * 0.78, at + 0.26);
+    // a rouquidão: o volume treme bem rápido
+    const rasp = ctx.createGain();
+    rasp.gain.value = 0.55;
+    const am = ctx.createOscillator();
+    am.frequency.value = 62;
+    const amDepth = ctx.createGain();
+    amDepth.gain.value = 0.45;
+    am.connect(amDepth).connect(rasp.gain);
+    const beak = ctx.createBiquadFilter();
+    beak.type = "bandpass";
+    beak.frequency.value = 1500;
+    beak.Q.value = 2.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(volume, at + 0.025);
+    gain.gain.setValueAtTime(volume, at + 0.16);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.28);
+    osc.connect(rasp).connect(beak).connect(gain).connect(out);
+    [osc, am].forEach((o) => {
+      o.start(at);
+      o.stop(at + 0.3);
+    });
+  }
+
+  // [início, afinação, volume]: um corvo perto, outro mais grave, e o primeiro de novo, já longe
+  const caws: [number, number, number][] = [
+    [0, 560, 0.5],
+    [0.34, 540, 0.5],
+    [0.68, 520, 0.45],
+    [1.05, 430, 0.38],
+    [1.36, 410, 0.34],
+    [1.95, 560, 0.18],
+    [2.25, 530, 0.14],
+  ];
+  caws.forEach(([at, pitch, volume]) => caw(t + at, pitch, volume));
+
+  // as asas batendo enquanto eles fogem
+  const flap = noiseBuffer(ctx, 0.08);
+  for (let i = 0; i < 12; i++) {
+    const at = t + 0.05 + i * 0.09;
+    const src = ctx.createBufferSource();
+    src.buffer = flap;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 700;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.35 * (1 - i / 14), at + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.07);
+    src.connect(filter).connect(gain).connect(out);
+    src.start(at);
+    src.stop(at + 0.08);
+  }
+  return closeScene(ctx);
+}
+
+/**
+ * Circo sombrio: uma valsinha em Mi menor de caixinha de música e realejo,
+ * desafinando e ficando mais lenta, como se a corda estivesse acabando.
+ */
+export function playCreepyCircus(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.38);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  function note(midi: number, at: number, dur: number, cents: number, volume: number, type: OscillatorType) {
+    const osc = ctx.createOscillator();
+    osc.type = type;
+    osc.frequency.value = midiToFreq(midi);
+    osc.detune.value = cents;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 3200;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(volume, at + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+    osc.connect(filter).connect(gain).connect(out);
+    osc.start(at);
+    osc.stop(at + dur + 0.05);
+  }
+
+  // valsa em 3/4: [melodia do compasso (3 notas), baixo do "um", acorde do "pá-pá"]
+  const bars: [number[], number, number[]][] = [
+    [[76, 79, 83], 52, [59, 64]],
+    [[82, 83, 79], 47, [59, 63]],
+    [[76, 78, 79], 52, [59, 64]],
+    [[78, 75, 71], 47, [54, 63]],
+    [[72, 76, 79], 48, [55, 64]],
+    [[78, 75, 71], 47, [54, 63]],
+  ];
+  let at = t;
+  let beat = 0.27;
+  bars.forEach(([melody, bass, chord], b) => {
+    const cents = -b * 9; // desafinando aos poucos
+    melody.forEach((midi, i) => {
+      const when = at + i * beat;
+      note(midi, when, beat * 1.6, cents, 0.11, "triangle"); // caixinha de música
+      note(midi + 12, when, beat * 0.9, cents + 6, 0.025, "square"); // o brilho do realejo
+      if (i === 0) note(bass, when, beat * 0.9, cents, 0.13, "square");
+      else chord.forEach((c) => note(c, when, beat * 0.5, cents, 0.04, "square"));
+    });
+    at += beat * 3;
+    beat *= 1.06; // a corda acabando: cada compasso um pouco mais lento
+  });
+  note(64, at, 1.6, -60, 0.12, "triangle"); // a última nota, bem desafinada
+  return closeScene(ctx);
+}
+
+/** Revoada de morcegos: guinchos agudos espalhados e o bater de asas passando de um lado pro outro. */
+export function playBatSwarm(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.35);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const pan = ctx.createStereoPanner();
+  pan.pan.setValueAtTime(-0.9, t);
+  pan.pan.linearRampToValueAtTime(0.9, t + 2.6);
+  pan.connect(out);
+
+  // o "ffff-ffff" das asas: ruído grave tremendo no ritmo das batidas
+  const wings = ctx.createBufferSource();
+  wings.buffer = noiseBuffer(ctx, 3);
+  const wingFilter = ctx.createBiquadFilter();
+  wingFilter.type = "bandpass";
+  wingFilter.frequency.value = 420;
+  wingFilter.Q.value = 0.8;
+  const wingGain = ctx.createGain();
+  wingGain.gain.setValueAtTime(0.0001, t);
+  wingGain.gain.exponentialRampToValueAtTime(0.3, t + 0.5);
+  wingGain.gain.setValueAtTime(0.3, t + 2);
+  wingGain.gain.exponentialRampToValueAtTime(0.0001, t + 2.9);
+  const flutter = ctx.createGain();
+  flutter.gain.value = 0.5;
+  const lfo = ctx.createOscillator();
+  lfo.frequency.value = 17;
+  const lfoDepth = ctx.createGain();
+  lfoDepth.gain.value = 0.5;
+  lfo.connect(lfoDepth).connect(flutter.gain);
+  wings.connect(wingFilter).connect(flutter).connect(wingGain).connect(pan);
+  wings.start(t);
+  wings.stop(t + 3);
+  lfo.start(t);
+  lfo.stop(t + 3);
+
+  // guinchos: assobios bem agudos caindo de tom, num padrão fixo (sem sorteio)
+  for (let i = 0; i < 22; i++) {
+    const at = t + 0.1 + ((i * 0.137) % 2.5);
+    const top = 4200 + ((i * 733) % 2600);
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(top, at);
+    osc.frequency.exponentialRampToValueAtTime(top * 0.62, at + 0.05);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.05 + (i % 3) * 0.015, at + 0.006);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.06);
+    osc.connect(gain).connect(pan);
+    osc.start(at);
+    osc.stop(at + 0.07);
+  }
+  return closeScene(ctx);
+}
+
+// ============================================================================
 // SALA DO MULTIVERSO — zumbido cósmico: um grave profundo "respirando" e
 // notas agudas cintilando lá longe, como o som do espaço entre os mundos.
 // ============================================================================

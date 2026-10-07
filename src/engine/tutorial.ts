@@ -42,7 +42,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "De vez em quando a Academia recebe eventos especiais, como a Noite do Bug Assombrado no Halloween, o Surto do Vírus Z no Apocalipse Zumbi e a Invasão de Bugzar! Cada evento tem uma história animada, missões exclusivas e uma recompensa lendária pra quem chegar até o final. E no Natal tem O Resgate do Papai Noel, uma trilha em 3 fases, uma por semana, com um item lendário em cada fase. Fique de olho no Salão dos Eventos!",
+    body: "De vez em quando a Academia recebe eventos especiais, como a Noite do Bug Assombrado no Halloween, o Surto do Vírus Z no Apocalipse Zumbi e a Invasão de Bugzar! Cada evento tem uma história animada, missões exclusivas e uma recompensa lendária pra quem chegar até o final. E tem eventos em 3 fases, uma por semana, com um item lendário em cada fase: A Noite de Dracoding, em que um vampiro, um lobisomem e um espantalho tomam conta de Codópolis, e O Resgate do Papai Noel, no Natal. Fique de olho no Salão dos Eventos!",
   },
   {
     icon: "🏰",
@@ -95,7 +95,7 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quando estiver tudo pronto, clique em Iniciar: só então o evento aparece pros seus alunos, e Encerrar esconde ele de novo. Quem concluir todas as missões ganha o final da história e uma recompensa lendária! O evento de Natal é uma trilha em 3 fases: Iniciar libera a Fase 1, e você libera as próximas com o botão Liberar a Fase (a ideia é uma por semana).",
+    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quando estiver tudo pronto, clique em Iniciar: só então o evento aparece pros seus alunos, e Encerrar esconde ele de novo. Quem concluir todas as missões ganha o final da história e uma recompensa lendária! O Natal e A Noite de Dracoding são trilhas em 3 fases: Iniciar libera a Fase 1, e você libera as próximas com o botão Liberar a Fase (a ideia é uma por semana).",
   },
 ];
 
