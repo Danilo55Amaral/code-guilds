@@ -155,8 +155,11 @@ export function CountDracoding({
             ))}
           </g>
         </g>
+      </g>
 
-        <g className="cg-anim-dragon-breathe">
+      {/* corpo e olhos respiram juntos (os olhos ficam fora do filtro de silhueta, pra continuarem acesos) */}
+      <g className="cg-anim-dragon-breathe">
+        <g filter={silhouette ? `url(#${id}-sil)` : undefined}>
           {/* ---- pernas e cauda do fraque ---- */}
           <path d={poly([[166, 330], [234, 330], [258, 472], [228, 452], [214, 404], [186, 404], [172, 452], [142, 472]])} fill="#0d0913" stroke={rim} strokeWidth="2" />
           <path d={poly([[180, 372], [198, 372], [194, 542], [176, 542]])} fill="#0b0810" />
@@ -251,13 +254,13 @@ export function CountDracoding({
             </g>
           )}
         </g>
-      </g>
 
-      {/* ---- olhos vermelhos (acesos até na silhueta) ---- */}
-      <g style={{ filter: `drop-shadow(0 0 ${silhouette ? 7 : 4}px #f43f5e)` }}>
-        <path d="M172 116 L194 117.5 L189 123.5 L175 122 Z M228 116 L206 117.5 L211 123.5 L225 122 Z" fill={`url(#${id}-eye)`} />
-        <path d="M182 117 L184 117 L184 123 L182 123 Z M216 117 L218 117 L218 123 L216 123 Z" fill="#1a0208" />
-        <path d="M172 116 L194 117.5 L189 123.5 L175 122 Z M228 116 L206 117.5 L211 123.5 L225 122 Z" fill="#fb7185" className="cg-anim-eye" opacity="0.6" />
+        {/* ---- olhos vermelhos (acesos até na silhueta) ---- */}
+        <g style={{ filter: `drop-shadow(0 0 ${silhouette ? 7 : 4}px #f43f5e)` }}>
+          <path d="M172 116 L194 117.5 L189 123.5 L175 122 Z M228 116 L206 117.5 L211 123.5 L225 122 Z" fill={`url(#${id}-eye)`} />
+          <path d="M182 117 L184 117 L184 123 L182 123 Z M216 117 L218 117 L218 123 L216 123 Z" fill="#1a0208" />
+          <path d="M172 116 L194 117.5 L189 123.5 L175 122 Z M228 116 L206 117.5 L211 123.5 L225 122 Z" fill="#fb7185" className="cg-anim-eye" opacity="0.6" />
+        </g>
       </g>
 
       {/* ---- magia vermelha nas mãos ---- */}
