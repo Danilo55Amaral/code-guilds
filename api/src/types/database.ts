@@ -35,6 +35,7 @@ export interface ChatMessages {
 export interface EventRuns {
   endedAt: Timestamp | null;
   eventId: string;
+  phasesClosedAt: Generated<Json>;
   phasesReleasedAt: Generated<Json>;
   startedAt: Generated<Timestamp>;
   status: string;

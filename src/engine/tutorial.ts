@@ -95,7 +95,7 @@ const TEACHER_STEPS: TutorialStep[] = [
   {
     icon: "📅",
     title: "Eventos",
-    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quando estiver tudo pronto, clique em Iniciar: só então o evento aparece pros seus alunos, e Encerrar esconde ele de novo. Quem concluir todas as missões ganha o final da história e uma recompensa lendária! O Natal e A Noite de Dracoding são trilhas em 3 fases: Iniciar libera a Fase 1, e você libera as próximas com o botão Liberar a Fase (a ideia é uma por semana).",
+    body: "Nos eventos especiais, como o de Halloween, o Apocalipse Zumbi e a Invasão Alienígena, seus alunos assistem a uma história animada e enfrentam missões exclusivas. No card de Eventos você cria missões pro evento, atribui missões que já existem ou usa as missões prontas com um clique. Quando estiver tudo pronto, clique em Iniciar: só então o evento aparece pros seus alunos, e Encerrar esconde ele de novo. Quem concluir todas as missões ganha o final da história e uma recompensa lendária! O Natal e A Noite de Dracoding são trilhas em 3 fases: Iniciar libera a Fase 1, e você libera, encerra ou reabre cada fase quando quiser, direto no card da fase (a ideia é uma por semana). E em qualquer evento dá pra assistir à abertura e ao final de cada fase antes de iniciar, com os botões ▶ Abertura e ▶ Final.",
   },
 ];
 

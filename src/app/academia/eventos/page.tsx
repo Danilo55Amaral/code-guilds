@@ -15,6 +15,7 @@ import {
   eventPhases,
   eventStarted,
   getPhase,
+  PhaseStatus,
   phaseLock,
   phaseProgress,
 } from "@/engine/specialEvents";
@@ -29,7 +30,7 @@ import { CoinIcon, RarityBadge } from "@/components/GameUI";
 // SALÃO DOS EVENTOS — o banner e um card grande por evento. "Entrar" na
 // primeira vez abre a cena de abertura em tela cheia; depois de ver (ou pular),
 // vai direto pra tela do evento (/academia/eventos/[id]).
-// Evento em fases (Natal): o card mostra a trilha das fases, e "Entrar" abre a
+// Evento em fases (Natal, A Noite de Dracoding): o card mostra a trilha das fases, e "Entrar" abre a
 // abertura da fase nova quando o professor libera uma.
 // ============================================================================
 
@@ -46,7 +47,7 @@ const BANNER_DECOR: [string, number, number, number, number][] = [
   ["❄️", 14, 46, 16, 2.5],
 ];
 
-function EventCard({ event, student, missions, released, onEnter }: { event: AcademyEvent; student: Student; missions: Mission[]; released: number; onEnter: () => void }) {
+function EventCard({ event, student, missions, phaseStatus, onEnter }: { event: AcademyEvent; student: Student; missions: Mission[]; phaseStatus: PhaseStatus[]; onEnter: () => void }) {
   const visual = EVENT_VISUALS[event.id];
   const { Art, ProgressIcon } = visual;
   const phases = eventPhases(event);
@@ -57,8 +58,8 @@ function EventCard({ event, student, missions, released, onEnter }: { event: Aca
   const finished = !!eventFinishedAt(student, event);
   const started = eventStarted(student, event);
   // Evento em fases: a fase em que o aluno está e se ela é nova (abertura ainda não vista).
-  const phaseNow = currentPhase(student, event, released);
-  const newPhase = phased && phaseNow > 1 && !phaseLock(student, event, phaseNow, released) && !phaseProgress(student, event, phaseNow).introSeenAt;
+  const phaseNow = currentPhase(student, event, phaseStatus);
+  const newPhase = phased && phaseNow > 1 && !phaseLock(student, event, phaseNow, phaseStatus) && !phaseProgress(student, event, phaseNow).introSeenAt;
 
   const status = finished
     ? { label: "🏆 Concluído", className: "border-emerald-400/60 bg-emerald-500/20 text-emerald-200" }
@@ -102,7 +103,7 @@ function EventCard({ event, student, missions, released, onEnter }: { event: Aca
         {phased ? (
           <div className="mt-5">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">🗺️ A trilha: {phases.length} fases, cada uma com um item lendário</p>
-            <PhaseTrail event={event} student={student} missions={missions} released={released} />
+            <PhaseTrail event={event} student={student} missions={missions} phases={phaseStatus} />
           </div>
         ) : (
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
@@ -160,7 +161,7 @@ export default function EventosPage() {
   const { activeStudent, students } = useStudents();
   const game = useGameActions();
   const { missions, ready } = useMissions();
-  const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
+  const { statusOf, phasesOf, ready: runsReady } = useEventRuns();
   const [introOf, setIntroOf] = useState<{ event: AcademyEvent; phase: number } | null>(null);
   const [rankingEventId, setRankingEventId] = useState<EventId | null>(null);
   // Perfil aberto pelo ranking (guarda só o id: o aluno é relido da lista).
@@ -177,9 +178,9 @@ export default function EventosPage() {
 
   // Abertura da fase em que o aluno está (evento comum: a do evento) se ele ainda não viu; senão, direto pra tela do evento.
   function enter(event: AcademyEvent) {
-    const released = releasedOf(me.teacherId, event.id);
-    const phase = currentPhase(me, event, released);
-    if (!phaseLock(me, event, phase, released) && !phaseProgress(me, event, phase).introSeenAt) setIntroOf({ event, phase });
+    const statuses = phasesOf(me.teacherId, event.id);
+    const phase = currentPhase(me, event, statuses);
+    if (!phaseLock(me, event, phase, statuses) && !phaseProgress(me, event, phase).introSeenAt) setIntroOf({ event, phase });
     else router.push(`/academia/eventos/${event.id}`);
   }
 
@@ -239,7 +240,7 @@ export default function EventosPage() {
       ) : (
         <div className="flex flex-col gap-6">
           {liveEvents.map((event) => (
-            <EventCard key={event.id} event={event} student={me} missions={missions} released={releasedOf(me.teacherId, event.id)} onEnter={() => enter(event)} />
+            <EventCard key={event.id} event={event} student={me} missions={missions} phaseStatus={phasesOf(me.teacherId, event.id)} onEnter={() => enter(event)} />
           ))}
         </div>
       )}

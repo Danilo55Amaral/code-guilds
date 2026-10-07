@@ -8,6 +8,7 @@ import { Mission, RewardItem, isTaskMission, requiredCorrect } from "@/engine/mi
 import { latestSubmissionIn } from "@/engine/submissions";
 import TaskSubmissionModal from "@/components/TaskSubmissionModal";
 import {
+  blockingPhase,
   canFinishPhase,
   currentPhase,
   eventMissionsFor,
@@ -33,9 +34,11 @@ import { CoinIcon, DifficultyBadge, RarityBadge } from "@/components/GameUI";
 // do aluno) e, quando todas forem concluídas, o botão "Finalizar evento", que
 // abre a cena final e entrega a recompensa. Quem chega pelo link sem ter visto
 // a abertura vê a cena de abertura primeiro.
-// Evento em fases (Natal): a trilha das fases no topo; cada fase tem a própria
-// abertura, missões e final ("Concluir a fase"), e só abre depois que o
-// professor libera e o aluno conclui a fase anterior.
+// Evento em fases (Natal, A Noite de Dracoding): a trilha das fases no topo;
+// cada fase tem a própria abertura, missões e final ("Concluir a fase"), e só
+// abre enquanto o professor deixar ela liberada e depois que o aluno concluir
+// as fases liberadas antes dela. Fase encerrada pelo professor fica trancada
+// (quem já concluiu ela ainda pode rever).
 // ============================================================================
 
 export default function EventoPage() {
@@ -45,7 +48,7 @@ export default function EventoPage() {
   const game = useGameActions();
   const { missions: allMissions, ready } = useMissions();
   const attemptMission = useMissionAttempt();
-  const { statusOf, releasedOf, ready: runsReady } = useEventRuns();
+  const { statusOf, phasesOf, ready: runsReady } = useEventRuns();
   const [scene, setScene] = useState<{ kind: "intro" | "outro"; phase: number } | null>(null);
   // Fase escolhida na trilha (null = a fase em que o aluno está).
   const [selectedPhase, setSelectedPhase] = useState<number | null>(null);
@@ -61,10 +64,10 @@ export default function EventoPage() {
 
   // O evento só existe pro aluno enquanto o professor dele deixar ele acontecendo.
   const live = !!event && !!activeStudent && runsReady && statusOf(activeStudent.teacherId, event.id) === "ativo";
-  const released = event && activeStudent ? releasedOf(activeStudent.teacherId, event.id) : 0;
-  const current = event && activeStudent ? currentPhase(activeStudent, event, released) : 1;
+  const statuses = event && activeStudent ? phasesOf(activeStudent.teacherId, event.id) : [];
+  const current = event && activeStudent ? currentPhase(activeStudent, event, statuses) : 1;
   const needsIntro =
-    live && !!event && !!activeStudent && !phaseLock(activeStudent, event, current, released) && !phaseProgress(activeStudent, event, current).introSeenAt;
+    live && !!event && !!activeStudent && !phaseLock(activeStudent, event, current, statuses) && !phaseProgress(activeStudent, event, current).introSeenAt;
 
   // Chegou pelo link sem ter visto a abertura da fase atual: ela toca uma vez, ao abrir a tela.
   const autoChecked = useRef(false);
@@ -97,7 +100,9 @@ export default function EventoPage() {
   const phaseNum = selectedPhase ?? current;
   const phase = getPhase(ev, phaseNum);
   const isLastPhase = phaseNum === phases.length;
-  const lock = phaseLock(me, ev, phaseNum, released);
+  const lock = phaseLock(me, ev, phaseNum, statuses);
+  // a fase liberada que falta terminar antes desta (as fases liberadas são feitas em ordem)
+  const blocking = lock === "anterior" ? blockingPhase(me, ev, phaseNum, statuses) : null;
   const missions = eventMissionsFor(allMissions, ev.id, me.teacherId, phaseNum);
   const completedIds = me.completedMissionIds;
   const done = missions.filter((m) => completedIds.includes(m.id)).length;
@@ -197,7 +202,7 @@ export default function EventoPage() {
         {phased && (
           <div className="relative border-t border-slate-800 p-4 sm:p-5" style={{ background: visual.panelBackground }}>
             <p className="mb-3 text-[11px] font-semibold uppercase tracking-widest text-slate-300">🗺️ A trilha do evento: {ev.goal}</p>
-            <PhaseTrail event={ev} student={me} missions={allMissions} released={released} selected={phaseNum} onSelect={setSelectedPhase} />
+            <PhaseTrail event={ev} student={me} missions={allMissions} phases={statuses} selected={phaseNum} onSelect={setSelectedPhase} />
           </div>
         )}
 
@@ -233,21 +238,23 @@ export default function EventoPage() {
       {/* ===== FASE TRANCADA ===== */}
       {lock && (
         <div className={`cg-dark-scope mb-6 flex flex-col items-center gap-3 rounded-3xl border px-6 py-10 text-center ${visual.borderClass}`} style={{ background: visual.panelBackground }}>
-          <p className="text-5xl">🔒</p>
+          <p className="text-5xl">{lock === "encerrada" ? "⏹" : "🔒"}</p>
           <p className="text-xl font-black uppercase tracking-wide text-white">
             Fase {phaseNum}: {phase.title}
           </p>
           <p className="max-w-lg text-sm text-slate-300">
             {lock === "professor"
-              ? "Esta fase ainda não foi liberada. O seu professor libera uma fase nova por semana: fique de olho no Salão dos Eventos!"
-              : `Conclua a Fase ${phaseNum - 1} primeiro pra continuar a trilha até aqui.`}
+              ? "Esta fase ainda não foi liberada. O seu professor libera as fases do evento: fique de olho no Salão dos Eventos!"
+              : lock === "encerrada"
+                ? "O seu professor encerrou esta fase. O seu progresso fica guardado: se ele reabrir a fase, você continua de onde parou."
+                : `Conclua a Fase ${blocking} primeiro pra continuar a trilha até aqui.`}
           </p>
           <p className="flex flex-wrap items-center justify-center gap-2 text-sm text-amber-100">
             🎁 Nesta fase você pode ganhar: {phase.reward.item.icon} <span className="font-bold">{phase.reward.item.name}</span> <RarityBadge rarity={phase.reward.item.rarity} />
           </p>
-          {lock === "anterior" && (
-            <button onClick={() => setSelectedPhase(phaseNum - 1)} className={`mt-2 rounded-full px-6 py-2.5 text-sm font-black transition-transform hover:scale-[1.04] ${visual.buttonClass}`}>
-              Ir pra Fase {phaseNum - 1} →
+          {blocking && (
+            <button onClick={() => setSelectedPhase(blocking)} className={`mt-2 rounded-full px-6 py-2.5 text-sm font-black transition-transform hover:scale-[1.04] ${visual.buttonClass}`}>
+              Ir pra Fase {blocking} →
             </button>
           )}
         </div>
@@ -294,13 +301,15 @@ export default function EventoPage() {
             </p>
             {nextPhase && (
               <p className="mt-1 text-sm text-slate-300">
-                {nextPhase.number <= released
+                {statuses[nextPhase.number - 1] === "liberada"
                   ? `A Fase ${nextPhase.number} já está liberada: ${nextPhase.icon} ${nextPhase.title}!`
-                  : `A Fase ${nextPhase.number} (${nextPhase.icon} ${nextPhase.title}) chega quando o seu professor liberar. Uma por semana!`}
+                  : statuses[nextPhase.number - 1] === "encerrada"
+                    ? `A Fase ${nextPhase.number} (${nextPhase.icon} ${nextPhase.title}) foi encerrada pelo seu professor.`
+                    : `A Fase ${nextPhase.number} (${nextPhase.icon} ${nextPhase.title}) chega quando o seu professor liberar!`}
               </p>
             )}
           </div>
-          {nextPhase && nextPhase.number <= released && (
+          {nextPhase && statuses[nextPhase.number - 1] === "liberada" && (
             <button onClick={() => setSelectedPhase(nextPhase.number)} className={`shrink-0 rounded-full px-5 py-2 text-sm font-black transition-transform hover:scale-[1.04] ${visual.buttonClass}`}>
               Ir pra Fase {nextPhase.number} →
             </button>

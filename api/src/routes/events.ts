@@ -20,13 +20,15 @@ import {
     introSeenPatch,
     phaseLock,
     phaseProgress,
+    phaseStatuses,
 } from "../../../src/engine/specialEvents";
 import { eventRewardKey, resolveEventItem } from "../../../src/engine/eventItems";
 import type { EventRuns } from "../../../src/engine/eventSchedule";
 
 // ============================================================================
-// EVENTOS — a agenda dos eventos (cada professor inicia, libera as fases e
-// encerra os eventos da turma dele) e o progresso do aluno em cada fase:
+// EVENTOS — a agenda dos eventos (cada professor inicia, libera e encerra cada
+// fase quando quiser e encerra os eventos da turma dele; o ADM faz isso por
+// qualquer professor) e o progresso do aluno em cada fase:
 // abertura vista e fase concluída. A recompensa da fase (XP, moedas e o item,
 // com as alterações que o ADM fez na Loja) é dada AQUI, com as regras do site
 // (src/engine/specialEvents.ts).
@@ -49,7 +51,8 @@ async function listRuns(teacherId?: string): Promise<EventRuns> {
                 status: row.status as 'ativo' | 'encerrado',
                 startedAt: row.startedAt.toISOString(),
                 ...(row.endedAt && { endedAt: row.endedAt.toISOString() }),
-                phasesReleasedAt: row.phasesReleasedAt as string[],
+                phasesReleasedAt: row.phasesReleasedAt as (string | null)[],
+                phasesClosedAt: row.phasesClosedAt as (string | null)[],
             },
         }
     }
@@ -72,19 +75,82 @@ async function scheduleOwner(user: AuthUser, teacherId?: string) {
     return teacherId
 }
 
-// Quantas fases o professor liberou (0 = evento nunca iniciado) e se o evento está acontecendo
+// Se o evento está acontecendo e a situação de cada fase (liberada, encerrada ou ainda não liberada)
 async function eventStateFor(teacherId: string, eventId: EventId) {
     const run = await db
         .selectFrom('eventRuns')
-        .select(['status', 'phasesReleasedAt'])
+        .select(['status', 'phasesReleasedAt', 'phasesClosedAt'])
         .where('teacherId', '=', teacherId)
         .where('eventId', '=', eventId)
         .executeTakeFirst()
 
     return {
         active: run?.status === 'ativo',
-        released: run ? Math.max(1, (run.phasesReleasedAt as string[]).length) : 0,
+        phases: phaseStatuses(getEvent(eventId)!, run && {
+            phasesReleasedAt: run.phasesReleasedAt as (string | null)[],
+            phasesClosedAt: run.phasesClosedAt as (string | null)[],
+        }),
     }
+}
+
+// Fase trancada pro aluno: o erro diz o porquê
+function lockedOrError(lock: ReturnType<typeof phaseLock>) {
+    if (lock === 'encerrada') throw new ValidationError('Essa fase foi encerrada pelo seu professor.')
+    if (lock) throw new ValidationError('Essa fase ainda não está liberada pra você.')
+}
+
+// As datas de cada fase com a posição `index` trocada (completa com null até lá)
+function withDate(list: (string | null)[], index: number, value: string | null): (string | null)[] {
+    const copy = Array.from({ length: Math.max(list.length, index + 1) }, (_, i) => list[i] ?? null)
+    copy[index] = value
+    return copy
+}
+
+// Libera (ou reabre) ou encerra uma fase, numa transação com a linha da agenda travada
+async function changePhase(owner: string, eventId: EventId, phase: number, action: 'release' | 'close') {
+    const event = getEvent(eventId)!
+
+    if (!event.phases) throw new ValidationError('Esse evento não é em fases.')
+    if (phase > eventPhases(event).length) throw new ValidationError('Essa fase não existe.')
+
+    await db.transaction().execute(async (trx) => {
+        const run = await trx
+            .selectFrom('eventRuns')
+            .select(['status', 'phasesReleasedAt', 'phasesClosedAt'])
+            .where('teacherId', '=', owner)
+            .where('eventId', '=', eventId)
+            .forUpdate()
+            .executeTakeFirst()
+
+        if (!run || run.status !== 'ativo') throw new ValidationError('Inicie o evento antes de liberar ou encerrar as fases.')
+
+        const releasedAt = run.phasesReleasedAt as (string | null)[]
+        const closedAt = run.phasesClosedAt as (string | null)[]
+        const status = phaseStatuses(event, { phasesReleasedAt: releasedAt, phasesClosedAt: closedAt })[phase - 1]
+        const now = new Date().toISOString()
+
+        if (action === 'release') {
+            if (status === 'liberada') throw new ValidationError('Essa fase já está liberada.')
+            // Reabrir uma fase encerrada guarda a data em que ela foi liberada da primeira vez
+            await trx
+                .updateTable('eventRuns')
+                .set({
+                    phasesReleasedAt: JSON.stringify(status === 'fechada' ? withDate(releasedAt.length ? releasedAt : [now], phase - 1, now) : releasedAt) as Json,
+                    phasesClosedAt: JSON.stringify(withDate(closedAt, phase - 1, null)) as Json,
+                })
+                .where('teacherId', '=', owner)
+                .where('eventId', '=', eventId)
+                .execute()
+        } else {
+            if (status !== 'liberada') throw new ValidationError('Só dá pra encerrar uma fase que está liberada.')
+            await trx
+                .updateTable('eventRuns')
+                .set({ phasesClosedAt: JSON.stringify(withDate(closedAt, phase - 1, now)) as Json })
+                .where('teacherId', '=', owner)
+                .where('eventId', '=', eventId)
+                .execute()
+        }
+    })
 }
 
 export async function eventsRoutes(app: FastifyInstance) {
@@ -134,35 +200,39 @@ export async function eventsRoutes(app: FastifyInstance) {
         return { runs: await listRuns(owner) }
     })
 
-    // Liberando a próxima fase de um evento em fases (Natal), até a última
+    // Liberando (ou reabrindo) uma fase de um evento em fases, em qualquer ordem
+    app.post('/runs/:eventId/phases/:phase/release', { preHandler: ensureTeacher }, async (request) => {
+        const { eventId, phase } = phaseParamsSchema.parse(request.params)
+        const { teacherId } = runBodySchema.parse(request.body ?? {})
+        const owner = await scheduleOwner(request.user!, teacherId)
+
+        await changePhase(owner, eventId, phase, 'release')
+
+        return { runs: await listRuns(owner) }
+    })
+
+    // Encerrando uma fase: os alunos não jogam mais nela (o progresso deles fica guardado)
+    app.post('/runs/:eventId/phases/:phase/close', { preHandler: ensureTeacher }, async (request) => {
+        const { eventId, phase } = phaseParamsSchema.parse(request.params)
+        const { teacherId } = runBodySchema.parse(request.body ?? {})
+        const owner = await scheduleOwner(request.user!, teacherId)
+
+        await changePhase(owner, eventId, phase, 'close')
+
+        return { runs: await listRuns(owner) }
+    })
+
+    // Liberando a próxima fase ainda não liberada (rota antiga, mantida pro site
+    // de antes da liberação fase a fase)
     app.post('/runs/:eventId/release', { preHandler: ensureTeacher }, async (request) => {
         const { eventId } = runParamsSchema.parse(request.params)
         const { teacherId } = runBodySchema.parse(request.body ?? {})
         const owner = await scheduleOwner(request.user!, teacherId)
-        const totalPhases = eventPhases(getEvent(eventId)!).length
+        const next = (await eventStateFor(owner, eventId)).phases.indexOf('fechada') + 1
 
-        await db.transaction().execute(async (trx) => {
-            const run = await trx
-                .selectFrom('eventRuns')
-                .select(['status', 'phasesReleasedAt'])
-                .where('teacherId', '=', owner)
-                .where('eventId', '=', eventId)
-                .forUpdate()
-                .executeTakeFirst()
+        if (next === 0) throw new ValidationError('Todas as fases desse evento já foram liberadas.')
 
-            if (!run || run.status !== 'ativo') throw new ValidationError('Inicie o evento antes de liberar as fases.')
-
-            const released = run.phasesReleasedAt as string[]
-
-            if (released.length >= totalPhases) throw new ValidationError('Todas as fases desse evento já foram liberadas.')
-
-            await trx
-                .updateTable('eventRuns')
-                .set({ phasesReleasedAt: JSON.stringify([...released, new Date().toISOString()]) as Json })
-                .where('teacherId', '=', owner)
-                .where('eventId', '=', eventId)
-                .execute()
-        })
+        await changePhase(owner, eventId, next, 'release')
 
         return { runs: await listRuns(owner) }
     })
@@ -191,15 +261,14 @@ export async function eventsRoutes(app: FastifyInstance) {
         const { eventId, phase } = phaseParamsSchema.parse(request.params)
         const user = request.user!
         const event = getEvent(eventId)!
-        const { active, released } = await eventStateFor(user.role === 'aluno' ? user.teacherId : '', eventId)
+        const { active, phases } = await eventStateFor(user.role === 'aluno' ? user.teacherId : '', eventId)
 
         await updateProgress(user.id, (student) => {
             if (phaseProgress(student, event, phase).introSeenAt) return { student }
 
             if (!active) throw new ValidationError('Esse evento não está acontecendo agora.')
-            if (phase > eventPhases(event).length || phaseLock(student, event, phase, released)) {
-                throw new ValidationError('Essa fase ainda não está liberada pra você.')
-            }
+            if (phase > eventPhases(event).length) throw new ValidationError('Essa fase não existe.')
+            lockedOrError(phaseLock(student, event, phase, phases))
 
             return { student: { ...student, ...introSeenPatch(student, event, phase) } }
         })
@@ -217,7 +286,7 @@ export async function eventsRoutes(app: FastifyInstance) {
 
         if (phase > eventPhases(event).length) throw new ValidationError('Essa fase não existe.')
 
-        const { active, released } = await eventStateFor(teacherId, eventId)
+        const { active, phases } = await eventStateFor(teacherId, eventId)
 
         if (!active) throw new ValidationError('Esse evento não está acontecendo agora.')
 
@@ -249,7 +318,7 @@ export async function eventsRoutes(app: FastifyInstance) {
             : [])
 
         const result = await updateProgress(user.id, (student) => {
-            if (phaseLock(student, event, phase, released)) throw new ValidationError('Essa fase ainda não está liberada pra você.')
+            lockedOrError(phaseLock(student, event, phase, phases))
             if (phaseProgress(student, event, phase).finishedAt) throw new ValidationError('Você já concluiu essa fase.')
             if (!canFinishPhase(student, missions, event, phase)) {
                 throw new ValidationError('Conclua todas as missões da fase antes de finalizar.')

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { DEFAULT_AVATAR } from "@/engine/avatar";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
 import {
@@ -8,15 +9,19 @@ import {
   AcademyEvent,
   EventId,
   EventPhase,
+  PhaseStatus,
   eventFinishedAt,
   eventPhases,
   eventStarted,
+  getPhase,
   missingPresets,
   missionPhase,
   phaseProgress,
+  phaseStatuses,
 } from "@/engine/specialEvents";
 import { EVENT_STATUS_META, EventRun } from "@/engine/eventSchedule";
 import EventRanking from "./EventRanking";
+import EventScene from "./EventScene";
 import { EVENT_VISUALS, EventVisual } from "./events/registry";
 import { DifficultyBadge, RarityBadge } from "./GameUI";
 
@@ -26,15 +31,64 @@ import { DifficultyBadge, RarityBadge } from "./GameUI";
 // alunos enquanto está acontecendo), criar uma missão só do evento, atribuir
 // uma missão que já existe (ela sai da lista normal e passa a aparecer só na
 // tela do evento), tirar do evento e usar as missões prontas com um clique.
-// Evento em fases (Natal, A Noite de Dracoding): as mesmas ferramentas pra cada fase, e o botão de
-// liberar a próxima fase (a ideia é uma por semana).
+// Evento em fases (Natal, A Noite de Dracoding): as mesmas ferramentas pra cada
+// fase, e liberar, encerrar ou reabrir cada fase quando quiser, em qualquer
+// ordem (a ideia é uma por semana).
+// Em todo evento, o professor (e o ADM) assiste à abertura e ao final de cada
+// fase como os alunos vão ver, sem precisar iniciar o evento.
 // Os alunos só veem os eventos e as missões do próprio professor.
 // ============================================================================
 
-const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-
-/** Iniciar, liberar fase ou encerrar (na API): devolve a mensagem de erro, ou null se deu certo. */
+/** Iniciar ou encerrar o evento (na API): devolve a mensagem de erro, ou null se deu certo. */
 type RunAction = (eventId: EventId) => Promise<string | null>;
+
+/** Liberar (ou reabrir) ou encerrar uma fase (na API): devolve a mensagem de erro, ou null se deu certo. */
+type PhaseAction = (eventId: EventId, phase: number) => Promise<string | null>;
+
+/** O aluno de exemplo das cenas assistidas pelo professor: o avatar padrão, sem nada equipado. */
+const PREVIEW_STUDENT: Student = {
+  id: "previa",
+  name: "Aprendiz",
+  email: "",
+  turma: "",
+  username: "",
+  hasPassword: false,
+  teacherId: "",
+  houseId: null,
+  avatar: DEFAULT_AVATAR,
+  level: 1,
+  xp: 0,
+  coins: 0,
+  inventory: [],
+  completedMissionIds: [],
+  onboardingStep: "completo",
+  equipped: {},
+  events: {},
+  bonusSlots: 0,
+  pendingItems: [],
+  createdAt: "",
+};
+
+const PHASE_STATUS_META: Record<PhaseStatus, { label: string; className: string }> = {
+  fechada: { label: "🔒 Ainda não liberada", className: "border-slate-500/60 bg-slate-800/80 text-slate-300" },
+  liberada: { label: "🟢 Liberada", className: "border-emerald-400/60 bg-emerald-500/20 text-emerald-200" },
+  encerrada: { label: "⏹ Encerrada", className: "border-rose-400/60 bg-rose-500/15 text-rose-200" },
+};
+
+/** Os botões de assistir à abertura e ao final de uma fase (evento comum: do evento). */
+function PreviewButtons({ phase, phased, onPreview }: { phase: number; phased: boolean; onPreview: (phase: number, kind: "intro" | "outro") => void }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+      <span className="text-slate-400">🎬 Assistir {phased ? "às cenas da fase" : "às cenas do evento"}:</span>
+      <button onClick={() => onPreview(phase, "intro")} className="rounded-full border border-violet-400/50 bg-violet-500/10 px-3 py-1.5 font-semibold text-violet-100 transition-colors hover:bg-violet-500/25">
+        ▶ Abertura
+      </button>
+      <button onClick={() => onPreview(phase, "outro")} className="rounded-full border border-violet-400/50 bg-violet-500/10 px-3 py-1.5 font-semibold text-violet-100 transition-colors hover:bg-violet-500/25">
+        ▶ Final
+      </button>
+    </div>
+  );
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("pt-BR");
@@ -165,6 +219,7 @@ function EventPanel({
   onStart,
   onEnd,
   onReleasePhase,
+  onClosePhase,
   ...actions
 }: PanelActions & {
   event: AcademyEvent;
@@ -174,13 +229,16 @@ function EventPanel({
   ranking: { students: Student[]; missions: Mission[] };
   onStart: RunAction;
   onEnd: RunAction;
-  onReleasePhase: RunAction;
+  onReleasePhase: PhaseAction;
+  onClosePhase: PhaseAction;
 }) {
   const visual = EVENT_VISUALS[event.id];
   const { Art } = visual;
-  const [confirmEnd, setConfirmEnd] = useState(false);
-  const [confirmRelease, setConfirmRelease] = useState(false);
+  // Ações que pedem confirmação (um segundo clique): "end", "release-2", "close-1"...
+  const [confirming, setConfirming] = useState<string | null>(null);
   const [showRanking, setShowRanking] = useState(false);
+  // A cena que o professor está assistindo (abertura ou final de uma fase)
+  const [preview, setPreview] = useState<{ phase: number; kind: "intro" | "outro" } | null>(null);
   // Iniciar/liberar/encerrar falam com a API: uma ação por vez, e o erro aparece no card
   const [runBusy, setRunBusy] = useState(false);
   const [runError, setRunError] = useState<string | null>(null);
@@ -188,40 +246,35 @@ function EventPanel({
   const statusMeta = EVENT_STATUS_META[status];
   const phases = eventPhases(event);
   const phased = phases.length > 1;
-  const releasedAt = run ? (run.phasesReleasedAt ?? [run.startedAt]) : [];
-  const released = releasedAt.length;
-  const nextPhase = phased && released > 0 && released < phases.length ? phases[released] : null;
-  const nextSuggested = nextPhase ? new Date(new Date(releasedAt[released - 1]).getTime() + WEEK_MS) : null;
-  const nextIsEarly = !!nextSuggested && nextSuggested.getTime() > Date.now();
+  const statuses = phaseStatuses(event, run);
+  const releasedCount = statuses.filter((s) => s === "liberada").length;
 
   const eventList = missions.filter((m) => m.eventId === event.id);
   const entered = students.filter((s) => eventStarted(s, event)).length;
   const finished = students.filter((s) => eventFinishedAt(s, event)).length;
   const emptyPhases = phases.filter((p) => !eventList.some((m) => missionPhase(m) === p.number));
 
-  async function changeRun(action: RunAction) {
+  async function changeRun(action: () => Promise<string | null>) {
     if (runBusy) return;
     setRunBusy(true);
-    setRunError(await action(event.id));
+    setRunError(await action());
     setRunBusy(false);
   }
 
-  function endEvent() {
-    if (!confirmEnd) {
-      setConfirmEnd(true);
+  /** Primeiro clique pede confirmação; o segundo faz. */
+  function confirmThen(key: string, action: () => Promise<string | null>) {
+    if (confirming !== key) {
+      setConfirming(key);
       return;
     }
-    setConfirmEnd(false);
-    void changeRun(onEnd);
+    setConfirming(null);
+    void changeRun(action);
   }
 
-  function releaseNext() {
-    if (!confirmRelease) {
-      setConfirmRelease(true);
-      return;
-    }
-    setConfirmRelease(false);
-    void changeRun(onReleasePhase);
+  /** Quando a fase foi liberada ou encerrada (pra mostrar no card da fase). */
+  function phaseDate(phase: number, kind: "released" | "closed"): string | null {
+    const list = kind === "released" ? (run?.phasesReleasedAt?.length ? run.phasesReleasedAt : run ? [run.startedAt] : []) : (run?.phasesClosedAt ?? []);
+    return list[phase - 1] ?? null;
   }
 
   return (
@@ -237,7 +290,7 @@ function EventPanel({
         </div>
         <span className={`absolute right-3 top-3 rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-wider backdrop-blur ${statusMeta.className}`}>
           {statusMeta.label}
-          {phased && status === "ativo" && ` • Fase ${released} de ${phases.length}`}
+          {phased && status === "ativo" && ` • ${releasedCount} de ${phases.length} fases liberadas`}
         </span>
       </div>
 
@@ -258,17 +311,17 @@ function EventPanel({
           </p>
           {status === "ativo" ? (
             <button
-              onClick={endEvent}
-              onBlur={() => setConfirmEnd(false)}
+              onClick={() => confirmThen("end", () => onEnd(event.id))}
+              onBlur={() => setConfirming(null)}
               className={`shrink-0 rounded-full border px-4 py-2 text-xs font-black transition-colors ${
-                confirmEnd ? "border-rose-300 bg-rose-500/30 text-rose-100" : "border-rose-400/60 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                confirming === "end" ? "border-rose-300 bg-rose-500/30 text-rose-100" : "border-rose-400/60 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
               }`}
             >
-              {confirmEnd ? "Confirmar: encerrar agora?" : "⏹ Encerrar evento"}
+              {confirming === "end" ? "Confirmar: encerrar agora?" : "⏹ Encerrar evento"}
             </button>
           ) : (
             <button
-              onClick={() => changeRun(onStart)}
+              onClick={() => changeRun(() => onStart(event.id))}
               disabled={runBusy}
               className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] disabled:opacity-50 ${visual.buttonClass}`}
             >
@@ -297,37 +350,25 @@ function EventPanel({
 
         {!phased ? (
           <div className="mt-4">
+            <PreviewButtons phase={1} phased={false} onPreview={(phase, kind) => setPreview({ phase, kind })} />
             <PhaseMissions event={event} phase={phases[0]} visual={visual} missions={missions} students={students} {...actions} />
           </div>
         ) : (
           <>
-            {/* ---- liberar a próxima fase ---- */}
-            {status === "ativo" && (
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300/40 bg-amber-400/10 p-3">
-                <p className="min-w-0 flex-1 text-xs text-amber-50/90">
-                  {nextPhase && nextSuggested ? (
-                    <>
-                      <span className="font-bold text-amber-200">
-                        Próxima: Fase {nextPhase.number}, {nextPhase.icon} {nextPhase.title}.
-                      </span>{" "}
-                      A ideia é liberar uma fase por semana
-                      {nextIsEarly ? ` (sugestão: a partir de ${nextSuggested.toLocaleDateString("pt-BR")}).` : ": já passou uma semana, pode liberar!"} Quem terminou a fase anterior vê a abertura da nova fase ao entrar no evento.
-                    </>
-                  ) : (
-                    <span className="font-bold text-amber-200">✓ Todas as {phases.length} fases já estão liberadas pros alunos.</span>
-                  )}
-                </p>
-                {nextPhase && (
-                  <button
-                    onClick={releaseNext}
-                    onBlur={() => setConfirmRelease(false)}
-                    className={`shrink-0 rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] ${confirmRelease ? "border border-amber-200 bg-amber-400/30 text-amber-50" : visual.buttonClass}`}
-                  >
-                    {confirmRelease ? `Confirmar: liberar a Fase ${nextPhase.number} agora?` : `🔓 Liberar a Fase ${nextPhase.number}`}
-                  </button>
-                )}
-              </div>
-            )}
+            {/* ---- como funciona a liberação das fases ---- */}
+            <p className="mt-4 rounded-xl border border-amber-300/40 bg-amber-400/10 p-3 text-xs text-amber-50/90">
+              {status === "ativo" ? (
+                <>
+                  <span className="font-bold text-amber-200">Você libera e encerra cada fase quando quiser, em qualquer ordem</span> (a ideia é uma por semana). Os alunos fazem as fases
+                  liberadas em ordem e veem a abertura de cada uma ao entrar no evento. Numa fase encerrada eles não jogam mais, mas o progresso fica guardado: reabrir devolve tudo como estava.
+                </>
+              ) : (
+                <>
+                  <span className="font-bold text-amber-200">As fases se liberam com o evento acontecendo:</span> Iniciar libera a Fase 1, e depois você libera e encerra cada fase quando quiser. Dá pra
+                  assistir às cenas de cada fase antes, sem os alunos verem nada.
+                </>
+              )}
+            </p>
             {status !== "ativo" && emptyPhases.length > 0 && eventList.length > 0 && (
               <p className="mt-3 text-xs text-amber-300">⚠ Sem missões ainda: {emptyPhases.map((p) => `Fase ${p.number}`).join(", ")}.</p>
             )}
@@ -335,10 +376,17 @@ function EventPanel({
             {/* ---- as fases ---- */}
             <div className="mt-4 flex flex-col gap-4">
               {phases.map((phase) => {
-                const isReleased = phase.number <= released;
+                const phaseStatus = statuses[phase.number - 1];
+                const meta = PHASE_STATUS_META[phaseStatus];
+                const date = phaseStatus === "liberada" ? phaseDate(phase.number, "released") : phaseStatus === "encerrada" ? phaseDate(phase.number, "closed") : null;
                 const phaseDone = students.filter((s) => phaseProgress(s, event, phase.number).finishedAt).length;
+                const action = phaseStatus === "liberada" ? "close" : "release";
+                const key = `${action}-${phase.number}`;
                 return (
-                  <div key={phase.number} className={`rounded-2xl border p-4 ${isReleased ? "border-emerald-400/40 bg-black/40" : "border-slate-700/70 bg-black/30"}`}>
+                  <div
+                    key={phase.number}
+                    className={`rounded-2xl border p-4 ${phaseStatus === "liberada" ? "border-emerald-400/40 bg-black/40" : phaseStatus === "encerrada" ? "border-rose-400/30 bg-black/30" : "border-slate-700/70 bg-black/30"}`}
+                  >
                     <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <p className={`text-[11px] font-bold uppercase tracking-widest ${visual.accentClass}`}>Fase {phase.number} de {phases.length}</p>
@@ -348,20 +396,40 @@ function EventPanel({
                         <p className="mt-1 max-w-2xl text-xs text-slate-400">{phase.summary}</p>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-1.5 text-right">
-                        <span
-                          className={`rounded-full border px-3 py-1 text-[11px] font-bold ${
-                            isReleased ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-200" : "border-slate-500/60 bg-slate-800/80 text-slate-300"
-                          }`}
-                        >
-                          {isReleased ? `🟢 Liberada em ${formatDate(releasedAt[phase.number - 1])}` : "🔒 Ainda não liberada"}
+                        <span className={`rounded-full border px-3 py-1 text-[11px] font-bold ${meta.className}`}>
+                          {meta.label}
+                          {date && ` em ${formatDate(date)}`}
                         </span>
                         <span className="text-[11px] text-slate-400">{phaseDone} concluíram a fase</span>
+                        {status === "ativo" && (
+                          <button
+                            onClick={() => confirmThen(key, () => (action === "close" ? onClosePhase(event.id, phase.number) : onReleasePhase(event.id, phase.number)))}
+                            onBlur={() => setConfirming(null)}
+                            disabled={runBusy}
+                            className={`mt-1 rounded-full px-4 py-1.5 text-xs font-black transition-transform hover:scale-[1.03] disabled:opacity-50 ${
+                              confirming === key
+                                ? "border border-amber-200 bg-amber-400/30 text-amber-50"
+                                : action === "close"
+                                  ? "border border-rose-400/60 bg-rose-500/10 text-rose-200 hover:bg-rose-500/20"
+                                  : visual.buttonClass
+                            }`}
+                          >
+                            {confirming === key
+                              ? `Confirmar: ${action === "close" ? "encerrar" : phaseStatus === "encerrada" ? "reabrir" : "liberar"} a Fase ${phase.number}?`
+                              : action === "close"
+                                ? `⏹ Encerrar a Fase ${phase.number}`
+                                : phaseStatus === "encerrada"
+                                  ? `🔓 Reabrir a Fase ${phase.number}`
+                                  : `🔓 Liberar a Fase ${phase.number}`}
+                          </button>
+                        )}
                       </div>
                     </div>
                     <p className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-300">
                       🎁 Recompensa da fase: {phase.reward.item.icon} <span className="font-semibold text-white">{phase.reward.item.name}</span> <RarityBadge rarity={phase.reward.item.rarity} /> • +{phase.reward.xp} XP • +
                       {phase.reward.coins} moedas
                     </p>
+                    <PreviewButtons phase={phase.number} phased onPreview={(n, kind) => setPreview({ phase: n, kind })} />
                     <PhaseMissions event={event} phase={phase} visual={visual} missions={missions} students={students} {...actions} />
                   </div>
                 );
@@ -397,6 +465,9 @@ function EventPanel({
           )}
         </p>
       </div>
+
+      {/* a cena que o professor está assistindo (não muda nada pros alunos) */}
+      {preview && <EventScene event={event} phase={getPhase(event, preview.phase)} kind={preview.kind} student={PREVIEW_STUDENT} onClose={() => setPreview(null)} />}
     </div>
   );
 }
@@ -415,7 +486,8 @@ export default function EventMissionsManager({
   ranking: { students: Student[]; missions: Mission[] };
   onStart: RunAction;
   onEnd: RunAction;
-  onReleasePhase: RunAction;
+  onReleasePhase: PhaseAction;
+  onClosePhase: PhaseAction;
   /** Só o Painel ADM passa: a escolha do professor. */
   headerRight?: React.ReactNode;
 }) {
@@ -426,7 +498,7 @@ export default function EventMissionsManager({
           <p className="mb-1 text-sm font-semibold text-slate-300">📅 Eventos da Academia</p>
           <p className="text-xs text-slate-500">
             Os alunos só veem um evento enquanto ele está acontecendo. Missões de evento aparecem só na tela do evento, com história animada e recompensa. O Natal e A Noite de Dracoding são trilhas em 3 fases:
-            você libera uma por semana.
+            você libera e encerra cada fase quando quiser. Em todo evento dá pra assistir às cenas antes de iniciar.
           </p>
         </div>
         {headerRight}

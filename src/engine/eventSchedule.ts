@@ -4,15 +4,15 @@
 // Evento que nunca foi iniciado ou que foi encerrado fica escondido dos
 // alunos; o progresso deles (Student.events) continua guardado, então
 // reabrir o evento devolve tudo como estava.
-// Evento em fases (Natal): iniciar libera a Fase 1 e o professor libera as
-// seguintes, uma por vez (a ideia é uma por semana).
+// Evento em fases (Natal, A Noite de Dracoding): iniciar libera a Fase 1, e o
+// professor libera e encerra cada fase quando quiser (a ideia é uma por semana).
 //
 // Desde a fase 3 do back end, a agenda é da API (tabela event_runs): aqui fica
 // o cache ("cg-event-runs") e as funções de leitura. Iniciar, liberar fase e
 // encerrar ficam em engine/eventsApi.ts.
 // ============================================================================
 
-import type { EventId } from "./specialEvents";
+import { EventId, PhaseStatus, getEvent, phaseStatuses } from "./specialEvents";
 
 export type EventStatus = "nao-iniciado" | "ativo" | "encerrado";
 
@@ -20,8 +20,10 @@ export interface EventRun {
   status: "ativo" | "encerrado";
   startedAt: string;
   endedAt?: string;
-  /** Evento em fases: quando cada fase foi liberada (a posição 0 é a Fase 1). Sem valor = só a Fase 1. */
-  phasesReleasedAt?: string[];
+  /** Evento em fases: quando cada fase foi liberada (a posição 0 é a Fase 1; null = não liberada). Sem valor = só a Fase 1. */
+  phasesReleasedAt?: (string | null)[];
+  /** Evento em fases: quando cada fase foi encerrada pelo professor (null = aberta). */
+  phasesClosedAt?: (string | null)[];
 }
 
 /** professor -> evento -> situação */
@@ -57,11 +59,10 @@ export function statusIn(runs: EventRuns, teacherId: string, eventId: EventId): 
   return runs[teacherId]?.[eventId]?.status ?? "nao-iniciado";
 }
 
-/** Quantas fases do evento o professor já liberou (0 = evento nunca iniciado). */
-export function releasedPhasesIn(runs: EventRuns, teacherId: string, eventId: EventId): number {
-  const run = runs[teacherId]?.[eventId];
-  if (!run) return 0;
-  return Math.max(1, run.phasesReleasedAt?.length ?? 1);
+/** A situação de cada fase do evento pra turma do professor (liberada, encerrada ou ainda não liberada). */
+export function phaseStatusesIn(runs: EventRuns, teacherId: string, eventId: EventId): PhaseStatus[] {
+  const event = getEvent(eventId);
+  return event ? phaseStatuses(event, runs[teacherId]?.[eventId]) : [];
 }
 
 /** Troca o cache pela agenda que a API devolveu (a de todos os professores que a pessoa pode ver). */
