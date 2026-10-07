@@ -2331,19 +2331,57 @@ export function eventFinishedAt(student: Student, event: AcademyEvent): string |
 }
 
 /**
- * A fase em que o aluno está: a primeira que ele ainda não finalizou, sem passar
- * das que o professor liberou. Se já finalizou todas as liberadas, fica na última delas.
+ * Situação de uma fase pra turma: ainda não liberada, liberada (os alunos jogam)
+ * ou encerrada (o professor fechou de novo; o progresso dos alunos fica guardado).
+ * O professor (ou o ADM) libera e encerra cada fase quando quiser, em qualquer ordem.
  */
-export function currentPhase(student: Student, event: AcademyEvent, released: number): number {
-  const limit = Math.max(1, Math.min(released, eventPhases(event).length));
-  for (let n = 1; n <= limit; n++) if (!phaseProgress(student, event, n).finishedAt) return n;
-  return limit;
+export type PhaseStatus = "fechada" | "liberada" | "encerrada";
+
+/**
+ * A situação de cada fase (posição 0 = Fase 1), a partir da agenda do professor:
+ * `phasesReleasedAt[i]` = quando a fase foi liberada (null = não liberada) e
+ * `phasesClosedAt[i]` = quando foi encerrada (null = aberta). Sem agenda = evento
+ * nunca iniciado (tudo fechado). Agenda sem nenhuma data: só a Fase 1, liberada ao iniciar.
+ */
+export function phaseStatuses(event: AcademyEvent, run?: { phasesReleasedAt?: (string | null)[]; phasesClosedAt?: (string | null)[] } | null): PhaseStatus[] {
+  return eventPhases(event).map((_, i) => {
+    if (!run) return "fechada";
+    const released = run.phasesReleasedAt?.length ? !!run.phasesReleasedAt[i] : i === 0;
+    if (!released) return "fechada";
+    return run.phasesClosedAt?.[i] ? "encerrada" : "liberada";
+  });
 }
 
-/** Por que a fase ainda está trancada pro aluno: o professor não liberou, ou falta finalizar a anterior. null = pode jogar. */
-export function phaseLock(student: Student, event: AcademyEvent, phase: number, released: number): "professor" | "anterior" | null {
-  if (phase > released) return "professor";
-  if (phase > 1 && !phaseProgress(student, event, phase - 1).finishedAt) return "anterior";
+/**
+ * A fase em que o aluno está: a primeira liberada que ele ainda não finalizou.
+ * Se já finalizou todas as liberadas, fica na última liberada (ou, se não houver
+ * nenhuma, na última encerrada; senão, na Fase 1).
+ */
+export function currentPhase(student: Student, event: AcademyEvent, phases: PhaseStatus[]): number {
+  const total = eventPhases(event).length;
+  for (let n = 1; n <= total; n++) if (phases[n - 1] === "liberada" && !phaseProgress(student, event, n).finishedAt) return n;
+  for (const status of ["liberada", "encerrada"] as const) {
+    for (let n = total; n >= 1; n--) if (phases[n - 1] === status) return n;
+  }
+  return 1;
+}
+
+/** A fase liberada mais antiga que o aluno ainda não finalizou, antes de `phase` (as fases liberadas são feitas em ordem), ou null. */
+export function blockingPhase(student: Student, event: AcademyEvent, phase: number, phases: PhaseStatus[]): number | null {
+  for (let n = 1; n < phase; n++) if (phases[n - 1] === "liberada" && !phaseProgress(student, event, n).finishedAt) return n;
+  return null;
+}
+
+/**
+ * Por que a fase está trancada pro aluno: o professor ainda não liberou, o
+ * professor encerrou (quem já concluiu a fase continua podendo rever), ou falta
+ * finalizar uma fase liberada antes dela. null = pode jogar.
+ */
+export function phaseLock(student: Student, event: AcademyEvent, phase: number, phases: PhaseStatus[]): "professor" | "encerrada" | "anterior" | null {
+  const status = phases[phase - 1] ?? "fechada";
+  if (status === "fechada") return "professor";
+  if (status === "encerrada") return phaseProgress(student, event, phase).finishedAt ? null : "encerrada";
+  if (blockingPhase(student, event, phase, phases)) return "anterior";
   return null;
 }
 

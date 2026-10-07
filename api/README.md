@@ -1803,6 +1803,7 @@ title, icon, difficulty            rarity         varchar(10)        status     
 min_level    integer               price, value, xp  integer         started_at  timestamptz
 description  text                  cosmetic       jsonb (visual)     ended_at    timestamptz
 reward_xp, reward_coins  integer   slots          integer (espaço)   phases_released_at  jsonb
+                                                                       phases_closed_at    jsonb
 reward_item  jsonb                 hidden, featured  boolean
 questions    jsonb                 event_item_key varchar(80)
 kind         'quiz' | 'entrega'    collection     varchar(20)
@@ -1875,7 +1876,9 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 | DELETE | `/trades/:id` | Aluno (um dos dois) | recusa ou cancela (os itens voltam pra quem propôs) |
 | GET | `/events/runs` | Logados | a agenda (aluno: a do professor dele; professores: todas) |
 | POST | `/events/runs/:eventId/start` | Professores | inicia ou reabre o evento pra turma |
-| POST | `/events/runs/:eventId/release` | Professores | libera a próxima fase (evento em fases) |
+| POST | `/events/runs/:eventId/phases/:phase/release` | Professores | libera (ou reabre) a fase, em qualquer ordem (evento em fases) |
+| POST | `/events/runs/:eventId/phases/:phase/close` | Professores | encerra a fase (evento em fases) |
+| POST | `/events/runs/:eventId/release` | Professores | libera a próxima fase ainda não liberada (rota antiga, mantida pro site anterior) |
 | POST | `/events/runs/:eventId/end` | Professores | encerra o evento |
 | POST | `/events/:eventId/phases/:phase/intro` | Aluno | marca a abertura da fase como vista |
 | POST | `/events/:eventId/phases/:phase/finish` | Aluno | conclui a fase e ganha a recompensa |
@@ -1965,15 +1968,17 @@ GET /events/runs
 {
   "runs": {
     "<id do professor>": {
-      "natal": { "status": "ativo", "startedAt": "...", "phasesReleasedAt": ["...", "..."] },
-      "halloween": { "status": "encerrado", "startedAt": "...", "endedAt": "...", "phasesReleasedAt": ["..."] }
+      "natal": { "status": "ativo", "startedAt": "...", "phasesReleasedAt": ["...", null, "..."], "phasesClosedAt": ["..."] },
+      "halloween": { "status": "encerrado", "startedAt": "...", "endedAt": "...", "phasesReleasedAt": ["..."], "phasesClosedAt": [] }
     }
   }
 }
 ```
 
-- `start`, `release` e `end` aceitam `{ "teacherId": "..." }`: o ADM mexe na agenda de qualquer professor; o professor só na dele (`403`). A resposta traz a agenda desse professor.
-- `start` num evento encerrado **reabre** mantendo as fases já liberadas. `release` além da última fase, ou com o evento parado: `400`. `end` num evento nunca iniciado: `404`.
+- `start`, `release`, `close` e `end` aceitam `{ "teacherId": "..." }`: o ADM mexe na agenda de qualquer professor; o professor só na dele (`403`). A resposta traz a agenda desse professor.
+- `start` num evento encerrado **reabre** mantendo as fases como estavam. `end` num evento nunca iniciado: `404`.
+- **Fases à vontade** (eventos em fases): o professor (ou o ADM) libera, encerra e reabre cada fase quando quiser, em qualquer ordem. `phasesReleasedAt[i]` = quando a Fase i+1 foi liberada (`null` = não liberada) e `phasesClosedAt[i]` = quando foi encerrada (`null` = aberta). Reabrir apaga a data de encerramento e mantém a da primeira liberação. Com o evento parado, fase que não existe, evento de uma fase só, liberar fase já liberada ou encerrar fase que não está liberada: `400`.
+- Pro aluno (`phaseStatuses`, `phaseLock` e `currentPhase` em `src/engine/specialEvents.ts`): ele joga as fases liberadas **em ordem** (só entra numa fase depois de concluir as liberadas antes dela); numa fase encerrada não entra mais (`400`, "Essa fase foi encerrada pelo seu professor."), mas o progresso fica guardado e quem já concluiu a fase continua podendo rever. Fase nunca liberada não trava as seguintes.
 - Evento que não existe: `400` (o `eventId` é conferido pelo Zod contra a lista de eventos do site).
 
 O **progresso** do aluno:

@@ -30,7 +30,7 @@ export default function PainelProfessorPage() {
   const { students: allStudents, ready, updateAccount, setPassword, deleteStudent } = useStudents();
   const { removeStudentItem } = useGameActions();
   const { missions: allMissions, ready: missionsReady, addMission, editMission, removeMission } = useMissions();
-  const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
+  const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase, closePhase } = useEventRuns();
   const { items: shopItems } = useShop();
   const { give } = useGifts();
   const { submissions } = useSubmissions();
@@ -283,7 +283,8 @@ export default function PainelProfessorPage() {
         ranking={{ students, missions }}
         onStart={(eventId) => startEvent(teacher.id, eventId)}
         onEnd={(eventId) => endEvent(teacher.id, eventId)}
-          onReleasePhase={(eventId) => releasePhase(teacher.id, eventId)}
+          onReleasePhase={(eventId, phase) => releasePhase(teacher.id, eventId, phase)}
+          onClosePhase={(eventId, phase) => closePhase(teacher.id, eventId, phase)}
         onEdit={setEditorTarget}
         onCreate={createEventMission}
         onAssign={(missionId, eventId, phase) => editMission(missionId, eventMissionFields(eventId, phase))}

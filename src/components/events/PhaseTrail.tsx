@@ -2,25 +2,26 @@
 
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
-import { AcademyEvent, EventPhase, eventMissionsFor, eventPhases, phaseLock, phaseProgress } from "@/engine/specialEvents";
+import { AcademyEvent, EventPhase, PhaseStatus, eventMissionsFor, eventPhases, phaseLock, phaseProgress } from "@/engine/specialEvents";
 import { RarityBadge } from "../GameUI";
 import { EVENT_VISUALS } from "./registry";
 
 // ============================================================================
-// TRILHA DAS FASES — evento em fases (Natal): um cartão por fase, ligados por
-// uma trilha, com a situação do aluno em cada uma (concluída, em andamento,
-// nova, esperando o professor liberar, esperando terminar a anterior) e o item
+// TRILHA DAS FASES — evento em fases (Natal, A Noite de Dracoding): um cartão
+// por fase, ligados por uma trilha, com a situação do aluno em cada uma
+// (concluída, em andamento, nova, esperando o professor liberar, encerrada pelo
+// professor, esperando terminar uma fase liberada antes dela) e o item
 // lendário de cada fase. Com `onSelect`, cada cartão vira um botão (tela do
 // evento); sem, é só pra mostrar (card no Salão dos Eventos).
 // ============================================================================
 
-export type PhaseState = "concluida" | "andamento" | "nova" | "em-breve" | "trancada";
+export type PhaseState = "concluida" | "andamento" | "nova" | "em-breve" | "encerrada" | "trancada";
 
-export function phaseState(student: Student, event: AcademyEvent, phase: number, released: number): PhaseState {
+export function phaseState(student: Student, event: AcademyEvent, phase: number, phases: PhaseStatus[]): PhaseState {
   const progress = phaseProgress(student, event, phase);
   if (progress.finishedAt) return "concluida";
-  const lock = phaseLock(student, event, phase, released);
-  if (lock) return lock === "professor" ? "em-breve" : "trancada";
+  const lock = phaseLock(student, event, phase, phases);
+  if (lock) return lock === "professor" ? "em-breve" : lock === "encerrada" ? "encerrada" : "trancada";
   return progress.introSeenAt ? "andamento" : "nova";
 }
 
@@ -29,6 +30,7 @@ const STATE_META: Record<PhaseState, { label: string; className: string }> = {
   andamento: { label: "🔥 Em andamento", className: "border-orange-400/60 bg-orange-500/20 text-orange-200" },
   nova: { label: "✨ Liberada!", className: "border-amber-300/60 bg-amber-400/20 text-amber-100" },
   "em-breve": { label: "🔒 Em breve", className: "border-slate-500/60 bg-slate-800/80 text-slate-300" },
+  encerrada: { label: "⏹ Encerrada", className: "border-rose-400/60 bg-rose-500/15 text-rose-200" },
   trancada: { label: "🔒 Termine a anterior", className: "border-slate-500/60 bg-slate-800/80 text-slate-300" },
 };
 
@@ -36,7 +38,7 @@ export default function PhaseTrail({
   event,
   student,
   missions,
-  released,
+  phases: statuses,
   selected,
   onSelect,
 }: {
@@ -44,7 +46,8 @@ export default function PhaseTrail({
   student: Student;
   /** Todas as missões (a trilha filtra as do evento, do professor do aluno, de cada fase). */
   missions: Mission[];
-  released: number;
+  /** A situação de cada fase pra turma (liberada, encerrada, ainda não liberada). */
+  phases: PhaseStatus[];
   selected?: number;
   onSelect?: (phase: number) => void;
 }) {
@@ -53,11 +56,11 @@ export default function PhaseTrail({
   const phases = eventPhases(event);
 
   function card(phase: EventPhase) {
-    const state = phaseState(student, event, phase.number, released);
+    const state = phaseState(student, event, phase.number, statuses);
     const meta = STATE_META[state];
     const list = eventMissionsFor(missions, event.id, student.teacherId, phase.number);
     const done = list.filter((m) => student.completedMissionIds.includes(m.id)).length;
-    const locked = state === "em-breve" || state === "trancada";
+    const locked = state === "em-breve" || state === "encerrada" || state === "trancada";
     const active = selected === phase.number;
     const content = (
       <>

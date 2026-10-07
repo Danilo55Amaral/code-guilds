@@ -53,8 +53,8 @@ import { Theme, getTheme, setTheme, applyTheme } from "./theme";
 import { ShopItem, ShopItemData, listShopItems } from "./shop";
 import * as shopApi from "./shopApi";
 import { CosmeticCollection } from "./avatar";
-import type { EventId } from "./specialEvents";
-import { EventRuns, EventStatus, listEventRuns, statusIn, deleteEventRunsOf, releasedPhasesIn } from "./eventSchedule";
+import type { EventId, PhaseStatus } from "./specialEvents";
+import { EventRuns, EventStatus, listEventRuns, statusIn, deleteEventRunsOf, phaseStatusesIn } from "./eventSchedule";
 import * as eventsApi from "./eventsApi";
 
 /**
@@ -520,7 +520,7 @@ export function useFriends(meId: string | null) {
 
 /**
  * Agenda dos eventos (cache da API): qual evento está acontecendo pra turma de
- * cada professor, e o iniciar/liberar fase/encerrar (engine/eventsApi.ts), que
+ * cada professor, e o iniciar/liberar e encerrar fase/encerrar (engine/eventsApi.ts), que
  * devolvem a mensagem de erro, ou null.
  */
 export function useEventRuns() {
@@ -544,12 +544,14 @@ export function useEventRuns() {
 
   const end = useCallback((teacherId: string, eventId: EventId) => eventsApi.endEventRun(teacherId, eventId), []);
 
-  /** Quantas fases do evento o professor liberou (evento comum: 1 se já foi iniciado). */
-  const releasedOf = useCallback((teacherId: string, eventId: EventId): number => releasedPhasesIn(runs, teacherId, eventId), [runs]);
+  /** A situação de cada fase do evento pra turma do professor (evento comum: a Fase 1 liberada se já foi iniciado). */
+  const phasesOf = useCallback((teacherId: string, eventId: EventId): PhaseStatus[] => phaseStatusesIn(runs, teacherId, eventId), [runs]);
 
-  const releasePhase = useCallback((teacherId: string, eventId: EventId) => eventsApi.releaseEventPhase(teacherId, eventId), []);
+  const releasePhase = useCallback((teacherId: string, eventId: EventId, phase: number) => eventsApi.releaseEventPhase(teacherId, eventId, phase), []);
 
-  return { runs, ready, statusOf, releasedOf, start, end, releasePhase };
+  const closePhase = useCallback((teacherId: string, eventId: EventId, phase: number) => eventsApi.closeEventPhase(teacherId, eventId, phase), []);
+
+  return { runs, ready, statusOf, phasesOf, start, end, releasePhase, closePhase };
 }
 
 /**

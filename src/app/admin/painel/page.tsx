@@ -41,7 +41,7 @@ export default function PainelAdminPage() {
   const { submissions } = useSubmissions();
   // Tipo da missão nova: quiz (perguntas) ou entrega (resposta aberta/arquivos, corrigida pelo professor).
   const [newKind, setNewKind] = useState<MissionKind>("quiz");
-  const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase } = useEventRuns();
+  const { runs: eventRuns, start: startEvent, end: endEvent, releasePhase, closePhase } = useEventRuns();
   const [tab, setTab] = useState<Tab>("professores");
   // Filtro de professor das abas Alunos e Missões.
   const [teacherFilter, setTeacherFilter] = useState<string>(ALL_TEACHERS);
@@ -377,7 +377,8 @@ export default function PainelAdminPage() {
           ranking={{ students, missions }}
           onStart={(eventId) => startEvent(eventTeacher, eventId)}
           onEnd={(eventId) => endEvent(eventTeacher, eventId)}
-          onReleasePhase={(eventId) => releasePhase(eventTeacher, eventId)}
+          onReleasePhase={(eventId, phase) => releasePhase(eventTeacher, eventId, phase)}
+          onClosePhase={(eventId, phase) => closePhase(eventTeacher, eventId, phase)}
           onEdit={setEditorTarget}
           onCreate={createEventMission}
           onAssign={(missionId, eventId, phase) => editMission(missionId, eventMissionFields(eventId, phase))}
