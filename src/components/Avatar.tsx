@@ -22,7 +22,7 @@ function shade(hex: string, amount: number): string {
 
 /** Chapéus que cobrem o topo da cabeça — cabelos altos ficam "por baixo" deles. */
 const COVERING_HATS: Hat[] = [
-  "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "serpentes", "disco-ra", "gorro-noel", "gorro-lendario", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
+  "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "chapeu-espantalho", "serpentes", "disco-ra", "gorro-noel", "gorro-lendario", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
   "capacete-tatico", "cerebro-exposto", "chapeu-xerife",
   "chapeu-aluminio", "capacete-espacial", "capacete-cyber",
 ];
@@ -1092,6 +1092,7 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   "codigo-matrix": ["#86efac", "#022c22"],
   "grade-neon": ["#f0abfc", "#1e1b4b"],
   "estrela-polar": ["#fef9c3", "#0c4a6e"],
+  "lua-prateada": ["#a5b4c8", "#111827"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -1937,6 +1938,56 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           ))}
         </g>
       )}
+      {aura === "lua-prateada" && (
+        // A Noite de Dracoding (Fase 2): a lua prateada no alto, morcegos saindo dela e um lobo uivando no penhasco.
+        <g>
+          <defs>
+            <radialGradient id={`${gradientId}-moon`} cx="40%" cy="38%" r="65%">
+              <stop offset="0" stopColor="#ffffff" />
+              <stop offset="0.55" stopColor="#e2e8f0" />
+              <stop offset="1" stopColor="#94a3b8" />
+            </radialGradient>
+          </defs>
+          <Anim c="pulse" dur={4} origin="94px 24px">
+            <circle cx="94" cy="24" r="27" fill="#f1f5f9" opacity="0.28" />
+          </Anim>
+          <circle cx="94" cy="24" r="19" fill={`url(#${gradientId}-moon)`} />
+          <ellipse cx="88" cy="20" rx="4" ry="3" fill="#94a3b8" opacity="0.5" />
+          <ellipse cx="100" cy="30" rx="5" ry="3.6" fill="#94a3b8" opacity="0.45" />
+          <ellipse cx="97" cy="15" rx="2.2" ry="1.6" fill="#94a3b8" opacity="0.5" />
+          <Anim c="drift" dur={7}>
+            <path d="M70 34 C76 30 84 31 88 34 C94 31 104 32 110 36" stroke="#cbd5e1" strokeWidth="2.4" fill="none" opacity="0.35" strokeLinecap="round" />
+          </Anim>
+          {(
+            [
+              ["moon-bat-a", 0, 1],
+              ["moon-bat-b", -2.2, 0.9],
+              ["moon-bat-c", -4.1, 0.8],
+            ] as ["moon-bat-a" | "moon-bat-b" | "moon-bat-c", number, number][]
+          ).map(([path, d, s], i) => (
+            <g key={i} transform="translate(94 24)">
+              <Anim c={path} d={d} dur={6.5}>
+                <FlyingBat s={s} d={-i * 0.6} />
+              </Anim>
+            </g>
+          ))}
+          {/* penhasco e o lobo uivando pra lua */}
+          <path d="M-4 128 L-4 100 L6 96 L12 88 L20 86 L26 80 L32 84 L36 98 L42 128 Z" fill="#0f172a" />
+          <Anim c="wobble" dur={4.5}>
+            <path d="M14 82 L16 76 L20 74 L22 66 L25 60 L27 56 L30 52 L31 54 L30 57 L33 56 L32 60 L33 64 L31 69 L33 74 L32 78 L34 82 Z" fill="#020617" stroke="#e2e8f0" strokeWidth="0.5" strokeOpacity="0.6" />
+          </Anim>
+          {[
+            [24, 20],
+            [114, 58],
+            [12, 54],
+            [106, 100],
+          ].map(([x, y], i) => (
+            <Anim key={`${x}-${y}`} c="blink" d={-i * 0.5} dur={2}>
+              <Sparkle x={x} y={y} r={1.5} />
+            </Anim>
+          ))}
+        </g>
+      )}
       {aura === "raios" && (
         <g>
           <Anim c="drift" dur={6}>
@@ -2323,6 +2374,32 @@ function drawnPet(pet: Pet) {
           <circle cx="97" cy="111" r="1.6" fill="#fbbf24" stroke="#a16207" strokeWidth="0.4" />
         </g>
       );
+    case "dracoding":
+      // A Noite de Dracoding (Fase 3): o Conde Dracoding encolhido, de capa-asa e óculos escuros pra aguentar o sol.
+      return (
+        <g>
+          {[0, 1].map((side) => (
+            <g key={side} transform={side ? "translate(194 0) scale(-1 1)" : undefined}>
+              <Anim c="flap" d={-side * 0.25} dur={0.55}>
+                <path d="M93 102 L84 95 L77 97 Q80 100 78 103 Q82 103 83 107 Q87 104 90 108 L93 106 Z" fill="#0b0810" />
+                <path d="M92 102 L85 97 L80 98 Q82 100 81 102 Q84 102 85 105 Q88 103 90 106 Z" fill="#9f1239" />
+              </Anim>
+            </g>
+          ))}
+          <path d="M92 103 L102 103 L103.5 113 L90.5 113 Z" fill="#0f0b16" />
+          <path d="M95 103 L99 103 L97 108.5 Z" fill="#f1f5f9" />
+          <circle cx="97" cy="110" r="1.1" fill="#e11d48" />
+          <path d="M92 104 L87.5 96.5 L93 99.5 Z M102 104 L106.5 96.5 L101 99.5 Z" fill="#0b0810" />
+          <path d="M89.8 95 L86.4 91.2 L90.6 97.6 Z M104.2 95 L107.6 91.2 L103.4 97.6 Z" fill="#d6d3e8" />
+          <path d="M97 87 C102 87 104.6 90.6 104.6 95 C104.6 99.5 101 102.6 97 103 C93 102.6 89.4 99.5 89.4 95 C89.4 90.6 92 87 97 87 Z" fill="#ebe8f6" />
+          <path d="M89.3 94.6 C88.7 88 92.5 85.4 97 85.4 C101.5 85.4 105.3 88 104.7 94.6 C103.7 91.4 101.8 90 100 89.6 L97 93.2 L94 89.6 C92.2 90 90.3 91.4 89.3 94.6 Z" fill="#0b0810" />
+          <path d="M90.4 94.4 L96.2 94.4 L95.6 97.8 L91.1 97.8 Z M97.8 94.4 L103.6 94.4 L102.9 97.8 L98.4 97.8 Z" fill="#0a0a0a" />
+          <path d="M96 95 L98 95" stroke="#0a0a0a" strokeWidth="0.9" />
+          <path d="M91.5 95.4 L93.4 95.4 M99 95.4 L100.9 95.4" stroke="#a5f3fc" strokeWidth="0.7" strokeLinecap="round" />
+          <path d="M94.6 99.6 Q97 101.3 99.4 99.6" stroke="#2a0510" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          <path d="M95.4 100.2 L95.9 101.6 L96.4 100.5 Z M97.6 100.5 L98.1 101.6 L98.6 100.2 Z" fill="#fff" />
+        </g>
+      );
     case "ia-orbe":
       return (
         <g>
@@ -2501,6 +2578,48 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
           <path d="M52 9 C47 15 47 29 52 36 M76 9 C81 15 81 29 76 36 M64 7 L64 37" stroke="#c2410c" strokeWidth="1.8" fill="none" />
           <path d="M53 17 L57 23 L49 23 Z M75 17 L79 23 L71 23 Z" fill="#fde047" stroke="#431407" strokeWidth="0.8" />
           <path d="M50 27 L54 30 L58 27 L62 30 L66 27 L70 30 L74 27 L78 27 L74 33 L54 33 Z" fill="#fde047" stroke="#431407" strokeWidth="0.8" />
+        </g>
+      );
+    case "chapeu-espantalho":
+      // A Noite de Dracoding (Fase 1): o chapéu remendado do Espantabyte, com palha, folhas de outono e um corvinho.
+      return (
+        <g>
+          <g stroke="#e0b04a" strokeWidth="1.6" strokeLinecap="round">
+            <path d="M30 40 L23 49 M34 41 L29 51 M38 41 L37 51 M92 40 L99 48 M96 39 L104 45 M88 41 L90 51" />
+          </g>
+          <path
+            d="M24 37 L30 33 L36 35 L44 31 L56 32 L64 29 L74 31 L84 29 L92 32 L100 31 L106 35 L102 38 L96 37 L90 40 L80 38 L70 40 L60 39 L50 41 L42 39 L34 42 L28 39 Z"
+            fill="#2a2420"
+            stroke="#0f0c0a"
+            strokeWidth="0.8"
+          />
+          <path d="M46 31 L49 19 L54 10 L47 12 L40 17 L36 14 L42 6 L52 0 L64 -3 L74 0 L80 10 L83 31 Z" fill="#3a332c" stroke="#0f0c0a" strokeWidth="0.8" strokeLinejoin="round" />
+          <path d="M74 1 L79 10 L82 28" stroke="#a8a29e" strokeWidth="1" fill="none" opacity="0.45" />
+          <path d="M65 11 L73 10 L74 18 L66 19 Z" fill="#57534e" stroke="#1c1917" strokeWidth="0.5" strokeDasharray="1.4 1" />
+          <path d="M45 28 C58 25 70 25 83 28 L84 31.5 C70 28.5 58 28.5 45 31.5 Z" fill="#7c4a1e" />
+          {(
+            [
+              [51, 28.5, -25, "#dc2626"],
+              [57, 27.5, 15, "#f59e0b"],
+              [78, 27.8, 35, "#ea580c"],
+            ] as [number, number, number, string][]
+          ).map(([x, y, a, color]) => (
+            <path
+              key={x}
+              transform={`translate(${x} ${y}) rotate(${a}) scale(0.42)`}
+              d="M0 -10 L2 -5 L6 -7 L5 -2 L10 -2 L6 2 L8 6 L2 4 L0 9 L-2 4 L-8 6 L-6 2 L-10 -2 L-5 -2 L-6 -7 L-2 -5 Z"
+              fill={color}
+              stroke="#450a0a"
+              strokeWidth="1"
+            />
+          ))}
+          {/* corvinho de guarda na aba */}
+          <path d="M94 31 L98 27 L104 27 L109 31 L104 31 L106 33 L99 32 Z" fill="#0a0710" />
+          <Anim c="wobble" dur={2.6}>
+            <path d="M92 29 L95 25.5 L99 26.5 L98 30 Z" fill="#0a0710" />
+            <path d="M92.5 27 L89 28 L92.5 29 Z" fill="#52525b" />
+            <circle cx="95" cy="27.4" r="0.8" fill="#ef4444" />
+          </Anim>
         </g>
       );
     case "orelhas-lobo":

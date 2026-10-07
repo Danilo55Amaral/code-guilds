@@ -5,12 +5,14 @@ import HalloweenArt, { Lantern } from "./HalloweenArt";
 import ZombieArt, { AntidoteVial } from "./ZombieArt";
 import AlienArt, { EnergyCrystal } from "./AlienArt";
 import ChristmasArt, { ChristmasProgress } from "./ChristmasArt";
+import DracodingArt, { DracodingProgress } from "./DracodingArt";
 
 // ============================================================================
 // VISUAL DOS EVENTOS — pra cada evento: o desenho das cenas, o ícone de
 // progresso (no Halloween, uma Lanterna Sagrada por missão; no Apocalipse
 // Zumbi, um frasco do antídoto; na Invasão Alienígena, um Cristal de Energia; no Natal,
-// um por fase: presente, Estrela da Aurora e Selo de Gelo) e as cores do card, do banner,
+// um por fase: presente, Estrela da Aurora e Selo de Gelo; em A Noite de Dracoding,
+// abóbora amaldiçoada, Fragmento da Lua e Vitral do Amanhecer) e as cores do card, do banner,
 // dos botões e do balão do vilão. Os textos da história ficam em engine/specialEvents.ts.
 // ============================================================================
 
@@ -75,6 +77,34 @@ export const EVENT_VISUALS: Record<EventId, EventVisual> = {
       plate: "border-orange-500/80 bg-orange-950/95 text-orange-300",
       border: "border-orange-500/60",
       glow: "0 12px 50px -10px rgba(249,115,22,0.8)",
+    },
+  },
+  dracoding: {
+    Art: DracodingArt,
+    ProgressIcon: DracodingProgress,
+    progressNoun: { one: "abóbora", many: "abóboras", doneOne: "purificada", doneMany: "purificadas" },
+    phaseNouns: {
+      1: { one: "abóbora", many: "abóboras", doneOne: "purificada", doneMany: "purificadas" },
+      2: { one: "fragmento da lua", many: "fragmentos da lua", doneOne: "restaurado", doneMany: "restaurados" },
+      3: { one: "vitral do amanhecer", many: "vitrais do amanhecer", doneOne: "aceso", doneMany: "acesos" },
+    },
+    missionsTitle: "🦇 Missões da fase",
+    titleClass: "text-rose-500",
+    titleGlow: "0 0 24px rgba(244,63,94,0.85), 0 0 60px rgba(127,29,29,0.6)",
+    accentClass: "text-rose-200",
+    accentDot: "bg-rose-500",
+    accentDotSoft: "bg-rose-200/70",
+    chipClass: "border-rose-300/50 text-rose-100 hover:border-rose-200",
+    borderClass: "border-rose-600/40",
+    buttonClass: "bg-gradient-to-r from-rose-500 via-orange-300 to-rose-500 text-cg-ink shadow-lg shadow-rose-600/40",
+    progressBar: "from-rose-600 via-orange-400 to-slate-200",
+    glow: "#e11d48",
+    panelBackground:
+      "radial-gradient(45% 60% at 90% 0%, rgba(225,29,72,0.3), transparent 70%), radial-gradient(40% 60% at 0% 100%, rgba(148,163,184,0.18), transparent 70%), linear-gradient(160deg, #09040a 0%, #2a0611 50%, #120a24 100%)",
+    villainStyle: {
+      plate: "border-rose-500/80 bg-rose-950/95 text-rose-200",
+      border: "border-rose-500/60",
+      glow: "0 12px 50px -10px rgba(225,29,72,0.85)",
     },
   },
   zumbi: {

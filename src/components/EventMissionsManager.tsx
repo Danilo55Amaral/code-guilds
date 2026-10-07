@@ -26,7 +26,7 @@ import { DifficultyBadge, RarityBadge } from "./GameUI";
 // alunos enquanto está acontecendo), criar uma missão só do evento, atribuir
 // uma missão que já existe (ela sai da lista normal e passa a aparecer só na
 // tela do evento), tirar do evento e usar as missões prontas com um clique.
-// Evento em fases (Natal): as mesmas ferramentas pra cada fase, e o botão de
+// Evento em fases (Natal, A Noite de Dracoding): as mesmas ferramentas pra cada fase, e o botão de
 // liberar a próxima fase (a ideia é uma por semana).
 // Os alunos só veem os eventos e as missões do próprio professor.
 // ============================================================================
@@ -86,14 +86,17 @@ function PhaseMissions({
         <button onClick={() => onCreate(event.id, phase.number)} className={`rounded-full px-4 py-2 text-xs font-black transition-transform hover:scale-[1.03] ${visual.buttonClass}`}>
           + Criar missão {phased ? `da Fase ${phase.number}` : "do evento"}
         </button>
-        <button
-          onClick={addPresets}
-          disabled={missing.length === 0}
-          title={missing.length === 0 ? "Todas as missões prontas já foram adicionadas" : phase.presetMissions.map((p) => `${p.icon} ${p.title}`).join("\n")}
-          className={`rounded-full border bg-black/40 px-4 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${visual.chipClass}`}
-        >
-          ✨ {missing.length === 0 ? "Missões prontas já adicionadas" : `Usar ${missing.length} ${missing.length === 1 ? "missão pronta" : "missões prontas"}${phased ? " da fase" : " do evento"}`}
-        </button>
+        {/* evento sem missões prontas (A Noite de Dracoding: as missões são sorteadas das do professor) não mostra o botão */}
+        {phase.presetMissions.length > 0 && (
+          <button
+            onClick={addPresets}
+            disabled={missing.length === 0}
+            title={missing.length === 0 ? "Todas as missões prontas já foram adicionadas" : phase.presetMissions.map((p) => `${p.icon} ${p.title}`).join("\n")}
+            className={`rounded-full border bg-black/40 px-4 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${visual.chipClass}`}
+          >
+            ✨ {missing.length === 0 ? "Missões prontas já adicionadas" : `Usar ${missing.length} ${missing.length === 1 ? "missão pronta" : "missões prontas"}${phased ? " da fase" : " do evento"}`}
+          </button>
+        )}
       </div>
       {addedPresets !== null && addedPresets > 0 && (
         <p className="mt-2 text-xs text-emerald-300">
@@ -118,7 +121,7 @@ function PhaseMissions({
       {phaseList.length === 0 ? (
         <p className="mt-4 rounded-xl border border-dashed border-slate-700 bg-black/20 p-4 text-sm text-slate-400">
           {phased
-            ? `Nenhuma missão na Fase ${phase.number} ainda. Crie uma, atribua uma missão que já existe ou use as missões prontas: os alunos só concluem a fase depois de vencer todas as missões dela.`
+            ? `Nenhuma missão na Fase ${phase.number} ainda. Crie uma ou atribua uma missão que já existe${phase.presetMissions.length > 0 ? " (ou use as missões prontas)" : ""}: os alunos só concluem a fase depois de vencer todas as missões dela.`
             : "Nenhuma missão neste evento ainda. Crie uma, atribua uma missão que já existe ou use as missões prontas: os alunos só conseguem finalizar o evento depois de concluir todas as missões dele."}
         </p>
       ) : (
@@ -422,8 +425,8 @@ export default function EventMissionsManager({
         <div>
           <p className="mb-1 text-sm font-semibold text-slate-300">📅 Eventos da Academia</p>
           <p className="text-xs text-slate-500">
-            Os alunos só veem um evento enquanto ele está acontecendo. Missões de evento aparecem só na tela do evento, com história animada e recompensa. O evento de Natal é uma trilha em 3 fases: você libera uma
-            por semana.
+            Os alunos só veem um evento enquanto ele está acontecendo. Missões de evento aparecem só na tela do evento, com história animada e recompensa. O Natal e A Noite de Dracoding são trilhas em 3 fases:
+            você libera uma por semana.
           </p>
         </div>
         {headerRight}

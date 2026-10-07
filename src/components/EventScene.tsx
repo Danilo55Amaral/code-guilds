@@ -5,9 +5,13 @@ import { AcademyEvent, EventPhase, SceneSound, SceneSpeaker, eventPhases } from 
 import { Student } from "@/engine/students";
 import {
   isSoundMuted,
+  playBatSwarm,
+  playCreepyCircus,
+  playCrows,
   playLaser,
   playMagicChime,
   playMidnightBell,
+  playOrganSting,
   playSiren,
   playSleighBells,
   playSpookyAmbience,
@@ -16,6 +20,7 @@ import {
   playVictoryFanfare,
   playWindHowl,
   playWinterAmbience,
+  playWolfHowl,
   playZombieGroan,
   setSoundMuted,
   speakCharacter,
@@ -30,7 +35,7 @@ import { EVENT_VISUALS, EventVisual } from "./events/registry";
 // "digitado", nome e cor de quem fala). Com o som ligado: fundo sombrio,
 // efeito de cada cena (sino, trovão, plim, fanfarra) e a voz do personagem.
 // Abertura (`kind="intro"`) e final (`kind="outro"`) usam o mesmo player.
-// Evento em fases (Natal): cada fase tem a própria abertura e o próprio final
+// Evento em fases (Natal, A Noite de Dracoding): cada fase tem a própria abertura e o próprio final
 // (`phase`); o final da última fase é o final do evento.
 // Fechar de qualquer jeito (terminar, "Pular" ou Esc) chama onClose.
 // ============================================================================
@@ -48,7 +53,9 @@ interface SpeakerStyle {
   voice: { pitch: number; rate: number };
 }
 
-// Narrador, Mago e Papai Noel são iguais em todo evento; o vilão (nome, voz e cores) vem de cada evento.
+// Narrador, Mago, Papai Noel e os capangas do Dracoding (Lobisloop e
+// Espantabyte) são iguais em todo evento; o vilão principal (nome, voz e cores)
+// vem de cada evento.
 const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
   narrador: {
     name: "Narrador",
@@ -74,6 +81,22 @@ const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
     glow: "0 12px 50px -10px rgba(248,113,113,0.8)",
     voice: { pitch: 0.55, rate: 0.9 },
   },
+  lobisomem: {
+    name: "Lobisloop",
+    icon: "🐺",
+    plate: "border-amber-400/80 bg-slate-950/95 text-amber-300",
+    border: "border-amber-400/60",
+    glow: "0 12px 50px -10px rgba(245,158,11,0.75)",
+    voice: { pitch: 0.1, rate: 0.85 },
+  },
+  espantalho: {
+    name: "Espantabyte",
+    icon: "🎃",
+    plate: "border-orange-500/80 bg-stone-950/95 text-orange-300",
+    border: "border-orange-500/60",
+    glow: "0 12px 50px -10px rgba(234,88,12,0.8)",
+    voice: { pitch: 1.7, rate: 1.15 },
+  },
 };
 
 function speakerStyle(speaker: SceneSpeaker, event: AcademyEvent, visual: EventVisual): SpeakerStyle {
@@ -92,6 +115,25 @@ const SOUNDS: Record<SceneSound, () => () => void> = {
   laser: playLaser,
   guizos: playSleighBells,
   vento: playWindHowl,
+  uivo: playWolfHowl,
+  orgao: playOrganSting,
+  corvos: playCrows,
+  circo: playCreepyCircus,
+  morcegos: playBatSwarm,
+};
+
+// Sons longos tocam um pouco antes de a voz começar (em ms; o resto espera 400).
+const VOICE_DELAY: Partial<Record<SceneSound, number>> = {
+  trovao: 900,
+  alarme: 900,
+  gemido: 900,
+  ovni: 900,
+  vento: 900,
+  corvos: 900,
+  morcegos: 900,
+  uivo: 1500,
+  orgao: 1500,
+  circo: 1200,
 };
 
 function prefersReducedMotion(): boolean {
@@ -180,8 +222,7 @@ export default function EventScene({
     if (!soundOn || titleCard) return;
     const stopSound = step.sound ? SOUNDS[step.sound]() : () => {};
     const { voice } = speakerStyle(step.speaker, event, visual);
-    // Sons longos (trovão, sirene, gemido, disco voador) tocam um pouco antes de a voz começar.
-    const voiceDelay = step.sound === "trovao" || step.sound === "alarme" || step.sound === "gemido" || step.sound === "ovni" || step.sound === "vento" ? 900 : 400;
+    const voiceDelay = (step.sound && VOICE_DELAY[step.sound]) ?? 400;
     const voiceTimer = window.setTimeout(() => {
       stopVoiceRef.current = speakCharacter(step.text, voice);
     }, voiceDelay);

@@ -1,101 +1,19 @@
-import { Mission, MissionContent, QuizQuestion, RewardItem } from "../../../src/engine/missions";
+import { Mission, MissionContent, RewardItem } from "../../../src/engine/missions";
+import { drawQuestions } from "./sorteio";
 
 // Missões do evento de Halloween (A Noite do Bug Assombrado): 5 quizzes de 10
 // perguntas, "Missão de Halloween Parte 1" a "Parte 5". As perguntas vêm das
 // missões de quiz que o PRÓPRIO professor já tem no banco (o import passa
-// essas missões pra função abaixo), sorteadas e misturadas:
-// - nenhuma pergunta se repete entre as 5 missões;
-// - dentro de uma missão, as 10 perguntas vêm de 10 missões diferentes, então
-//   cada uma mistura vários assuntos (Scratch, Python, ODS, hardware...);
-// - o sorteio usa uma semente fixa e as missões vêm sempre na mesma ordem:
-//   com as mesmas missões no banco, o resultado é sempre o mesmo.
-// Cada pergunta ganha o assunto na frente (ex.: "(Python) O que este código
-// mostra?"), porque fora da missão original não dá pra saber de que linguagem
-// é um trecho de código. Importar com:
+// essas missões pra função abaixo), sorteadas e misturadas com as regras de
+// scripts/missions/sorteio.ts: nenhuma pergunta se repete entre as 5 missões,
+// e as 10 perguntas de cada missão vêm de 10 missões diferentes, então cada
+// uma mistura vários assuntos (Scratch, Python, ODS, hardware...). Importar com:
 //   npm run missions:import -- <e-mail do professor> scripts/missions/halloween.ts
 
 const TITLE_PREFIX = 'Missão de Halloween Parte'
 
-// O assunto de cada missão de origem, pra colocar na frente da pergunta
-function subjectOf(title: string): string {
-    const base = title.replace(/\s+parte\s+\d+$/i, '')
-    const names: Record<string, string> = {
-        'Introdução ao Scratch': 'Scratch',
-        'Blocos de Código no Scratch': 'Scratch',
-        'O Mundo da Programação': 'Programação',
-        'Linguagem Lua': 'Lua',
-        'MIT App Inventor': 'App Inventor',
-    }
-    return names[base] ?? base
-}
-
-// Gerador de números "aleatórios" com semente (mulberry32): a mesma semente
-// sempre dá a mesma sequência
-function seededRandom(seed: number) {
-    return () => {
-        seed = (seed + 0x6d2b79f5) | 0
-        let t = Math.imul(seed ^ (seed >>> 15), 1 | seed)
-        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-    }
-}
-
-function shuffle<T>(list: T[], random: () => number): T[] {
-    const copy = [...list]
-    for (let i = copy.length - 1; i > 0; i--) {
-        const j = Math.floor(random() * (i + 1))
-        ;[copy[i], copy[j]] = [copy[j], copy[i]]
-    }
-    return copy
-}
-
 const MISSIONS_COUNT = 5
 const QUESTIONS_PER_MISSION = 10
-
-function drawQuestions(sources: Mission[]): QuizQuestion[][] {
-    const random = seededRandom(31102026)
-
-    // As perguntas de cada missão de origem, já embaralhadas
-    const pools = sources.map((source) => ({
-        subject: subjectOf(source.title),
-        questions: shuffle(source.questions, random),
-    }))
-
-    const result: QuizQuestion[][] = []
-
-    for (let m = 0; m < MISSIONS_COUNT; m++) {
-        // 10 missões de origem diferentes, entre as que ainda têm pergunta
-        // sobrando, preferindo assuntos diferentes ("Hardware" e "Hardware
-        // parte 2" são o mesmo assunto): só repete assunto se faltar
-        const available = shuffle(pools.filter((p) => p.questions.length > 0), random)
-        const subjects = new Set<string>()
-        const sources: typeof pools = []
-
-        for (const pool of available) {
-            if (sources.length < QUESTIONS_PER_MISSION && !subjects.has(pool.subject)) {
-                sources.push(pool)
-                subjects.add(pool.subject)
-            }
-        }
-
-        for (const pool of available) {
-            if (sources.length < QUESTIONS_PER_MISSION && !sources.includes(pool)) sources.push(pool)
-        }
-
-        if (sources.length < QUESTIONS_PER_MISSION) {
-            throw new Error('Não há perguntas suficientes nas missões do professor pra montar as de Halloween.')
-        }
-
-        const questions = sources.map((pool, i) => {
-            const question = pool.questions.pop()!
-            return { ...question, id: `q${i + 1}`, prompt: `(${pool.subject}) ${question.prompt}` }
-        })
-
-        result.push(questions)
-    }
-
-    return result
-}
 
 // Recompensas crescentes, como as missões prontas do evento
 const LEVELS: { icon: string, rewardXp: number, rewardCoins: number, description: string, item: RewardItem }[] = [
@@ -179,7 +97,7 @@ export default function halloweenMissions(teacherMissions: Mission[]): MissionCo
         throw new Error(`O professor precisa ter pelo menos ${QUESTIONS_PER_MISSION} missões de quiz pra montar as de Halloween (tem ${sources.length}).`)
     }
 
-    const drawn = drawQuestions(sources)
+    const drawn = drawQuestions(sources, MISSIONS_COUNT, QUESTIONS_PER_MISSION, 31102026)
 
     return LEVELS.map((level, i) => ({
         title: `${TITLE_PREFIX} ${i + 1}`,
