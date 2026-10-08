@@ -8,7 +8,7 @@ import WizardDanilo from "./WizardDanilo";
 
 // ============================================================================
 // TUTORIAL — o Mago Danilo apresenta a plataforma num céu estrelado. A cada
-// passo: o cajado solta um clarão, toca um "plim", o balão entra com o texto
+// passo: o orbe na mão dele solta um clarão, toca um "plim", o balão entra com o texto
 // sendo "digitado" (a boca do mago mexe enquanto isso) e a voz dele lê a fala.
 // Som e voz seguem a mesma preferência 🔊/🔇 das cenas de vitória/derrota.
 // Fechar de qualquer jeito — terminar, "Pular tutorial", ✕ ou Esc — chama
@@ -170,7 +170,7 @@ export default function TutorialModal({ steps, label, onClose }: { steps: Tutori
               </div>
               <div className="cg-anim-wizard-enter relative w-full">
                 <div className="cg-anim-float">
-                  <WizardDanilo mouthOpen={mouthOpen} burstKey={index} className="w-full drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+                  <WizardDanilo mouthOpen={mouthOpen} burstKey={index} className="w-full drop-shadow-[0_0_18px_rgba(250,204,21,0.35)]" />
                 </div>
               </div>
               <p className="relative mt-1 rounded-full border border-amber-300/50 bg-gradient-to-r from-violet-700 to-fuchsia-700 px-4 py-1 text-xs font-black uppercase tracking-widest text-amber-200 shadow-lg shadow-violet-900/60">
