@@ -43,6 +43,53 @@ const SHOP_KEY = "cg-shop";
 
 const SEED_DATE = "2026-01-01T00:00:00.000Z";
 
+/**
+ * Os visuais do Mago Danilo: a fantasia, a aura (o círculo mágico dele girando) e os olhos de luz.
+ * Entraram na Loja de quem já tinha itens pela migração 20261009120000 da API; numa Loja nova,
+ * vêm junto com os itens iniciais. O ADM muda o preço (e o resto) quando quiser.
+ */
+export const MAGO_DANILO_SHOP: Omit<ShopItem, "sold" | "createdAt">[] = [
+  {
+    id: "loja-mago-danilo-fantasia",
+    name: "Fantasia do Mago Danilo",
+    icon: "🧙‍♂️",
+    description:
+      "A armadura do próprio Mago Danilo, guardião da CodeGuilds: branca e dourada, com gemas ciano, ombreiras de guardião, jabô e capa preta. Só pros aprendizes mais lendários!",
+    rarity: "lendario",
+    price: 10000,
+    value: 5000,
+    xp: 0,
+    cosmetic: { slot: "outfit", value: "mago-danilo" },
+    featured: true,
+  },
+  {
+    id: "loja-mago-danilo-aura",
+    name: "Aura do Mago Danilo",
+    icon: "💫",
+    description:
+      "O círculo mágico divino do Mago Danilo gira devagar atrás de você, com runas e medalhões dourados brilhando. Todo mundo vai saber que você tem a bênção do guardião!",
+    rarity: "lendario",
+    price: 10000,
+    value: 5000,
+    xp: 0,
+    cosmetic: { slot: "aura", value: "mago-danilo" },
+    featured: true,
+  },
+  {
+    id: "loja-mago-danilo-olhos",
+    name: "Olhos do Mago Danilo",
+    icon: "👁️",
+    description:
+      "Os olhos de luz do Mago Danilo: brancos no meio, ciano nas bordas, brilhando e piscando como os dele. Enxergam um bug a quilômetros de distância.",
+    rarity: "lendario",
+    price: 10000,
+    value: 5000,
+    xp: 0,
+    cosmetic: { slot: "eyewear", value: "olhos-mago-danilo" },
+    featured: true,
+  },
+];
+
 /** Itens iniciais da Loja (o seed da API coloca à venda quando a Loja está vazia). */
 export const DEFAULT_SHOP: ShopItem[] = [
   {
@@ -163,6 +210,7 @@ export const DEFAULT_SHOP: ShopItem[] = [
     xp: 300,
     featured: false,
   },
+  ...MAGO_DANILO_SHOP,
 ].map((item) => ({ ...item, sold: 0, createdAt: SEED_DATE }) as ShopItem);
 
 function readAll(): ShopItem[] {

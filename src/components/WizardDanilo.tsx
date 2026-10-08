@@ -14,7 +14,7 @@ import { Pt, jagged, mirror, poly } from "./events/dracoding/kit";
 // enquanto ele fala (`mouthOpen`) e cada `burstKey` novo solta um clarão do orbe.
 // ============================================================================
 
-const C = { x: 120, y: 118 }; // centro do círculo mágico
+const C = { x: 120, y: 118 }; // centro do círculo mágico atrás do mago
 const GOLD = "#eab308";
 const GOLD_LIGHT = "#fde68a";
 const GOLD_DARK = "#a16207";
@@ -41,10 +41,6 @@ function deg(a: number) {
   return (a * Math.PI) / 180;
 }
 
-function at(r: number, a: number): Pt {
-  return [C.x + Math.cos(deg(a)) * r, C.y + Math.sin(deg(a)) * r];
-}
-
 /** Triângulo com a ponta pra cima, inscrito num círculo de raio `r` em (cx, cy). */
 function triangle(cx: number, cy: number, r: number, down = false): string {
   const s = down ? -1 : 1;
@@ -55,55 +51,79 @@ function triangle(cx: number, cy: number, r: number, down = false): string {
   ]);
 }
 
-/** Medalhão do círculo: anel, triângulo e o "S" no meio, girando no lugar. */
-function Medallion({ x, y, delay }: { x: number; y: number; delay: number }) {
+/** Medalhão do círculo: anel, triângulo e o "S" no meio, girando no lugar. `k` = escala; `w` engrossa os traços. */
+function Medallion({ x, y, delay, k, w }: { x: number; y: number; delay: number; k: number; w: (n: number) => number }) {
   return (
     <g className="cg-anim-orbit-rev" style={{ "--cg-dur": "24s", "--cg-delay": `${delay}s` } as React.CSSProperties}>
-      <circle cx={x} cy={y} r="16" fill="#0b0b10" fillOpacity="0.55" stroke={GOLD_LIGHT} strokeWidth="1.8" />
-      <circle cx={x} cy={y} r="12.5" fill="none" stroke={GOLD} strokeWidth="0.9" />
-      <path d={triangle(x, y, 11)} fill="none" stroke={GOLD_LIGHT} strokeWidth="1.2" strokeLinejoin="round" />
-      <path d={`M${x + 2} ${y - 3} Q${x - 3} ${y - 3} ${x - 1} ${y} Q${x + 3} ${y + 2} ${x - 2} ${y + 4}`} fill="none" stroke={GOLD_LIGHT} strokeWidth="1.1" strokeLinecap="round" />
+      <circle cx={x} cy={y} r={16 * k} fill="#0b0b10" fillOpacity="0.55" stroke={GOLD_LIGHT} strokeWidth={w(1.8)} />
+      <circle cx={x} cy={y} r={12.5 * k} fill="none" stroke={GOLD} strokeWidth={w(0.9)} />
+      <path d={triangle(x, y, 11 * k)} fill="none" stroke={GOLD_LIGHT} strokeWidth={w(1.2)} strokeLinejoin="round" />
+      <path
+        d={`M${x + 2 * k} ${y - 3 * k} Q${x - 3 * k} ${y - 3 * k} ${x - 1 * k} ${y} Q${x + 3 * k} ${y + 2 * k} ${x - 2 * k} ${y + 4 * k}`}
+        fill="none"
+        stroke={GOLD_LIGHT}
+        strokeWidth={w(1.1)}
+        strokeLinecap="round"
+      />
     </g>
   );
 }
 
-/** O círculo mágico divino: anel de runas com os medalhões (gira devagar) e o triângulo de dentro (gira ao contrário). */
-function MagicCircle() {
+/**
+ * O círculo mágico divino do Mago Danilo: anel de runas com os três medalhões (gira devagar) e o
+ * triângulo de dentro (gira ao contrário). Centro em (cx, cy) e raio do anel de fora `r` (o do mago
+ * é 108, e tudo o mais acompanha); `line` engrossa os traços quando o círculo fica pequeno — é
+ * esse mesmo círculo que gira atrás do aluno na Aura do Mago Danilo (components/Avatar.tsx).
+ */
+export function DivineCircle({ cx, cy, r, line = 1 }: { cx: number; cy: number; r: number; line?: number }) {
+  const k = r / 108;
+  const w = (n: number) => n * k * line;
+  const at = (radius: number, a: number): Pt => [cx + Math.cos(deg(a)) * radius * k, cy + Math.sin(deg(a)) * radius * k];
   const glyphs = Array.from({ length: 30 }, (_, i) => i * 12).filter((a) => MEDALLIONS.every((m) => Math.abs(((a - m + 540) % 360) - 180) > 14));
   return (
-    <g style={{ filter: "drop-shadow(0 0 3px rgba(253,224,71,0.85))" }}>
+    <g style={{ filter: `drop-shadow(0 0 ${(3 * k * line).toFixed(2)}px rgba(253,224,71,0.85))` }}>
       {/* brilho de fundo respirando */}
       <g className="cg-anim-glow" style={{ "--cg-dur": "4s" } as React.CSSProperties}>
-        <circle cx={C.x} cy={C.y} r="100" fill="#fef9c3" opacity="0.08" />
+        <circle cx={cx} cy={cy} r={100 * k} fill="#fef9c3" opacity="0.08" />
       </g>
       {/* anel de fora, com as runas e os medalhões */}
-      <g className="cg-anim-orbit" style={{ "--cg-dur": "70s", "--cg-origin": `${C.x}px ${C.y}px` } as React.CSSProperties}>
-        <circle cx={C.x} cy={C.y} r="108" fill="none" stroke={GOLD_LIGHT} strokeWidth="1.6" />
-        <circle cx={C.x} cy={C.y} r="94" fill="none" stroke={GOLD} strokeWidth="1.2" />
+      <g className="cg-anim-orbit" style={{ "--cg-dur": "70s", "--cg-origin": `${cx}px ${cy}px` } as React.CSSProperties}>
+        <circle cx={cx} cy={cy} r={108 * k} fill="none" stroke={GOLD_LIGHT} strokeWidth={w(1.6)} />
+        <circle cx={cx} cy={cy} r={94 * k} fill="none" stroke={GOLD} strokeWidth={w(1.2)} />
         {glyphs.map((a, i) => {
           const [x, y] = at(101, a);
-          return <path key={a} d={GLYPHS[i % GLYPHS.length]} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a + 90}) scale(0.95)`} fill="none" stroke={GOLD_LIGHT} strokeWidth="1.3" strokeLinecap="round" />;
+          return (
+            <path
+              key={a}
+              d={GLYPHS[i % GLYPHS.length]}
+              transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${a + 90}) scale(${(0.95 * k).toFixed(3)})`}
+              fill="none"
+              stroke={GOLD_LIGHT}
+              strokeWidth={1.3 * line}
+              strokeLinecap="round"
+            />
+          );
         })}
         {[6, 54, 126, 174, 234, 306].map((a) => {
           const [x, y] = at(116, a);
-          return <circle key={a} cx={x} cy={y} r="2.2" fill={GOLD_LIGHT} />;
+          return <circle key={a} cx={x} cy={y} r={2.2 * k * line} fill={GOLD_LIGHT} />;
         })}
         {MEDALLIONS.map((a, i) => {
           const [x, y] = at(108, a);
-          return <Medallion key={a} x={x} y={y} delay={-i * 6} />;
+          return <Medallion key={a} x={x} y={y} delay={-i * 6} k={k} w={w} />;
         })}
       </g>
       {/* triângulo de dentro, girando ao contrário */}
       <g className="cg-anim-orbit-rev" style={{ "--cg-dur": "110s" } as React.CSSProperties}>
-        <circle cx={C.x} cy={C.y} r="74" fill="none" stroke={GOLD} strokeWidth="1" strokeOpacity="0.8" />
-        <circle cx={C.x} cy={C.y} r="68" fill="none" stroke={GOLD_LIGHT} strokeWidth="0.8" strokeDasharray="2 5" />
-        <path d={triangle(C.x, C.y, 68)} fill="none" stroke={GOLD_LIGHT} strokeWidth="1.4" strokeLinejoin="round" />
-        <circle cx={C.x} cy={C.y} r="34" fill="none" stroke={GOLD} strokeWidth="1" />
-        <path d={triangle(C.x, C.y, 34, true)} fill="none" stroke={GOLD} strokeWidth="1" strokeLinejoin="round" />
+        <circle cx={cx} cy={cy} r={74 * k} fill="none" stroke={GOLD} strokeWidth={w(1)} strokeOpacity="0.8" />
+        <circle cx={cx} cy={cy} r={68 * k} fill="none" stroke={GOLD_LIGHT} strokeWidth={w(0.8)} strokeDasharray={`${2 * k} ${5 * k}`} />
+        <path d={triangle(cx, cy, 68 * k)} fill="none" stroke={GOLD_LIGHT} strokeWidth={w(1.4)} strokeLinejoin="round" />
+        <circle cx={cx} cy={cy} r={34 * k} fill="none" stroke={GOLD} strokeWidth={w(1)} />
+        <path d={triangle(cx, cy, 34 * k, true)} fill="none" stroke={GOLD} strokeWidth={w(1)} strokeLinejoin="round" />
         {Array.from({ length: 36 }, (_, i) => {
           const [x1, y1] = at(74, i * 10);
           const [x2, y2] = at(i % 3 ? 78 : 82, i * 10);
-          return <path key={i} d={`M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`} stroke={GOLD} strokeWidth="1" />;
+          return <path key={i} d={`M${x1.toFixed(1)} ${y1.toFixed(1)} L${x2.toFixed(1)} ${y2.toFixed(1)}`} stroke={GOLD} strokeWidth={w(1)} />;
         })}
       </g>
     </g>
@@ -244,7 +264,7 @@ export default function WizardDanilo({ mouthOpen, burstKey, className = "" }: { 
       </defs>
 
       {/* ---- o círculo mágico atrás de tudo ---- */}
-      <MagicCircle />
+      <DivineCircle cx={C.x} cy={C.y} r={108} />
 
       {/* ---- capa preta rasgada, do lado direito ---- */}
       <g className="cg-anim-cape" style={{ "--cg-dur": "4.5s" } as React.CSSProperties}>

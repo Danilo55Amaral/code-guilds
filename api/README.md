@@ -1840,6 +1840,14 @@ Detalhes que valem lembrar:
 
 Os dois podem rodar quantas vezes quiser (`npm run seed`), sem duplicar nada.
 
+Itens que entram na Loja **depois** de ela já estar no ar vão por migration, porque o seed
+da Loja só roda com ela vazia: a `20261009120000_add-mago-danilo-items-to-shop` colocou à
+venda os três visuais do Mago Danilo (fantasia, aura e olhos, 10.000 moedas cada). Ela só
+acrescenta itens (nada dos alunos muda), pula item com o mesmo id ou visual que já esteja à
+venda e, numa Loja vazia (banco novo), não faz nada, porque aí o seed já traz os três
+(`MAGO_DANILO_SHOP` entra no `DEFAULT_SHOP`). O `migrate:down` tira os três da Loja; quem
+já comprou continua com o item.
+
 ### As rotas da fase 3
 
 Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo formato do
