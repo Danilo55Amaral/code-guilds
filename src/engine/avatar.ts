@@ -11,7 +11,8 @@ export type BaseOutfit = "tunica" | "moletom" | "manto" | "armadura";
 export type BaseEyewear = "nenhum" | "redondo" | "quadrado" | "escuro" | "visor" | "monoculo" | "tapa-olho";
 export type BaseHat = "nenhum" | "mago" | "coroa" | "bone" | "elmo" | "pirata" | "fones";
 // Peças exclusivas da Loja — não aparecem no editor de avatar, só dá pra usar comprando.
-// Linhas de cada tipo: do ano todo, Halloween, Mitologia Grega, Mitologia Egípcia, Natal, Páscoa, Apocalipse Zumbi, Ataque Alienígena, Robôs e IA.
+// Linhas de cada tipo: do ano todo, Halloween, Mitologia Grega, Mitologia Egípcia, Natal, Páscoa, Apocalipse Zumbi, Ataque Alienígena, Robôs e IA
+// e, por último, os visuais do Mago Danilo (a fantasia, os olhos e a aura dele).
 export type ShopOutfit =
   | "vampiro" | "esqueleto" | "abobora"
   | "toga" | "hoplita" | "zeus"
@@ -20,7 +21,8 @@ export type ShopOutfit =
   | "fantasia-coelho" | "ovo-chocolate" | "ovo-pintado"
   | "roupa-zumbi" | "sobrevivente" | "hazmat"
   | "traje-espacial" | "fantasia-alien" | "uniforme-galactico"
-  | "armadura-mecha" | "jaqueta-cyberpunk" | "traje-androide";
+  | "armadura-mecha" | "jaqueta-cyberpunk" | "traje-androide"
+  | "mago-danilo";
 export type ShopEyewear = "neon" | "coracao" | "pixel"
   | "oculos-abobora" | "vampiro" | "teia"
   | "olhar-medusa" | "oraculo"
@@ -29,7 +31,8 @@ export type ShopEyewear = "neon" | "coracao" | "pixel"
   | "oculos-ovo" | "oculos-cenoura"
   | "mascara-gas" | "olhos-zumbi"
   | "oculos-alien" | "visor-laser"
-  | "oculos-ra" | "olho-cyborg";
+  | "oculos-ra" | "olho-cyborg"
+  | "olhos-mago-danilo";
 export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola"
   | "bruxa" | "cabeca-abobora" | "orelhas-lobo" | "morcego"
   | "louros" | "elmo-espartano" | "asas-hermes" | "serpentes"
@@ -53,6 +56,7 @@ export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
   | "radioativa" | "maos-zumbi" | "cidade-ruinas"
   | "raio-trator" | "planetas" | "invasao"
   | "circuito" | "codigo-matrix" | "grade-neon"
+  | "mago-danilo"
   | "estrela-polar" // exclusiva do evento de Natal (recompensa da Fase 2), não vai pra Loja
   | "lua-prateada"; // exclusiva de A Noite de Dracoding (recompensa da Fase 2), não vai pra Loja
 export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
@@ -200,6 +204,7 @@ export const SHOP_OUTFIT_LABELS: Record<ShopOutfit, string> = {
   "armadura-mecha": "Armadura mecha",
   "jaqueta-cyberpunk": "Jaqueta cyberpunk",
   "traje-androide": "Traje de androide",
+  "mago-danilo": "Fantasia do Mago Danilo",
 };
 export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = {
   neon: "Óculos neon",
@@ -222,6 +227,7 @@ export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = {
   "visor-laser": "Visor laser",
   "oculos-ra": "Óculos de realidade aumentada",
   "olho-cyborg": "Olho biônico",
+  "olhos-mago-danilo": "Olhos do Mago Danilo",
 };
 export const SHOP_HAT_LABELS: Record<ShopHat, string> = {
   aureola: "Auréola",
@@ -296,6 +302,7 @@ export const AURA_LABELS: Record<Aura, string> = {
   circuito: "Placa de circuito",
   "codigo-matrix": "Chuva de código",
   "grade-neon": "Horizonte neon",
+  "mago-danilo": "Aura do Mago Danilo",
 };
 export const PET_LABELS: Record<Pet, string> = {
   nenhum: "Nenhum",
@@ -642,6 +649,10 @@ export const COSMETIC_CATALOG: CosmeticOption[] = [
   { slot: "aura", value: "arcana", label: AURA_LABELS.arcana, icon: "🔮" },
   { slot: "aura", value: "gelo", label: AURA_LABELS.gelo, icon: "❄️" },
   { slot: "aura", value: "estrelas", label: AURA_LABELS.estrelas, icon: "✨" },
+  // ---- visuais do Mago Danilo (à venda desde o começo, migração 20261009120000) ----
+  { slot: "outfit", value: "mago-danilo", label: SHOP_OUTFIT_LABELS["mago-danilo"], icon: "🧙‍♂️" },
+  { slot: "eyewear", value: "olhos-mago-danilo", label: SHOP_EYEWEAR_LABELS["olhos-mago-danilo"], icon: "👁️" },
+  { slot: "aura", value: "mago-danilo", label: AURA_LABELS["mago-danilo"], icon: "💫" },
   { slot: "pet", value: "dragao", label: PET_LABELS.dragao, icon: PET_EMOJI.dragao },
   { slot: "pet", value: "coruja", label: PET_LABELS.coruja, icon: PET_EMOJI.coruja },
   { slot: "pet", value: "gato", label: PET_LABELS.gato, icon: PET_EMOJI.gato },

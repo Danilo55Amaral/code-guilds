@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { AvatarConfig, Aura, HairStyle, Hat, PET_EMOJI, Pet, SKIN_TONES } from "@/engine/avatar";
+import { DivineCircle } from "./WizardDanilo";
 
 // ============================================================================
 // AVATAR — o personagem do aluno em SVG puro, montado em camadas:
@@ -585,6 +586,67 @@ function Outfit({ config, skin, steelId }: { config: AvatarConfig; skin: string;
           <circle cx="80" cy="118" r="2" fill="#38bdf8" />
         </g>
       );
+    // --- visuais do Mago Danilo ---
+    case "mago-danilo":
+      // a armadura do Mago Danilo (components/WizardDanilo.tsx): capa preta por trás, roupa escura por
+      // baixo, frentes brancas com friso dourado, gola alta, jabô com broche e ombreiras com gemas ciano
+      return (
+        <g strokeLinejoin="round">
+          <path d="M12 128 C11 110 24 98.5 42 95.5 L86 95.5 C104 98.5 117 110 116 128 Z" fill="#0b0d12" />
+          <path d={body} fill="#1f2430" />
+          <path d="M20 128 C20 108 33 98 50 96.5 L56.5 97 L57.5 128 Z" fill="#f8fafc" stroke="#eab308" strokeWidth="1.4" />
+          <path d="M108 128 C108 108 95 98 78 96.5 L71.5 97 L70.5 128 Z" fill="#dfe5ee" stroke="#eab308" strokeWidth="1.4" />
+          {/* friso duplo e as gemas pequenas das frentes */}
+          <path d="M52.6 101 L53.6 128 M75.4 101 L74.4 128" stroke="#eab308" strokeWidth="1" fill="none" />
+          {[46, 82].map((gx) => (
+            <g key={gx}>
+              <path d={`M${gx} 114.5 L${gx + 3.5} 118 L${gx} 121.5 L${gx - 3.5} 118 Z`} fill="#eab308" stroke="#a16207" strokeWidth="0.6" />
+              <circle cx={gx} cy="118" r="1.7" fill="#22d3ee" />
+            </g>
+          ))}
+          {/* gola alta */}
+          <path d="M50.5 99 L43 84 L53.5 92 L56.5 98 Z" fill="#f8fafc" stroke="#eab308" strokeWidth="1.2" />
+          <path d="M77.5 99 L85 84 L74.5 92 L71.5 98 Z" fill="#dfe5ee" stroke="#eab308" strokeWidth="1.2" />
+          {/* jabô creme em três babados */}
+          {[
+            [99, 6.5],
+            [103.5, 5.5],
+            [108, 4.5],
+          ].map(([y, w]) => (
+            <path
+              key={y}
+              d={`M${64 - w} ${y} L${64 + w} ${y} L${64 + w - 1} ${y + 4.5} L${64 + w / 3} ${y + 3} L64 ${y + 5} L${64 - w / 3} ${y + 3} L${64 - w + 1} ${y + 4.5} Z`}
+              fill="#f1e7c9"
+              stroke="#c9b48a"
+              strokeWidth="0.6"
+            />
+          ))}
+          {/* ombreiras de guardião: placas pontudas, a de baixo e o losango dourado com a gema */}
+          {[1, -1].map((side) => {
+            const x = (v: number) => (side === 1 ? v : 128 - v);
+            const pts = (list: [number, number][]) => `M${list.map(([px, py]) => `${x(px)} ${py}`).join(" L")} Z`;
+            const plate = side === 1 ? "#f8fafc" : "#e5eaf1";
+            return (
+              <g key={side}>
+                <path d={pts([[14, 117], [24, 120.5], [38, 116], [34, 124], [19, 125.5]])} fill="#e2e8f0" stroke="#eab308" strokeWidth="1.2" />
+                <path
+                  d={pts([[12, 116], [13, 103], [19, 106], [21, 96], [28, 101], [33, 93.5], [38, 100], [47, 99], [48, 108], [38, 115], [22, 119]])}
+                  fill={plate}
+                  stroke="#eab308"
+                  strokeWidth="1.5"
+                />
+                <path d={pts([[32, 103], [36.5, 107.5], [32, 112], [27.5, 107.5]])} fill="#fde68a" stroke="#a16207" strokeWidth="0.8" />
+                <circle cx={x(32)} cy="107.5" r="2.5" fill="#22d3ee" stroke="#0e7490" strokeWidth="0.5" />
+                <circle cx={x(31.2)} cy="106.7" r="0.8" fill="#ecfeff" />
+              </g>
+            );
+          })}
+          {/* broche dourado com a gema ciano */}
+          <path d="M64 94.5 L68 98.5 L64 102.5 L60 98.5 Z" fill="#eab308" stroke="#a16207" strokeWidth="0.7" />
+          <circle cx="64" cy="98.5" r="2.1" fill="#22d3ee" stroke="#0e7490" strokeWidth="0.4" />
+          <circle cx="63.3" cy="97.8" r="0.7" fill="#ecfeff" />
+        </g>
+      );
     case "tunica":
     default:
       return (
@@ -695,7 +757,7 @@ function FaceDetailLayer({ detail, skin, hair }: { detail: AvatarConfig["faceDet
 // Óculos
 // ---------------------------------------------------------------------------
 
-function EyewearLayer({ eyewear }: { eyewear: AvatarConfig["eyewear"] }) {
+function EyewearLayer({ eyewear, skin }: { eyewear: AvatarConfig["eyewear"]; skin: string }) {
   switch (eyewear) {
     case "redondo":
       return (
@@ -1052,6 +1114,48 @@ function EyewearLayer({ eyewear }: { eyewear: AvatarConfig["eyewear"] }) {
           ))}
         </g>
       );
+    // --- visuais do Mago Danilo ---
+    case "olhos-mago-danilo": {
+      // os olhos de luz do Mago Danilo: amêndoas sem pupila, brancas no meio e ciano nas bordas,
+      // brilhando e piscando como os dele. A pele cobre o olho de sempre (senão ele aparece na piscada).
+      const almond = (cx: number, o: number) =>
+        `M${cx + o * 6.6} 58.8 C${cx + o * 3.8} 54.6 ${cx - o * 3.2} 54.8 ${cx - o * 6.2} 60.8 C${cx - o * 3} 64.2 ${cx + o * 4} 63.8 ${cx + o * 6.6} 58.8 Z`;
+      const eyes: [number, number][] = [
+        [52, -1],
+        [76, 1],
+      ];
+      return (
+        <g>
+          {eyes.map(([cx]) => (
+            <ellipse key={cx} cx={cx} cy="60.2" rx="7.4" ry="6.7" fill={skin} />
+          ))}
+          <g className="cg-anim-blink">
+            {eyes.map(([cx]) => (
+              <ellipse key={cx} cx={cx} cy="59.8" rx="10.5" ry="7" fill="#67e8f9" opacity="0.22" />
+            ))}
+            <g style={{ filter: "drop-shadow(0 0 1.2px #cffafe) drop-shadow(0 0 2.6px rgba(34,211,238,0.9))" }}>
+              {eyes.map(([cx, o]) => (
+                <g key={cx}>
+                  <path d={almond(cx, o)} fill="#67e8f9" />
+                  <path d={almond(cx, o)} fill="#e0fbff" transform={`translate(${cx} 59.6) scale(0.74 0.62) translate(${-cx} -59.6)`} />
+                  <path d={almond(cx, o)} fill="#ffffff" transform={`translate(${cx} 59.6) scale(0.46 0.34) translate(${-cx} -59.6)`} />
+                </g>
+              ))}
+            </g>
+            {eyes.map(([cx, o]) => (
+              <path
+                key={cx}
+                d={`M${cx + o * 7.2} 58.3 C${cx + o * 3.8} 53.9 ${cx - o * 3.2} 54.1 ${cx - o * 6.6} 60.6`}
+                stroke="#1e293b"
+                strokeWidth="1.3"
+                fill="none"
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        </g>
+      );
+    }
     default:
       return null;
   }
@@ -1093,6 +1197,7 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   "grade-neon": ["#f0abfc", "#1e1b4b"],
   "estrela-polar": ["#fef9c3", "#0c4a6e"],
   "lua-prateada": ["#a5b4c8", "#111827"],
+  "mago-danilo": ["#fde68a", "#1e1b3a"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -2293,6 +2398,10 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           )}
         </g>
       )}
+      {aura === "mago-danilo" && (
+        // o mesmo círculo mágico divino que gira atrás do Mago Danilo, com traços mais grossos pro tamanho do avatar
+        <DivineCircle cx={64} cy={60} r={50} line={1.7} />
+      )}
       {aura === "arcana" && (
         // círculo mágico com runas girando devagar
         <Anim c="spin-rev" dur={40}>
@@ -3243,7 +3352,7 @@ export default function Avatar({
         <Mouth expression={config.expression} />
 
         <HairFront style={config.hairStyle} color={hair} hat={config.hat} />
-        <EyewearLayer eyewear={config.eyewear} />
+        <EyewearLayer eyewear={config.eyewear} skin={skin} />
         <HatLayer hat={config.hat} accent={config.outfitColor} steelId={ids.steel} goldId={ids.gold} />
         <PetLayer pet={config.pet ?? "nenhum"} />
       </svg>
