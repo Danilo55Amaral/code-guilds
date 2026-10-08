@@ -789,7 +789,7 @@ function Wizard({ talking, burstKey = 0, className = "h-full" }: { talking: bool
     <div className={`relative ${className}`}>
       <div className="cg-anim-wizard-enter h-full">
         <div className="cg-anim-float h-full">
-          <WizardDanilo mouthOpen={talking} burstKey={burstKey} className="h-full w-auto drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+          <WizardDanilo mouthOpen={talking} burstKey={burstKey} className="h-full w-auto drop-shadow-[0_0_18px_rgba(250,204,21,0.35)]" />
         </div>
       </div>
     </div>
@@ -916,7 +916,7 @@ export default function ChristmasArt({ art, speaker, mouthOpen = false, student 
           <SnowGround className="h-[16%]" />
           <Stage className="gap-[4%]">
             <div className="hidden h-[78%] sm:block">
-              <WizardDanilo mouthOpen={talkingWizard} burstKey={1} className="h-full w-auto drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+              <WizardDanilo mouthOpen={talkingWizard} burstKey={1} className="h-full w-auto drop-shadow-[0_0_18px_rgba(250,204,21,0.35)]" />
             </div>
             <WinterHero student={student} />
             <div className="hidden h-[50%] items-end gap-2 sm:flex">

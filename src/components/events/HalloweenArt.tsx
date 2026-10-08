@@ -265,7 +265,7 @@ export default function HalloweenArt({ art, speaker, mouthOpen = false, student 
               </div>
               <div className="cg-anim-wizard-enter h-full">
                 <div className="cg-anim-float h-full">
-                  <WizardDanilo mouthOpen={talkingWizard} burstKey={0} className="h-full w-auto drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+                  <WizardDanilo mouthOpen={talkingWizard} burstKey={0} className="h-full w-auto drop-shadow-[0_0_18px_rgba(250,204,21,0.35)]" />
                 </div>
               </div>
             </div>
@@ -347,7 +347,7 @@ export default function HalloweenArt({ art, speaker, mouthOpen = false, student 
           <Castle className="h-[30%] opacity-80" />
           <Stage className="gap-[4%]">
             <div className="hidden h-[78%] sm:block">
-              <WizardDanilo mouthOpen={talkingWizard} burstKey={1} className="h-full w-auto drop-shadow-[0_0_24px_rgba(139,92,246,0.55)]" />
+              <WizardDanilo mouthOpen={talkingWizard} burstKey={1} className="h-full w-auto drop-shadow-[0_0_18px_rgba(250,204,21,0.35)]" />
             </div>
             <div className="relative flex flex-col items-center">
               <div className="pointer-events-none absolute bottom-0 left-1/2 aspect-square w-[260px]" style={{ transform: "translate(-50%, 45%) scaleY(0.28)" }}>
