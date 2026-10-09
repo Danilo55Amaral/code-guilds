@@ -56,7 +56,7 @@ export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
   | "radioativa" | "maos-zumbi" | "cidade-ruinas"
   | "raio-trator" | "planetas" | "invasao"
   | "circuito" | "codigo-matrix" | "grade-neon"
-  | "mago-danilo"
+  | "mago-danilo" | "dragao-ancestral"
   | "estrela-polar" // exclusiva do evento de Natal (recompensa da Fase 2), não vai pra Loja
   | "lua-prateada"; // exclusiva de A Noite de Dracoding (recompensa da Fase 2), não vai pra Loja
 export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
@@ -303,6 +303,7 @@ export const AURA_LABELS: Record<Aura, string> = {
   "codigo-matrix": "Chuva de código",
   "grade-neon": "Horizonte neon",
   "mago-danilo": "Aura do Mago Danilo",
+  "dragao-ancestral": "Aura do Dragão Ancestral",
 };
 export const PET_LABELS: Record<Pet, string> = {
   nenhum: "Nenhum",
@@ -653,6 +654,8 @@ export const COSMETIC_CATALOG: CosmeticOption[] = [
   { slot: "outfit", value: "mago-danilo", label: SHOP_OUTFIT_LABELS["mago-danilo"], icon: "🧙‍♂️" },
   { slot: "eyewear", value: "olhos-mago-danilo", label: SHOP_EYEWEAR_LABELS["olhos-mago-danilo"], icon: "👁️" },
   { slot: "aura", value: "mago-danilo", label: AURA_LABELS["mago-danilo"], icon: "💫" },
+  // ---- a Aura do Dragão Ancestral (à venda desde o começo, migração 20261010120000) ----
+  { slot: "aura", value: "dragao-ancestral", label: AURA_LABELS["dragao-ancestral"], icon: "🐉" },
   { slot: "pet", value: "dragao", label: PET_LABELS.dragao, icon: PET_EMOJI.dragao },
   { slot: "pet", value: "coruja", label: PET_LABELS.coruja, icon: PET_EMOJI.coruja },
   { slot: "pet", value: "gato", label: PET_LABELS.gato, icon: PET_EMOJI.gato },

@@ -90,6 +90,24 @@ export const MAGO_DANILO_SHOP: Omit<ShopItem, "sold" | "createdAt">[] = [
   },
 ];
 
+/**
+ * A Aura do Dragão Ancestral: um dragão escuro de asas vermelhas enrolado atrás do aluno. Entrou na Loja
+ * de quem já tinha itens pela migração 20261010120000 da API; numa Loja nova, vem com os itens iniciais.
+ */
+export const ANCIENT_DRAGON_AURA_SHOP: Omit<ShopItem, "sold" | "createdAt"> = {
+  id: "loja-aura-dragao-ancestral",
+  name: "Aura do Dragão Ancestral",
+  icon: "🐉",
+  description:
+    "Um dragão ancestral, escuro e de asas vermelhas, se enrola atrás de você: mexe a cabeça, bate as asas, balança a cauda e solta brasas pelo focinho. Só os maiores aventureiros da CodeGuilds têm um guardião assim!",
+  rarity: "lendario",
+  price: 15000,
+  value: 7500,
+  xp: 0,
+  cosmetic: { slot: "aura", value: "dragao-ancestral" },
+  featured: true,
+};
+
 /** Itens iniciais da Loja (o seed da API coloca à venda quando a Loja está vazia). */
 export const DEFAULT_SHOP: ShopItem[] = [
   {
@@ -211,6 +229,7 @@ export const DEFAULT_SHOP: ShopItem[] = [
     featured: false,
   },
   ...MAGO_DANILO_SHOP,
+  ANCIENT_DRAGON_AURA_SHOP,
 ].map((item) => ({ ...item, sold: 0, createdAt: SEED_DATE }) as ShopItem);
 
 function readAll(): ShopItem[] {

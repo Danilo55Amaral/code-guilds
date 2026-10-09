@@ -1848,6 +1848,9 @@ venda e, numa Loja vazia (banco novo), não faz nada, porque aí o seed já traz
 (`MAGO_DANILO_SHOP` entra no `DEFAULT_SHOP`). O `migrate:down` tira os três da Loja; quem
 já comprou continua com o item.
 
+Do mesmo jeito, a `20261010120000_add-ancient-dragon-aura-to-shop` colocou à venda a Aura do
+Dragão Ancestral (15.000 moedas; `ANCIENT_DRAGON_AURA_SHOP` entra no `DEFAULT_SHOP`).
+
 ### As rotas da fase 3
 
 Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo formato do

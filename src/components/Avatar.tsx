@@ -1198,6 +1198,7 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   "estrela-polar": ["#fef9c3", "#0c4a6e"],
   "lua-prateada": ["#a5b4c8", "#111827"],
   "mago-danilo": ["#fde68a", "#1e1b3a"],
+  "dragao-ancestral": ["#7f1d1d", "#0b1416"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -1455,13 +1456,29 @@ const AURA_ANIM = {
   "moon-bat-b": "cg-anim-aura-moon-bat-b",
   "moon-bat-c": "cg-anim-aura-moon-bat-c",
   shoot: "cg-anim-aura-shoot",
+  turn: "cg-anim-aura-turn",
 } as const;
 
-function Anim({ c, d = 0, dur, origin, children }: { c: keyof typeof AURA_ANIM; d?: number; dur?: number; origin?: string; children: React.ReactNode }) {
+function Anim({
+  c,
+  d = 0,
+  dur,
+  origin,
+  turn,
+  children,
+}: {
+  c: keyof typeof AURA_ANIM;
+  d?: number;
+  dur?: number;
+  origin?: string;
+  /** só no "turn": quantos graus vai pra cada lado */
+  turn?: number;
+  children: React.ReactNode;
+}) {
   return (
     <g
       className={AURA_ANIM[c]}
-      style={{ "--cg-delay": `${d}s`, ...(dur && { "--cg-dur": `${dur}s` }), ...(origin && { transformOrigin: origin }) } as React.CSSProperties}
+      style={{ "--cg-delay": `${d}s`, ...(dur && { "--cg-dur": `${dur}s` }), ...(origin && { transformOrigin: origin }), ...(turn && { "--cg-turn": `${turn}deg` }) } as React.CSSProperties}
     >
       {children}
     </g>
@@ -1488,6 +1505,127 @@ function ShootingStar({ x, y, d = 0, dur = 7 }: { x: number; y: number; d?: numb
     <Anim c="shoot" d={d} dur={dur}>
       <path d={`M${x} ${y} L${x + 14} ${y - 7.5}`} stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
       <circle cx={x} cy={y} r="1.3" fill="#fff" />
+    </Anim>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Aura do Dragão Ancestral: um dragão escuro, de asas e barbatanas vermelhas, enrolado atrás do
+// personagem — a cabeça lá no alto olhando pra baixo, o pescoço descendo pela esquerda, o corpo
+// passando por trás dos ombros e a cauda subindo e descendo pela direita. Ele flutua devagar, mexe a
+// cabeça, bate as duas asas, balança a cauda, o olho amarelo pulsa e saem brasas do focinho.
+// ---------------------------------------------------------------------------
+
+const ANCIENT = { body: "#1f2b2f", dark: "#0a1012", light: "#3f565c", belly: "#2c3b40", red: "#b91c1c", redLight: "#ef4444" };
+
+/** Um pedaço do corpo do dragão: um tubo com contorno escuro e o brilho em cima. */
+function DragonTube({ d, w }: { d: string; w: number }) {
+  return (
+    <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      <path d={d} stroke={ANCIENT.dark} strokeWidth={w + 2.2} />
+      <path d={d} stroke={ANCIENT.body} strokeWidth={w} />
+      {/* as placas da barriga (gomos) e o brilho fino nas costas */}
+      <path d={d} stroke={ANCIENT.belly} strokeWidth={w * 0.5} strokeDasharray="1.7 1.1" strokeLinecap="butt" transform="translate(0.9 1.1)" />
+      <path d={d} stroke={ANCIENT.light} strokeWidth={w * 0.16} strokeOpacity="0.55" transform="translate(-1 -1.2)" />
+    </g>
+  );
+}
+
+/** Barbatana vermelha pontuda (base em x, y; `a` = pra onde aponta). */
+function DragonFin({ x, y, a, s = 1 }: { x: number; y: number; a: number; s?: number }) {
+  return (
+    <path
+      d="M-2 0 C0 -4 4 -7 10 -8 C7 -4 6 -1 5 2 Z"
+      transform={`translate(${x} ${y}) rotate(${a}) scale(${s})`}
+      fill={ANCIENT.red}
+      stroke={ANCIENT.dark}
+      strokeWidth="0.6"
+      strokeLinejoin="round"
+    />
+  );
+}
+
+/** Asa de morcego: membrana vermelha entre dedos escuros, com a borda de trás recortada. */
+function DragonAuraWing({ membrane, bones, arm }: { membrane: string; bones: string; arm: string }) {
+  return (
+    <g strokeLinejoin="round" strokeLinecap="round">
+      <path d={membrane} fill={ANCIENT.red} stroke={ANCIENT.dark} strokeWidth="0.9" />
+      <path d={membrane} fill={ANCIENT.redLight} opacity="0.25" transform="translate(0.6 0.6) scale(0.98)" />
+      <path d={bones} fill="none" stroke={ANCIENT.dark} strokeWidth="1.1" />
+      <path d={arm} fill="none" stroke={ANCIENT.dark} strokeWidth="3.4" />
+      <path d={arm} fill="none" stroke={ANCIENT.body} strokeWidth="1.8" />
+    </g>
+  );
+}
+
+function AncientDragonAura() {
+  return (
+    <Anim c="bob" dur={5}>
+      {/* asa de cima, atrás da cabeça */}
+      <Anim c="turn" d={-1.2} dur={2.4} turn={8} origin="40px 21px">
+        <DragonAuraWing
+          membrane="M40 21 C50 12 60 7 71 4 Q74 9 84 9 Q83 15 91 20 Q72 19 52 23 Z"
+          bones="M58 9 L84 9 M58 9 L91 20 M58 9 L66 21"
+          arm="M40 21 C47 15 53 11 58 9 C62 7 67 5 71 4"
+        />
+      </Anim>
+
+      {/* pescoço e corpo (passa por trás dos ombros), com as barbatanas por fora */}
+      <DragonTube d="M35 16 C25 20 17 30 14 43 C10 58 12 73 22 85 C34 98 60 100 80 92 C92 87 101 80 106 70" w={8.5} />
+      <DragonFin x={22} y={22} a={-130} />
+      <DragonFin x={14} y={34} a={-155} />
+      <DragonFin x={10} y={49} a={-178} />
+      <DragonFin x={10} y={63} a={168} />
+      <DragonFin x={14} y={77} a={148} />
+      {/* asa da esquerda: na frente do corpo, caindo pra baixo e pra fora */}
+      <Anim c="turn" dur={2.4} turn={8} origin="20px 40px">
+        <DragonAuraWing
+          membrane="M20 40 C14 38 8 40 4 45 Q9 50 3 58 Q11 61 7 72 Q16 72 15 83 Q20 70 27 66 Q26 52 20 40 Z"
+          bones="M10 43 L3 58 M10 43 L7 72 M10 43 L15 83"
+          arm="M20 40 C16 40 13 41 10 43 C8 44 6 44 4 45"
+        />
+      </Anim>
+      {/* o braço com as garras */}
+      <g fill="none" strokeLinecap="round">
+        <path d="M17 66 C21 71 24 75 27 80" stroke={ANCIENT.dark} strokeWidth="5" />
+        <path d="M17 66 C21 71 24 75 27 80" stroke={ANCIENT.body} strokeWidth="3.2" />
+        <path d="M26 80 l3 4.5 M27.6 79.6 l1.4 5 M28.8 78.6 l4 3" stroke="#d6dde0" strokeWidth="1" />
+      </g>
+
+      {/* a cauda subindo e descendo pela direita, balançando */}
+      <Anim c="turn" dur={3.2} turn={6} origin="106px 70px">
+        <DragonTube d="M106 70 C110 62 114 56 117 52" w={6.5} />
+        <DragonTube d="M117 52 C121 62 122 74 119 86 C117 93 112 97 107 98" w={4.2} />
+        <DragonFin x={115} y={55} a={-50} s={0.9} />
+        <DragonFin x={121} y={66} a={-12} s={0.85} />
+        <DragonFin x={121} y={79} a={14} s={0.8} />
+        <path d="M108 98 C103 95 98 97 94 102 C99 101 102 102 105 105 C104 101 106 100 108 98 Z" fill={ANCIENT.red} stroke={ANCIENT.dark} strokeWidth="0.6" />
+      </Anim>
+
+      {/* a cabeça, no alto, olhando pra baixo: crista vermelha, chifre, olho amarelo e as brasas do focinho */}
+      <Anim c="turn" d={-0.6} dur={3.6} turn={5} origin="34px 16px">
+        <g transform="translate(-3 -4)">
+          <path d="M33 12 C29 6 24 3 18 3 C22 6 24 9 25 13 Z" fill={ANCIENT.red} stroke={ANCIENT.dark} strokeWidth="0.6" />
+          <path d="M37 11 C37 6 35 3 32 1 C35 6 35 9 34 12 Z" fill={ANCIENT.red} stroke={ANCIENT.dark} strokeWidth="0.6" />
+          <path d="M38 24 C44 26 52 26 57 23 C55 28 46 30 40 29 Z" fill={ANCIENT.belly} stroke={ANCIENT.dark} strokeWidth="0.8" />
+          <path d="M43 24.6 l1 2 l1 -2 M48 24.8 l1 2 l1 -2 M52.5 24.4 l1 1.8 l1 -1.8" fill="#f1f5f9" />
+          <path d="M30 14 C36 8 46 8 54 13 C58 15 60 19 58 22 C52 24 44 24 38 25 C32 25 28 21 30 14 Z" fill={ANCIENT.body} stroke={ANCIENT.dark} strokeWidth="1" />
+          <path d="M32 13 C38 9.5 46 9.5 53 13.5" fill="none" stroke={ANCIENT.light} strokeWidth="1.1" strokeLinecap="round" />
+          <path d="M33 11 C29 6 25 4 20 4" fill="none" stroke={ANCIENT.dark} strokeWidth="2" strokeLinecap="round" />
+          <Anim c="blink" dur={2.6}>
+            <circle cx="46.5" cy="15" r="3" fill="#fde047" opacity="0.45" />
+          </Anim>
+          <path d="M43 15 C45 13 48 13 50 15 C48 16.6 45 16.6 43 15 Z" fill="#facc15" />
+          <path d="M46.6 13.5 L46.6 16.5" stroke={ANCIENT.dark} strokeWidth="0.8" strokeLinecap="round" />
+          <circle cx="56" cy="17" r="0.9" fill={ANCIENT.dark} />
+          <Anim c="rise" dur={2.4}>
+            <circle cx="58" cy="19" r="1" fill="#fb923c" />
+          </Anim>
+          <Anim c="rise" d={-1.2} dur={2.4}>
+            <circle cx="56" cy="20" r="0.8" fill="#fdba74" />
+          </Anim>
+        </g>
+      </Anim>
     </Anim>
   );
 }
@@ -2399,6 +2537,7 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
           )}
         </g>
       )}
+      {aura === "dragao-ancestral" && <AncientDragonAura />}
       {aura === "mago-danilo" && (
         // o mesmo círculo mágico divino que gira atrás do Mago Danilo, com traços mais grossos pro tamanho do avatar
         <DivineCircle cx={64} cy={60} r={50} line={1.7} />
