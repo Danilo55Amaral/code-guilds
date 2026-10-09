@@ -24,11 +24,11 @@ const WORLD = MULTIVERSE_WORLDS.find((w) => w.id === "dragao")!;
 const INTRO_MS = 2800;
 
 const POWERS: [string, string, string][] = [
-  ["🕳️", "Buracos negros", "Abre um buraco negro com um gesto e dobra o espaço à sua volta."],
-  ["💫", "Orbitais", "Anéis de runas giram ao redor dele como os de um átomo gigante."],
-  ["🔮", "Esferas de energia", "Faz esferas de luz pura nascerem nas mãos e orbitarem seu corpo."],
-  ["⚡", "Relâmpagos", "Os raios saem das suas garras e rasgam o céu em redemoinho."],
-  ["🔥", "Chamas ancestrais", "Seu fogo é azul puxando pro verde: a cor da primeira magia."],
+  ["🔥", "Chamas ancestrais", "O fogo mais antigo de todos: vermelho, laranja e ouro. Um sopro dele incendeia o horizonte inteiro."],
+  ["✨", "Runas ancestrais", "Runas de ouro cobrem o corpo dele e acendem quando ele chama a magia de todos os universos."],
+  ["💫", "Anel de runas", "Um círculo de runas gira em volta dele como um escudo que nenhuma magia atravessa."],
+  ["🪽", "Asas de tempestade", "Cada batida das asas levanta um vendaval capaz de atravessar portais."],
+  ["⚡", "Relâmpagos", "O céu do domínio dele vive em tempestade: os raios caem quando ele se aproxima."],
   ["🗣️", "O Rugido", "Dizem que dá pra ouvir o rugido dele até em outros universos."],
 ];
 
@@ -102,7 +102,7 @@ export default function DragonWorldPage() {
 
   if (mode === "fechado") {
     return (
-      <div className="cg-dark-scope fixed inset-0 flex flex-col items-center justify-center overflow-hidden px-6 text-center" style={{ background: "radial-gradient(circle at 50% 40%, #134e4a 0%, #030014 70%)" }}>
+      <div className="cg-dark-scope fixed inset-0 flex flex-col items-center justify-center overflow-hidden px-6 text-center" style={{ background: "radial-gradient(circle at 50% 40%, #7c2d12 0%, #0c0304 70%)" }}>
         <Starfield warp={false} />
         <p className="relative text-5xl opacity-60 grayscale">{WORLD.glyph}</p>
         <h1 className="relative mt-4 text-2xl font-black uppercase tracking-widest text-slate-200">O portal deste mundo está fechado</h1>
@@ -119,7 +119,7 @@ export default function DragonWorldPage() {
   const roaring = moment === "rugido";
 
   return (
-    <div className="cg-dark-scope fixed inset-0 overflow-hidden" style={{ background: "linear-gradient(to bottom, #050816 0%, #0b1030 45%, #0c1a2e 75%, #04130f 100%)" }}>
+    <div className="cg-dark-scope fixed inset-0 overflow-hidden" style={{ background: "linear-gradient(to bottom, #0d0406 0%, #1e0a0c 40%, #2a0d08 72%, #130605 100%)" }}>
       <div className="pointer-events-none absolute inset-0 opacity-70">
         <Starfield warp={intro} />
       </div>
@@ -134,7 +134,7 @@ export default function DragonWorldPage() {
           <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.25em] text-amber-200">
             {WORLD.glyph} <span className="truncate">{WORLD.tagline} • {WORLD.name}</span>
           </p>
-          <p className="mt-0.5 hidden text-[10px] tracking-wider text-teal-200/80 sm:block">
+          <p className="mt-0.5 hidden text-[10px] tracking-wider text-orange-200/80 sm:block">
             {mode === "mestre" ? `🧙 Modo Mestre • ${currentTeacher?.name ?? ""}` : `✦ Viajante: ${activeStudent?.name ?? ""}`}
           </p>
         </div>
@@ -147,9 +147,9 @@ export default function DragonWorldPage() {
           </button>
           <button
             onClick={toggleSound}
-            title={soundOn ? "Desligar o som" : "Ligar o som (vento, magia e o rugido)"}
+            title={soundOn ? "Desligar o som" : "Ligar o som (vento, fogo, magia e o rugido)"}
             aria-label={soundOn ? "Desligar o som" : "Ligar o som"}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-teal-300/50 bg-black/50 text-sm"
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-orange-300/50 bg-black/50 text-sm"
           >
             {soundOn ? "🔊" : "🔇"}
           </button>
@@ -165,11 +165,11 @@ export default function DragonWorldPage() {
       {/* título e legenda do momento */}
       {!intro && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/40 to-transparent px-4 pb-5 pt-16 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.5em] text-teal-200/80">O Dragão Ancestral</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.5em] text-orange-200/80">O Dragão Ancestral</p>
           <h1 className="mt-1 bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-400 bg-clip-text text-2xl font-black uppercase tracking-wider text-transparent sm:text-4xl" style={{ filter: "drop-shadow(0 0 18px rgba(251,191,36,0.35))" }}>
             Vaelzhar
           </h1>
-          <p key={moment} className="cg-anim-dragon-caption mt-2 text-xs font-semibold uppercase tracking-[0.3em] text-teal-100 sm:text-sm">
+          <p key={moment} className="cg-anim-dragon-caption mt-2 text-xs font-semibold uppercase tracking-[0.3em] text-orange-100 sm:text-sm">
             {DRAGON_CAPTIONS[moment]}
           </p>
           <button onClick={() => setLoreOpen(true)} className="pointer-events-auto mt-3 rounded-full border border-amber-300/40 bg-black/50 px-3 py-1 text-[11px] text-amber-100 sm:hidden">
@@ -181,7 +181,7 @@ export default function DragonWorldPage() {
       {/* o rugido em letras enormes */}
       {roaring && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-start justify-center pt-[16vh]">
-          <p className="cg-anim-dragon-roar-text text-center text-4xl font-black uppercase tracking-[0.2em] text-teal-100 sm:text-7xl" style={{ textShadow: "0 0 30px #2dd4bf, 0 0 60px #8b5cf6" }}>
+          <p className="cg-anim-dragon-roar-text text-center text-4xl font-black uppercase tracking-[0.2em] text-amber-100 sm:text-7xl" style={{ textShadow: "0 0 30px #f97316, 0 0 60px #dc2626" }}>
             RROOAAARR!
           </p>
         </div>
@@ -190,8 +190,8 @@ export default function DragonWorldPage() {
       {/* travessia do portal */}
       {intro && (
         <button type="button" onClick={() => setIntro(false)} className="absolute inset-0 z-30 flex flex-col items-center justify-center text-center">
-          <span className="cg-anim-fade text-[11px] font-semibold uppercase tracking-[0.5em] text-teal-100">Atravessando o portal para o {WORLD.tagline}...</span>
-          <span className="cg-anim-title-flicker mt-4 block bg-gradient-to-r from-amber-200 via-yellow-50 to-teal-200 bg-clip-text text-4xl font-black uppercase text-transparent sm:text-6xl">
+          <span className="cg-anim-fade text-[11px] font-semibold uppercase tracking-[0.5em] text-orange-100">Atravessando o portal para o {WORLD.tagline}...</span>
+          <span className="cg-anim-title-flicker mt-4 block bg-gradient-to-r from-amber-200 via-yellow-50 to-orange-300 bg-clip-text text-4xl font-black uppercase text-transparent sm:text-6xl">
             {WORLD.name}
           </span>
           <span className="cg-anim-fade mt-8 text-[11px] text-slate-400" style={{ animationDelay: "1.4s" }}>
@@ -214,16 +214,17 @@ export default function DragonWorldPage() {
             <button onClick={() => setLoreOpen(false)} className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full border border-slate-600 text-slate-300 hover:text-white">
               ✕
             </button>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-teal-200">{WORLD.tagline} • A lenda</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-orange-200">{WORLD.tagline} • A lenda</p>
             <h2 className="mt-1 text-2xl font-black text-amber-100">🐉 Vaelzhar, o Dragão Ancestral</h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-300">
               Antes da primeira estrela acender, Vaelzhar já voava pelo vazio. Ele viu os universos nascerem um por um e aprendeu todas as magias que existem, das mais simples às
-              que ninguém mais lembra. Do topo da Pirâmide Dourada, ele governa este mundo e vigia os portais do multiverso.
+              que ninguém mais lembra, e gravou cada uma delas em runas de ouro no próprio corpo. Do topo da Pirâmide Dourada, cercada pelos rios de lava, ele governa este
+              mundo e vigia os portais do multiverso.
             </p>
             <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {POWERS.map(([icon, title, text]) => (
-                <div key={title} className="rounded-2xl border border-teal-400/20 bg-black/40 p-3">
-                  <p className="text-sm font-bold text-teal-100">
+                <div key={title} className="rounded-2xl border border-orange-400/20 bg-black/40 p-3">
+                  <p className="text-sm font-bold text-orange-100">
                     {icon} {title}
                   </p>
                   <p className="mt-0.5 text-xs text-slate-400">{text}</p>

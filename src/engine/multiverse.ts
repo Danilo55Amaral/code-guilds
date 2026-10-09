@@ -41,9 +41,9 @@ export const MULTIVERSE_WORLDS: MultiverseWorld[] = [
     id: "dragao",
     name: "Domínio do Dragão Ancestral",
     tagline: "Mundo 1",
-    lore: "Um céu que gira como um redemoinho sobre a Pirâmide Dourada. Ali vive Vaelzhar, o dragão que já existia antes da primeira estrela e que domina todas as magias do multiverso.",
+    lore: "Um céu de brasa que gira como um redemoinho sobre a Pirâmide Dourada, cercada por rios de lava. Ali vive Vaelzhar, o dragão que já existia antes da primeira estrela e que domina todas as magias do multiverso.",
     glyph: "🐉",
-    colors: ["#0f766e", "#fbbf24", "#f0fdfa"],
+    colors: ["#9a3412", "#fbbf24", "#fff7ed"],
     href: "/multiverso/dragao",
   },
   {
