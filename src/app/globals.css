@@ -500,6 +500,11 @@
   0%, 100% { transform: scaleY(1); }
   50% { transform: scaleY(-0.55); }
 }
+/* asa presa no corpo (o Dracoding de Bolso): gira pra cima e pra baixo pela base, descendo mais rápido do que sobe */
+@keyframes cg-aura-wing {
+  0%, 100% { transform: rotate(22deg); }
+  40% { transform: rotate(-14deg) scaleX(0.9); }
+}
 /* sobe e desce do voo (vai por dentro do deslocamento, com outro ritmo) */
 @keyframes cg-aura-flutter {
   0%, 100% { transform: translateY(-5px); }
@@ -784,6 +789,8 @@
   .cg-anim-aura-march { animation: cg-aura-march var(--cg-dur, 1.6s) steps(4) var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-grid { animation: cg-aura-grid var(--cg-dur, 1s) linear var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-flap { animation: cg-aura-flap var(--cg-dur, 0.32s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  /* a base da asa fica na borda de dentro (a direita do desenho da asa esquerda; a outra asa é o espelho) */
+  .cg-anim-aura-wing { animation: cg-aura-wing var(--cg-dur, 0.7s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 100% 70%; }
   .cg-anim-aura-flutter { animation: cg-aura-flutter var(--cg-dur, 1.6s) ease-in-out var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-wiggle { animation: cg-aura-wiggle var(--cg-dur, 1.1s) ease-in-out var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-fly { animation: cg-aura-fly var(--cg-dur, 8s) linear var(--cg-delay, 0s) infinite; }
