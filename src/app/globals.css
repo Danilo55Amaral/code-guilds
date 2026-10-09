@@ -555,22 +555,21 @@
   50% { transform: rotate(9deg); }
 }
 /* Mundo 1 — Domínio do Dragão Ancestral */
-@keyframes cg-dragon-flap {
-  0%, 100% { transform: rotate(26deg) scaleX(0.82); }
-  45% { transform: rotate(-24deg) scaleX(1); }
-  60% { transform: rotate(-20deg) scaleX(1); }
+/* asa do Vaelzhar (de lado): de cima, varre pra trás e desce por baixo do corpo, encolhendo como se viesse na nossa direção */
+@keyframes cg-dragon-beat {
+  0%, 100% { transform: rotate(0deg) scaleY(1); }
+  22% { transform: rotate(-38deg) scaleY(0.62); }
+  46% { transform: rotate(-8deg) scaleY(-0.58); }
+  70% { transform: rotate(-30deg) scaleY(0.2); }
+}
+/* cada parte da cauda balança um pouco, com atraso da anterior = a cauda ondula */
+@keyframes cg-dragon-wave {
+  0%, 100% { transform: rotate(-5deg); }
+  50% { transform: rotate(5deg); }
 }
 @keyframes cg-dragon-wing-breathe {
   0%, 100% { transform: rotate(2deg); }
   50% { transform: rotate(-3deg); }
-}
-@keyframes cg-dragon-tail {
-  0%, 100% { transform: rotate(-3deg); }
-  50% { transform: rotate(4deg); }
-}
-@keyframes cg-dragon-cloth {
-  0%, 100% { transform: skewX(-6deg); }
-  50% { transform: skewX(6deg); }
 }
 @keyframes cg-dragon-breathe {
   0%, 100% { transform: scale(1, 1); }
@@ -579,29 +578,6 @@
 @keyframes cg-dragon-glow {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
-}
-@keyframes cg-dragon-bolt {
-  0%, 30% { opacity: 1; }
-  33.4%, 100% { opacity: 0; }
-}
-/* esfera de energia dando a volta no dragão (elipse; maior quando passa na frente) */
-@keyframes cg-dragon-orbit {
-  0% { transform: translate(270px, 0) scale(1); }
-  8.33% { transform: translate(234px, 35px) scale(1.15); }
-  16.67% { transform: translate(135px, 61px) scale(1.28); }
-  25% { transform: translate(0, 70px) scale(1.32); }
-  33.33% { transform: translate(-135px, 61px) scale(1.28); }
-  41.67% { transform: translate(-234px, 35px) scale(1.15); }
-  50% { transform: translate(-270px, 0) scale(1); }
-  58.33% { transform: translate(-234px, -35px) scale(0.85); }
-  66.67% { transform: translate(-135px, -61px) scale(0.72); }
-  75% { transform: translate(0, -70px) scale(0.68); }
-  83.33% { transform: translate(135px, -61px) scale(0.72); }
-  91.67% { transform: translate(234px, -35px) scale(0.85); }
-  100% { transform: translate(270px, 0) scale(1); }
-}
-@keyframes cg-dragon-orbital {
-  to { stroke-dashoffset: -120; }
 }
 @keyframes cg-dragon-shockwave {
   0% { transform: translate(-50%, -50%) scale(0.03); opacity: 0.95; }
@@ -801,15 +777,11 @@
   .cg-anim-aura-shoot { animation: cg-aura-shoot var(--cg-dur, 7s) ease-out var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-wobble { animation: cg-aura-wobble var(--cg-dur, 2.4s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 90%; }
   /* Mundo 1 — Domínio do Dragão Ancestral (o giro das partes usa a origem 0 0 = a junta de cada peça) */
-  .cg-anim-dragon-flap { animation: cg-dragon-flap var(--cg-dur, 0.95s) ease-in-out infinite; transform-origin: 0 0; }
   .cg-anim-dragon-wing-breathe { animation: cg-dragon-wing-breathe 5s ease-in-out infinite; transform-origin: 0 0; }
-  .cg-anim-dragon-tail { animation: cg-dragon-tail 4.6s ease-in-out infinite; }
-  .cg-anim-dragon-cloth { animation: cg-dragon-cloth var(--cg-dur, 3s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: 50% 0; }
+  .cg-anim-dragon-beat { animation: cg-dragon-beat var(--cg-dur, 0.9s) ease-in-out var(--cg-delay, 0s) infinite; transform-origin: 0 0; }
+  .cg-anim-dragon-wave { animation: cg-dragon-wave var(--cg-dur, 3s) ease-in-out var(--cg-delay, 0s) infinite; transform-origin: 0 0; }
   .cg-anim-dragon-breathe { animation: cg-dragon-breathe 4s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
   .cg-anim-dragon-glow { animation: cg-dragon-glow var(--cg-dur, 2.4s) ease-in-out var(--cg-delay, 0s) infinite; }
-  .cg-anim-dragon-bolt { animation: cg-dragon-bolt 0.36s linear var(--cg-delay, 0s) infinite; }
-  .cg-anim-dragon-orbit { animation: cg-dragon-orbit var(--cg-dur, 4.5s) linear var(--cg-delay, 0s) infinite; }
-  .cg-anim-dragon-orbital { animation: cg-dragon-orbital var(--cg-dur, 3s) linear infinite; }
   .cg-anim-dragon-shockwave { animation: cg-dragon-shockwave 1.8s cubic-bezier(0.2, 0.7, 0.3, 1) var(--cg-delay, 0s) both; }
   .cg-anim-dragon-shake { animation: cg-dragon-shake 0.12s linear infinite; }
   .cg-anim-dragon-spiral { animation: cg-spin var(--cg-dur, 90s) linear infinite; will-change: transform; }
@@ -868,7 +840,6 @@
   .cg-anim-dissolve,
   .cg-anim-dragon-shockwave,
   .cg-anim-dragon-flash,
-  .cg-anim-dragon-bolt,
   .cg-anim-dragon-bolt-sky {
     display: none;
   }
