@@ -1446,6 +1446,7 @@ const AURA_ANIM = {
   grid: "cg-anim-aura-grid",
   wobble: "cg-anim-aura-wobble",
   flap: "cg-anim-aura-flap",
+  wing: "cg-anim-aura-wing",
   flutter: "cg-anim-aura-flutter",
   wiggle: "cg-anim-aura-wiggle",
   fly: "cg-anim-aura-fly",
@@ -2487,9 +2488,10 @@ function drawnPet(pet: Pet) {
       // A Noite de Dracoding (Fase 3): o Conde Dracoding encolhido, de capa-asa e óculos escuros pra aguentar o sol.
       return (
         <g>
+          {/* as duas asas batem juntas, girando pela base presa no corpo (a da direita é o espelho da esquerda) */}
           {[0, 1].map((side) => (
             <g key={side} transform={side ? "translate(194 0) scale(-1 1)" : undefined}>
-              <Anim c="flap" d={-side * 0.25} dur={0.55}>
+              <Anim c="wing" dur={0.7}>
                 <path d="M93 102 L84 95 L77 97 Q80 100 78 103 Q82 103 83 107 Q87 104 90 108 L93 106 Z" fill="#0b0810" />
                 <path d="M92 102 L85 97 L80 98 Q82 100 81 102 Q84 102 85 105 Q88 103 90 106 Z" fill="#9f1239" />
               </Anim>
