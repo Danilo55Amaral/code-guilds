@@ -475,6 +475,11 @@
   from { transform: translateX(-9px); }
   to { transform: translateX(9px); }
 }
+/* uma parte girando um pouco pra lá e pra cá em volta da própria junta (o ângulo vem em --cg-turn) */
+@keyframes cg-aura-turn {
+  0%, 100% { transform: rotate(calc(var(--cg-turn, 6deg) * -1)); }
+  50% { transform: rotate(var(--cg-turn, 6deg)); }
+}
 @keyframes cg-aura-blink {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.2; }
@@ -760,6 +765,8 @@
   .cg-anim-aura-wave { animation: cg-aura-wave var(--cg-dur, 6s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
   .cg-anim-aura-drift { animation: cg-aura-drift var(--cg-dur, 5s) ease-in-out var(--cg-delay, 0s) infinite alternate; }
   .cg-anim-aura-blink { animation: cg-aura-blink var(--cg-dur, 1.4s) ease-in-out var(--cg-delay, 0s) infinite; }
+  /* a junta vem no transformOrigin (em px do desenho de 128×128) */
+  .cg-anim-aura-turn { animation: cg-aura-turn var(--cg-dur, 3s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: view-box; }
   .cg-anim-aura-flow { animation: cg-aura-flow var(--cg-dur, 1.2s) linear var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-scroll { animation: cg-aura-scroll var(--cg-dur, 3s) linear var(--cg-delay, 0s) infinite; }
   .cg-anim-aura-march { animation: cg-aura-march var(--cg-dur, 1.6s) steps(4) var(--cg-delay, 0s) infinite; }
