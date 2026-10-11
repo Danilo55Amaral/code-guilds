@@ -3,9 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useStudents, useShop, useGameActions } from "@/engine/store";
-import { ShopItem } from "@/engine/shop";
+import { ShopItem, collectionsNewestFirst } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
-import { COLLECTIONS, COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
+import { COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "@/components/collections";
 import { Student, freeSlots, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
@@ -281,8 +281,9 @@ export default function LojaPage() {
         </div>
       ) : (
         <>
-          {/* ===== COLEÇÕES TEMÁTICAS ===== uma seção por coleção à venda, sempre escura, nos dois temas */}
-          {COLLECTIONS.map((collection) => {
+          {/* ===== COLEÇÕES TEMÁTICAS ===== uma seção por coleção à venda, sempre escura, nos dois temas;
+              a liberada mais recentemente fica em cima */}
+          {collectionsNewestFirst(items).map((collection) => {
             const list = collectionItems(collection);
             if (list.length === 0) return null;
             const theme = COLLECTION_THEME[collection];
