@@ -14,7 +14,7 @@
 // ============================================================================
 
 import { Rarity } from "./missions";
-import { Cosmetic, CosmeticCollection, sameCosmetic } from "./avatar";
+import { COLLECTIONS, Cosmetic, CosmeticCollection, sameCosmetic } from "./avatar";
 import { InventoryItem, Student, freeSlots, inventoryFullError, ownsCosmetic } from "./students";
 import { EVENT_ITEMS } from "./eventItems";
 
@@ -887,6 +887,20 @@ export function missingFromCollection(collection: CosmeticCollection, current: S
         ? !current.some((i) => sameCosmetic(i.cosmetic, p.cosmetic))
         : !current.some((i) => i.collection === collection && i.name === p.name),
   );
+}
+
+/**
+ * Quando a coleção foi liberada na Loja pela última vez: a data do item dela que entrou mais
+ * recentemente ("" = nenhum item dela à venda). Liberar a coleção (ou os itens que faltavam
+ * nela) põe todos os itens novos com a data daquele momento.
+ */
+export function lastReleaseOf(collection: CosmeticCollection, items: ShopItem[]): string {
+  return items.reduce<string>((last, i) => (i.collection === collection && i.createdAt > last ? i.createdAt : last), "");
+}
+
+/** As coleções da liberada mais recentemente pra mais antiga (a Loja mostra a mais nova em cima); empate fica na ordem de sempre. */
+export function collectionsNewestFirst(items: ShopItem[]): CosmeticCollection[] {
+  return [...COLLECTIONS].sort((a, b) => lastReleaseOf(b, items).localeCompare(lastReleaseOf(a, items)));
 }
 
 /** Quantos itens dos eventos a coleção tem (pra mostrar no Painel ADM). */
