@@ -60,8 +60,8 @@ export default function QuizModal({
     // ---------- Revisão (missão já concluída antes) ----------
     if (viewOnly) {
       return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="cg-card w-full max-w-md p-8 text-center">
+        <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/70 p-4">
+          <div className="cg-card m-auto w-full max-w-md p-8 text-center">
             <p className="mb-3 text-5xl">📖</p>
             <h2 className="text-2xl font-bold text-white">Revisão Concluída</h2>
             <p className="mt-1 text-sm text-slate-400">
@@ -99,8 +99,8 @@ export default function QuizModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="cg-card w-full max-w-md p-6">
+    <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/70 p-4">
+      <div className="cg-card m-auto w-full max-w-md p-6">
         <div className="mb-4 flex items-center justify-between">
           <p className="flex items-center gap-2 text-sm font-semibold text-white">
             {mission.icon} {mission.title}{" "}

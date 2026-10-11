@@ -120,14 +120,14 @@ export default function LevelUpScreen({
   const sound = useSceneSound(playLevelUpJingle);
 
   return (
-    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex overflow-y-auto bg-black/90 p-4 backdrop-blur-sm">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(50%_40%_at_50%_40%,rgba(139,92,246,0.25),transparent)]" aria-hidden="true" />
       <Sparkles />
       <div className="fixed right-1 top-1 z-10">
         <SoundToggleButton muted={sound.muted} onClick={sound.toggle} />
       </div>
 
-      <div className="relative w-full max-w-md text-center">
+      <div className="relative m-auto w-full max-w-md text-center">
         <LevelBadge fromLevel={fromLevel} toLevel={toLevel} />
 
         <h2 className="cg-anim-shimmer-violet mt-4 text-3xl font-black uppercase tracking-wide">Subiu de nível!</h2>
