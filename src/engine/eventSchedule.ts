@@ -59,6 +59,21 @@ export function statusIn(runs: EventRuns, teacherId: string, eventId: EventId): 
   return runs[teacherId]?.[eventId]?.status ?? "nao-iniciado";
 }
 
+/**
+ * Quando o evento foi liberado pela última vez pra turma do professor: o início (ou o reinício) dele
+ * ou a fase mais nova liberada, o que vier depois. Sem agenda = "" (fica por último na ordem).
+ */
+export function lastReleaseIn(runs: EventRuns, teacherId: string, eventId: EventId): string {
+  const run = runs[teacherId]?.[eventId];
+  if (!run) return "";
+  return [run.startedAt, ...(run.phasesReleasedAt ?? [])].reduce<string>((last, at) => (at && at > last ? at : last), "");
+}
+
+/** Ordena os eventos do liberado mais recente pro mais antigo (o Salão dos Eventos destaca o mais novo). */
+export function newestReleasedFirst<T extends { id: EventId }>(events: T[], runs: EventRuns, teacherId: string): T[] {
+  return [...events].sort((a, b) => lastReleaseIn(runs, teacherId, b.id).localeCompare(lastReleaseIn(runs, teacherId, a.id)));
+}
+
 /** A situação de cada fase do evento pra turma do professor (liberada, encerrada ou ainda não liberada). */
 export function phaseStatusesIn(runs: EventRuns, teacherId: string, eventId: EventId): PhaseStatus[] {
   const event = getEvent(eventId);
