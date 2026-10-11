@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStudents, useMissions, useEventRuns, useGameActions } from "@/engine/store";
 import { Mission } from "@/engine/missions";
 import { Student } from "@/engine/students";
+import { newestReleasedFirst } from "@/engine/eventSchedule";
 import {
   ACADEMY_EVENTS,
   AcademyEvent,
@@ -161,7 +162,7 @@ export default function EventosPage() {
   const { activeStudent, students } = useStudents();
   const game = useGameActions();
   const { missions, ready } = useMissions();
-  const { statusOf, phasesOf, ready: runsReady } = useEventRuns();
+  const { runs, statusOf, phasesOf, ready: runsReady } = useEventRuns();
   const [introOf, setIntroOf] = useState<{ event: AcademyEvent; phase: number } | null>(null);
   const [rankingEventId, setRankingEventId] = useState<EventId | null>(null);
   // Perfil aberto pelo ranking (guarda só o id: o aluno é relido da lista).
@@ -169,10 +170,19 @@ export default function EventosPage() {
 
   if (!activeStudent || !ready || !runsReady) return null;
   const me = activeStudent;
-  // Só aparecem os eventos que o professor do aluno iniciou (e ainda não encerrou).
-  const liveEvents = ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) === "ativo");
-  // Rankings: todo evento que o professor já iniciou, inclusive os encerrados (é aí que fica a casa campeã).
-  const rankedEvents = ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) !== "nao-iniciado");
+  // Só aparecem os eventos que o professor do aluno iniciou (e ainda não encerrou), o liberado mais
+  // recentemente primeiro (início do evento ou fase nova): o mais novo fica em destaque no topo.
+  const liveEvents = newestReleasedFirst(
+    ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) === "ativo"),
+    runs,
+    me.teacherId,
+  );
+  // Rankings: todo evento que o professor já iniciou, inclusive os encerrados (é aí que fica a casa campeã), na mesma ordem.
+  const rankedEvents = newestReleasedFirst(
+    ACADEMY_EVENTS.filter((e) => statusOf(me.teacherId, e.id) !== "nao-iniciado"),
+    runs,
+    me.teacherId,
+  );
   const rankingEvent = rankedEvents.find((e) => e.id === rankingEventId) ?? rankedEvents[0];
   const viewingStudent = students.find((s) => s.id === viewingId) ?? null;
 
