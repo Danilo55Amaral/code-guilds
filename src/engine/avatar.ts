@@ -11,7 +11,7 @@ export type BaseOutfit = "tunica" | "moletom" | "manto" | "armadura";
 export type BaseEyewear = "nenhum" | "redondo" | "quadrado" | "escuro" | "visor" | "monoculo" | "tapa-olho";
 export type BaseHat = "nenhum" | "mago" | "coroa" | "bone" | "elmo" | "pirata" | "fones";
 // Peças exclusivas da Loja — não aparecem no editor de avatar, só dá pra usar comprando.
-// Linhas de cada tipo: do ano todo, Halloween, Mitologia Grega, Mitologia Egípcia, Natal, Páscoa, Apocalipse Zumbi, Ataque Alienígena, Robôs e IA
+// Linhas de cada tipo: do ano todo, Halloween, Mitologia Grega, Mitologia Egípcia, Natal, Páscoa, Apocalipse Zumbi, Ataque Alienígena, Robôs e IA, Astronomia
 // e, por último, os visuais do Mago Danilo (a fantasia, os olhos e a aura dele).
 export type ShopOutfit =
   | "vampiro" | "esqueleto" | "abobora"
@@ -22,6 +22,7 @@ export type ShopOutfit =
   | "roupa-zumbi" | "sobrevivente" | "hazmat"
   | "traje-espacial" | "fantasia-alien" | "uniforme-galactico"
   | "armadura-mecha" | "jaqueta-cyberpunk" | "traje-androide"
+  | "manto-galaxia" | "jaleco-astronomo" | "uniforme-lumen"
   | "mago-danilo"
   | "traje-estelar"; // exclusivo de Astronomia em: Salve o Wi-Fi (recompensa da Fase 1), não vai pra Loja
 export type ShopEyewear = "neon" | "coracao" | "pixel"
@@ -33,6 +34,7 @@ export type ShopEyewear = "neon" | "coracao" | "pixel"
   | "mascara-gas" | "olhos-zumbi"
   | "oculos-alien" | "visor-laser"
   | "oculos-ra" | "olho-cyborg"
+  | "oculos-eclipse" | "oculos-nebulosa" | "olhos-ton618"
   | "olhos-mago-danilo";
 export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola"
   | "bruxa" | "cabeca-abobora" | "orelhas-lobo" | "morcego"
@@ -43,6 +45,7 @@ export type ShopHat = "aureola" | "chifres" | "tiara" | "cartola"
   | "capacete-tatico" | "cerebro-exposto" | "bandana-sobrevivente" | "chapeu-xerife"
   | "antenas" | "chapeu-aluminio" | "capacete-espacial" | "chapeu-radar"
   | "capacete-cyber" | "coroa-holografica" | "implante-neural" | "antena-robo"
+  | "headset-catarina" | "coroa-saturno" | "cruzeiro-do-sul" | "gorro-astronomo"
   | "gorro-lendario" // exclusivo do evento de Natal (recompensa da Fase 3), não vai pra Loja
   | "chapeu-espantalho"; // exclusivo de A Noite de Dracoding (recompensa da Fase 1), não vai pra Loja
 export type Outfit = BaseOutfit | ShopOutfit;
@@ -57,6 +60,7 @@ export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
   | "radioativa" | "maos-zumbi" | "cidade-ruinas"
   | "raio-trator" | "planetas" | "invasao"
   | "circuito" | "codigo-matrix" | "grade-neon"
+  | "via-lactea" | "chuva-meteoros" | "constelacao-lumen"
   | "mago-danilo" | "dragao-ancestral"
   | "estrela-polar" // exclusiva do evento de Natal (recompensa da Fase 2), não vai pra Loja
   | "lua-prateada" // exclusiva de A Noite de Dracoding (recompensa da Fase 2), não vai pra Loja
@@ -70,6 +74,7 @@ export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
   | "zumbi" | "cerebro" | "rato" | "virus"
   | "alien" | "ovni" | "invasor" | "polvo"
   | "ia-orbe" | "drone" | "gato-robo" | "satelite"
+  | "cometinha" | "ursinha-menor" | "luazinha" | "foguetinho"
   | "cometa" // exclusivo do evento de Natal (recompensa da Fase 1), não vai pra Loja
   | "dracoding" // exclusivo de A Noite de Dracoding (recompensa da Fase 3), não vai pra Loja
   | "lumenzinho"; // exclusivo de Astronomia em: Salve o Wi-Fi (recompensa da Fase 2), não vai pra Loja
@@ -207,6 +212,9 @@ export const SHOP_OUTFIT_LABELS: Record<ShopOutfit, string> = {
   "armadura-mecha": "Armadura mecha",
   "jaqueta-cyberpunk": "Jaqueta cyberpunk",
   "traje-androide": "Traje de androide",
+  "manto-galaxia": "Manto das Galáxias",
+  "jaleco-astronomo": "Jaleco de astrônomo",
+  "uniforme-lumen": "Uniforme da Constelação Lúmen",
   "mago-danilo": "Fantasia do Mago Danilo",
   "traje-estelar": "Traje Estelar da Catarina",
 };
@@ -231,6 +239,9 @@ export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = {
   "visor-laser": "Visor laser",
   "oculos-ra": "Óculos de realidade aumentada",
   "olho-cyborg": "Olho biônico",
+  "oculos-eclipse": "Óculos de eclipse",
+  "oculos-nebulosa": "Óculos nebulosa",
+  "olhos-ton618": "Olhos do TON 618",
   "olhos-mago-danilo": "Olhos do Mago Danilo",
 };
 export const SHOP_HAT_LABELS: Record<ShopHat, string> = {
@@ -272,6 +283,10 @@ export const SHOP_HAT_LABELS: Record<ShopHat, string> = {
   "coroa-holografica": "Coroa holográfica",
   "implante-neural": "Implante neural",
   "antena-robo": "Antena e parafusos de robô",
+  "headset-catarina": "Headset da Catarina",
+  "coroa-saturno": "Coroa de Saturno",
+  "cruzeiro-do-sul": "Tiara do Cruzeiro do Sul",
+  "gorro-astronomo": "Gorro de astrônomo",
 };
 export const AURA_LABELS: Record<Aura, string> = {
   nenhum: "Nenhuma",
@@ -306,6 +321,9 @@ export const AURA_LABELS: Record<Aura, string> = {
   circuito: "Placa de circuito",
   "codigo-matrix": "Chuva de código",
   "grade-neon": "Horizonte neon",
+  "via-lactea": "Via Láctea",
+  "chuva-meteoros": "Chuva de meteoros",
+  "constelacao-lumen": "Constelação Lúmen",
   "mago-danilo": "Aura do Mago Danilo",
   "dragao-ancestral": "Aura do Dragão Ancestral",
   "buraco-negro": "Aura do Buraco Negro",
@@ -350,6 +368,10 @@ export const PET_LABELS: Record<Pet, string> = {
   drone: "Drone de estimação",
   "gato-robo": "Gato-robô",
   satelite: "Satélite de bolso",
+  cometinha: "Cometinha",
+  "ursinha-menor": "Ursinha Menor",
+  luazinha: "Luazinha",
+  foguetinho: "Foguetinho",
   cometa: "Cometa, a renazinha estelar",
   dracoding: "Dracoding de Bolso",
   lumenzinho: "Lumenzinho",
@@ -394,6 +416,10 @@ export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
   drone: "🚁",
   "gato-robo": "⚙️",
   satelite: "🛰️",
+  cometinha: "☄️",
+  "ursinha-menor": "🐻",
+  luazinha: "🌙",
+  foguetinho: "🚀",
   cometa: "🦌",
   dracoding: "🧛",
   lumenzinho: "🛰️",
@@ -429,6 +455,9 @@ export const SHOP_OUTFIT_COLORS: { hex: string; label: string; collection?: Cosm
   { hex: "#38bdf8", label: "Azul holograma", collection: "futuro" },
   { hex: "#ec4899", label: "Rosa cyberpunk", collection: "futuro" },
   { hex: "#3f3f46", label: "Grafite de titânio", collection: "futuro" },
+  { hex: "#d946ef", label: "Fúcsia da Catarina", collection: "astronomia" },
+  { hex: "#312e81", label: "Índigo do espaço", collection: "astronomia" },
+  { hex: "#fb923c", label: "Laranja do TON 618", collection: "astronomia" },
 ];
 
 /** Nome de qualquer roupa/óculos/chapéu (do editor ou da Loja). */
@@ -460,10 +489,10 @@ export const COSMETIC_SLOT_LABELS: Record<CosmeticSlot, string> = {
 };
 
 /** Coleções temáticas da Loja. O visual de cada uma (cores, enfeites) fica em components/collections.ts. */
-export type CosmeticCollection = "natal" | "pascoa" | "halloween" | "zumbi" | "alien" | "futuro" | "grega" | "egipcia";
+export type CosmeticCollection = "natal" | "pascoa" | "halloween" | "zumbi" | "alien" | "astronomia" | "futuro" | "grega" | "egipcia";
 
 /** Ordem das coleções no Painel ADM e na Loja (as especiais de datas vêm primeiro). */
-export const COLLECTIONS: CosmeticCollection[] = ["natal", "pascoa", "halloween", "zumbi", "alien", "futuro", "grega", "egipcia"];
+export const COLLECTIONS: CosmeticCollection[] = ["natal", "pascoa", "halloween", "zumbi", "alien", "astronomia", "futuro", "grega", "egipcia"];
 
 export const COLLECTION_LABELS: Record<CosmeticCollection, string> = {
   natal: "🎄 Especial de Natal",
@@ -471,6 +500,7 @@ export const COLLECTION_LABELS: Record<CosmeticCollection, string> = {
   halloween: "🎃 Halloween",
   zumbi: "🧟 Apocalipse Zumbi",
   alien: "🛸 Ataque Alienígena",
+  astronomia: "🔭 Astronomia: Salve o Wi-Fi!",
   futuro: "🤖 Robôs e IA",
   grega: "🏛️ Mitologia Grega",
   egipcia: "🏺 Mitologia Egípcia",
@@ -495,6 +525,7 @@ const PASCOA = "pascoa" as const;
 const ZUMBI = "zumbi" as const;
 const ALIEN = "alien" as const;
 const FUTURO = "futuro" as const;
+const ASTRONOMIA = "astronomia" as const;
 
 /** Tudo que o ADM pode colocar à venda como visual do avatar. */
 export const COSMETIC_CATALOG: CosmeticOption[] = [
@@ -638,6 +669,24 @@ export const COSMETIC_CATALOG: CosmeticOption[] = [
   { slot: "pet", value: "drone", label: PET_LABELS.drone, icon: PET_EMOJI.drone, collection: FUTURO },
   { slot: "pet", value: "gato-robo", label: PET_LABELS["gato-robo"], icon: PET_EMOJI["gato-robo"], collection: FUTURO },
   { slot: "pet", value: "satelite", label: PET_LABELS.satelite, icon: PET_EMOJI.satelite, collection: FUTURO },
+  // ---- coleção Astronomia em: Salve o Wi-Fi! ----
+  { slot: "hat", value: "headset-catarina", label: SHOP_HAT_LABELS["headset-catarina"], icon: "🎧", collection: ASTRONOMIA },
+  { slot: "hat", value: "coroa-saturno", label: SHOP_HAT_LABELS["coroa-saturno"], icon: "💫", collection: ASTRONOMIA },
+  { slot: "hat", value: "cruzeiro-do-sul", label: SHOP_HAT_LABELS["cruzeiro-do-sul"], icon: "✨", collection: ASTRONOMIA },
+  { slot: "hat", value: "gorro-astronomo", label: SHOP_HAT_LABELS["gorro-astronomo"], icon: "🌙", collection: ASTRONOMIA },
+  { slot: "eyewear", value: "oculos-eclipse", label: SHOP_EYEWEAR_LABELS["oculos-eclipse"], icon: "🕶️", collection: ASTRONOMIA },
+  { slot: "eyewear", value: "oculos-nebulosa", label: SHOP_EYEWEAR_LABELS["oculos-nebulosa"], icon: "🌌", collection: ASTRONOMIA },
+  { slot: "eyewear", value: "olhos-ton618", label: SHOP_EYEWEAR_LABELS["olhos-ton618"], icon: "🕳️", collection: ASTRONOMIA },
+  { slot: "outfit", value: "manto-galaxia", label: SHOP_OUTFIT_LABELS["manto-galaxia"], icon: "🌌", collection: ASTRONOMIA },
+  { slot: "outfit", value: "jaleco-astronomo", label: SHOP_OUTFIT_LABELS["jaleco-astronomo"], icon: "🔭", collection: ASTRONOMIA },
+  { slot: "outfit", value: "uniforme-lumen", label: SHOP_OUTFIT_LABELS["uniforme-lumen"], icon: "🛰️", collection: ASTRONOMIA },
+  { slot: "aura", value: "via-lactea", label: AURA_LABELS["via-lactea"], icon: "🌌", collection: ASTRONOMIA },
+  { slot: "aura", value: "chuva-meteoros", label: AURA_LABELS["chuva-meteoros"], icon: "☄️", collection: ASTRONOMIA },
+  { slot: "aura", value: "constelacao-lumen", label: AURA_LABELS["constelacao-lumen"], icon: "🛰️", collection: ASTRONOMIA },
+  { slot: "pet", value: "cometinha", label: PET_LABELS.cometinha, icon: PET_EMOJI.cometinha, collection: ASTRONOMIA },
+  { slot: "pet", value: "ursinha-menor", label: PET_LABELS["ursinha-menor"], icon: PET_EMOJI["ursinha-menor"], collection: ASTRONOMIA },
+  { slot: "pet", value: "luazinha", label: PET_LABELS.luazinha, icon: PET_EMOJI.luazinha, collection: ASTRONOMIA },
+  { slot: "pet", value: "foguetinho", label: PET_LABELS.foguetinho, icon: PET_EMOJI.foguetinho, collection: ASTRONOMIA },
   // ---- visuais do ano todo ----
   { slot: "hat", value: "aureola", label: SHOP_HAT_LABELS.aureola, icon: "😇" },
   { slot: "hat", value: "chifres", label: SHOP_HAT_LABELS.chifres, icon: "😈" },
