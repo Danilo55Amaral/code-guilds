@@ -26,6 +26,7 @@ const COVERING_HATS: Hat[] = [
   "mago", "bone", "elmo", "pirata", "cartola", "bruxa", "cabeca-abobora", "chapeu-espantalho", "serpentes", "disco-ra", "gorro-noel", "gorro-lendario", "gorro-elfo", "casca-ovo", "chapeu-pascoa",
   "capacete-tatico", "cerebro-exposto", "chapeu-xerife",
   "chapeu-aluminio", "capacete-espacial", "capacete-cyber",
+  "gorro-astronomo",
 ];
 /** Chapéus que escondem o cabelo da frente por inteiro. */
 const FULL_HEAD_HATS: Hat[] = ["elmo", "elmo-espartano", "nemes"];
@@ -671,6 +672,92 @@ function Outfit({ config, skin, steelId }: { config: AvatarConfig; skin: string;
           <circle cx="63.3" cy="97.8" r="0.7" fill="#ecfeff" />
         </g>
       );
+    // --- Astronomia em: Salve o Wi-Fi! ---
+    case "manto-galaxia":
+      // capa azul-noite com o forro roxo, a Via Láctea atravessando, o fecho de estrela,
+      // a galáxia espiral girando no peito e as estrelas do manto piscando
+      return (
+        <g strokeLinejoin="round">
+          <path d="M12 128 C11 110 24 98.5 42 95.5 L86 95.5 C104 98.5 117 110 116 128 Z" fill="#0b1030" />
+          <path d="M14 126 C14 112 25 101 40 98 M114 126 C114 112 103 101 88 98" stroke="#a78bfa" strokeWidth="1.6" fill="none" opacity="0.8" />
+          <path d={body} fill="#1e1b4b" />
+          <path d="M22 122 C40 112 70 116 106 104 L107 112 C72 122 42 118 21 128 Z" fill="#c4b5fd" opacity="0.18" />
+          <path d="M48 97 L64 109 L80 97" stroke="#fbbf24" strokeWidth="2.2" fill="none" />
+          <path d={starPath(64, 108, 3.6, 1.5)} fill="#fde047" stroke="#a16207" strokeWidth="0.6" />
+          <circle cx="64" cy="119" r="7.5" fill="#f0abfc" opacity="0.25" />
+          <Anim c="spin" dur={12} origin="64px 119px">
+            <path d="M64 119 C64 114 70 113 71 117 C72 122 66 124.5 61.5 123 M64 119 C64 124 58 125 57 121 C56 116 62 113.5 66.5 115" stroke="#e9d5ff" strokeWidth="1.3" fill="none" strokeLinecap="round" />
+          </Anim>
+          <circle cx="64" cy="119" r="1.7" fill="#fef9c3" />
+          {(
+            [
+              [34, 112, 0],
+              [92, 110, 0.6],
+              [44, 124, 1.2],
+              [86, 123, 1.8],
+              [27, 121, 0.9],
+              [101, 119, 1.5],
+            ] as [number, number, number][]
+          ).map(([x, y, d]) => (
+            <Anim key={`${x}-${y}`} c="blink" d={d} dur={2.2}>
+              <Sparkle x={x} y={y} r={1.1} />
+            </Anim>
+          ))}
+        </g>
+      );
+    case "jaleco-astronomo":
+      // jaleco branco de quem passa a noite no observatório: a camisa da cor escolhida por baixo,
+      // o bolso com a caneta e o patch do Cruzeiro do Sul
+      return (
+        <g strokeLinejoin="round">
+          <path d={body} fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" />
+          <path d="M53 96 L75 96 L69 128 L59 128 Z" fill={c} />
+          <path d="M53 96 L45 102 L52 110 L59 128 L61.5 128 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.9" />
+          <path d="M75 96 L83 102 L76 110 L69 128 L66.5 128 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.9" />
+          <circle cx="67.6" cy="119" r="1" fill="#94a3b8" />
+          <circle cx="68.4" cy="125" r="1" fill="#94a3b8" />
+          {/* bolso com a caneta */}
+          <path d="M80.5 104.5 L80.5 110" stroke="#7c3aed" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="80.5" cy="104" r="1" fill="#fbbf24" />
+          <rect x="77" y="109" width="12" height="9" rx="1.5" fill="#f1f5f9" stroke="#94a3b8" strokeWidth="0.9" />
+          {/* patch do Cruzeiro do Sul */}
+          <circle cx="42" cy="114" r="6.5" fill="#1e3a8a" stroke="#fbbf24" strokeWidth="1.1" />
+          <path d="M42 109.8 L42 117.6 M38.6 113.2 L45.6 112.6" stroke="#93c5fd" strokeWidth="0.5" opacity="0.8" />
+          {(
+            [
+              [42, 109.8, 1.1],
+              [42, 117.6, 1.25],
+              [38.6, 113.2, 0.95],
+              [45.6, 112.6, 1],
+              [43.9, 115.4, 0.6],
+            ] as [number, number, number][]
+          ).map(([x, y, r]) => (
+            <path key={`${x}-${y}`} d={starPath(x, y, r, r * 0.45)} fill="#f8fafc" />
+          ))}
+        </g>
+      );
+    case "uniforme-lumen":
+      // macacão azul-marinho dos engenheiros da Constelação Lúmen: o emblema do "L" com o Wi-Fi
+      // piscando, as faixas douradas nos ombros, o zíper, a plaquinha e o rádio no peito
+      return (
+        <g strokeLinejoin="round">
+          <path d={body} fill="#1e293b" />
+          <path d="M24 112 C28 104 36 99 46 97 L48 101 C40 103 33 107 28 115 Z M104 112 C100 104 92 99 82 97 L80 101 C88 103 95 107 100 115 Z" fill="#fbbf24" />
+          <path d="M64 97 L64 128" stroke="#94a3b8" strokeWidth="1.2" />
+          <path d="M55 96 C58 99.5 70 99.5 73 96" stroke="#22d3ee" strokeWidth="2" fill="none" />
+          <circle cx="46" cy="114" r="6.5" fill="#7c3aed" stroke="#fde68a" strokeWidth="1.1" />
+          <path d="M43.8 110.8 L43.8 117 L48.5 117" stroke="#f5f3ff" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <Anim c="blink" dur={1.6}>
+            <path d="M41 106 Q46 102 51 106 M43 108 Q46 105.6 49 108" stroke="#67e8f9" strokeWidth="1" fill="none" strokeLinecap="round" />
+          </Anim>
+          <rect x="72" y="107" width="17" height="5" rx="1.5" fill="#0f172a" stroke="#22d3ee" strokeWidth="0.6" />
+          <text x="80.5" y="111" textAnchor="middle" fontSize="3.4" fontWeight="bold" fontFamily="sans-serif" fill="#a5f3fc">
+            LÚMEN
+          </text>
+          <rect x="76" y="115" width="9" height="7" rx="1.5" fill="#334155" />
+          <circle cx="80.5" cy="118.5" r="1.3" fill="#22d3ee" className="cg-anim-twinkle" />
+        </g>
+      );
     case "tunica":
     default:
       return (
@@ -1095,6 +1182,99 @@ function EyewearLayer({ eyewear, skin }: { eyewear: AvatarConfig["eyewear"]; ski
           <path d="M94 57.5 L128 44" stroke="#f87171" strokeWidth="1.6" opacity="0.8" strokeLinecap="round" />
         </g>
       );
+    // --- Astronomia em: Salve o Wi-Fi! ---
+    case "oculos-eclipse":
+      // óculos de papelão de ver eclipse: nas lentes escuras, o Sol escondido atrás da Lua,
+      // com a coroa brilhando e o "anel de diamante" piscando
+      return (
+        <g>
+          <path d="M38 53 L90 53 L89 67 L68 67 L64 63 L60 67 L39 67 Z" fill="#f8fafc" stroke="#94a3b8" strokeWidth="1" strokeLinejoin="round" />
+          {[52, 76].map((cx, i) => (
+            <g key={cx}>
+              <rect x={cx - 8} y="54.5" width="16" height="11" rx="3.5" fill="#0b0b10" />
+              <circle cx={cx} cy="60" r="4.2" fill="none" stroke="#fbbf24" strokeWidth="1.4" style={{ filter: "drop-shadow(0 0 1.5px #f59e0b)" }} />
+              <circle cx={cx} cy="60" r="3.5" fill="#0b0b10" />
+              <Anim c="blink" dur={1.8} d={i * 0.9}>
+                <circle cx={cx + 2.8} cy="57.2" r="1.1" fill="#fffbeb" />
+              </Anim>
+            </g>
+          ))}
+          <path d="M38 56 L33 54 M90 56 L95 54" stroke="#cbd5e1" strokeWidth="1.8" />
+          <path d={starPath(41, 64.5, 1.3, 0.55)} fill="#f59e0b" />
+          <path d={starPath(87, 64.5, 1.3, 0.55)} fill="#f59e0b" />
+        </g>
+      );
+    case "olhos-ton618": {
+      // os olhos de fogo do TON 618 (o vilão de Astronomia em: Salve o Wi-Fi!): amêndoas inclinadas de
+      // raiva, laranja na borda, dourado e quase branco no meio, com a pupila fininha de fera, brilhando
+      // e piscando como os dele. A pele cobre o olho de sempre (senão ele aparece na piscada).
+      // u = pra fora do rosto (o canto de fora é o mais alto), dy = pra baixo, a partir do centro do olho.
+      const eyes: [number, number][] = [
+        [52, -1],
+        [76, 1],
+      ];
+      const almond = (cx: number, o: number) => {
+        const pt = (u: number, dy: number) => `${(cx + o * u).toFixed(2)} ${(60 + dy).toFixed(2)}`;
+        return `M${pt(6.8, -6.1)} L${pt(-6.8, -1.5)} C${pt(-6.1, 3.4)} ${pt(-2.3, 5.3)} ${pt(1.5, 4.6)} C${pt(5.3, 3.4)} ${pt(7.2, -0.8)} ${pt(6.8, -6.1)} Z`;
+      };
+      return (
+        <g>
+          {eyes.map(([cx]) => (
+            <ellipse key={cx} cx={cx} cy="60.2" rx="7.4" ry="6.7" fill={skin} />
+          ))}
+          <g className="cg-anim-blink">
+            {/* o halo de fogo pulsando (a animação mexe na opacidade, por isso o grupo deixa ele fraquinho) */}
+            <g opacity="0.32">
+              {eyes.map(([cx]) => (
+                <ellipse key={cx} cx={cx} cy="60.5" rx="10" ry="7.2" fill="#f97316" className="cg-anim-beam" />
+              ))}
+            </g>
+            <g style={{ filter: "drop-shadow(0 0 1.2px #fde68a) drop-shadow(0 0 2.8px rgba(249,115,22,0.95))" }}>
+              {eyes.map(([cx, o]) => (
+                <g key={cx}>
+                  <path d={almond(cx, o)} fill="#ea580c" />
+                  <path d={almond(cx, o)} fill="#fbbf24" transform={`translate(${cx} 61) scale(0.76 0.66) translate(${-cx} -61)`} />
+                  <path d={almond(cx, o)} fill="#fffbeb" transform={`translate(${cx} 61.6) scale(0.42 0.36) translate(${-cx} -61.6)`} />
+                  {/* a pupila fininha, puxada pro canto de dentro */}
+                  <ellipse cx={cx - o * 0.4} cy="61.1" rx="1" ry="2.6" fill="#431407" />
+                </g>
+              ))}
+            </g>
+            {/* a borda de cima, reta e escura: o olhar bravo */}
+            {eyes.map(([cx, o]) => (
+              <path
+                key={cx}
+                d={`M${cx + o * 7.6} ${53.3} L${cx - o * 7.4} ${58.3}`}
+                stroke="#1c1917"
+                strokeWidth="1.4"
+                fill="none"
+                strokeLinecap="round"
+              />
+            ))}
+          </g>
+        </g>
+      );
+    }
+    case "oculos-nebulosa":
+      // lentes redondas com uma nebulosa dentro: nuvens rosa, roxas e ciano e estrelinhas nascendo
+      return (
+        <g>
+          {[52, 76].map((cx, i) => (
+            <g key={cx}>
+              <circle cx={cx} cy="60" r="8" fill="#3b0764" />
+              <ellipse cx={cx - 2} cy="58" rx="5" ry="3.2" fill="#f472b6" opacity="0.7" transform={`rotate(-25 ${cx - 2} 58)`} />
+              <ellipse cx={cx + 2.5} cy="62" rx="4.2" ry="2.6" fill="#22d3ee" opacity="0.55" transform={`rotate(20 ${cx + 2.5} 62)`} />
+              <circle cx={cx} cy="60" r="2" fill="#fdf4ff" opacity="0.8" />
+              <Anim c="blink" dur={1.6} d={i * 0.5}>
+                <circle cx={cx - 4} cy="63" r="0.7" fill="#fff" />
+                <circle cx={cx + 4.5} cy="56.5" r="0.6" fill="#fff" />
+              </Anim>
+              <circle cx={cx} cy="60" r="8" fill="none" stroke="#a855f7" strokeWidth="2" />
+            </g>
+          ))}
+          <path d="M60 60 Q64 57 68 60 M44 59 L37 57 M84 59 L91 57" stroke="#a855f7" strokeWidth="2" fill="none" />
+        </g>
+      );
     // --- Robôs e IA ---
     case "oculos-ra":
       // lente transparente com mira, gráfico e o selo "AI"
@@ -1224,6 +1404,9 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   "mago-danilo": ["#fde68a", "#1e1b3a"],
   "dragao-ancestral": ["#7f1d1d", "#0b1416"],
   "buraco-negro": ["#fb923c", "#07040f"],
+  "via-lactea": ["#e9d5ff", "#0b0820"],
+  "chuva-meteoros": ["#fdba74", "#1e1b4b"],
+  "constelacao-lumen": ["#67e8f9", "#0c1a3a"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -1708,6 +1891,189 @@ function BlackHoleAura({ id }: { id: string }) {
         <ellipse cx="64" cy="70" rx="62" ry="13" fill="none" stroke={`url(#${id}-bn-disk)`} strokeWidth="7" opacity="0.9" />
         <ellipse cx="64" cy="70" rx="62" ry="13" fill="none" stroke="#fffbeb" strokeWidth="1.4" strokeDasharray="8 4" className="cg-anim-aura-flow" style={{ "--cg-dur": "0.9s" } as React.CSSProperties} />
       </g>
+    </g>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Auras da coleção Astronomia em: Salve o Wi-Fi!
+// ---------------------------------------------------------------------------
+
+// Via Láctea: os três braços da galáxia espiral (centro em 0, 0) e as estrelas espalhadas neles.
+const GALAXY_ARMS = [0, 1, 2].map((k) => {
+  const pts = Array.from({ length: 28 }, (_, i) => {
+    const t = i / 27;
+    const a = (k * 2 * Math.PI) / 3 + t * 4.4;
+    const r = 8 + t * 58;
+    return `${(Math.cos(a) * r).toFixed(1)} ${(Math.sin(a) * r).toFixed(1)}`;
+  });
+  return `M${pts.join(" L")}`;
+});
+const GALAXY_STARS = Array.from({ length: 30 }, (_, i) => {
+  const k = i % 3;
+  const t = ((i * 7) % 10) / 10 + 0.05;
+  const a = (k * 2 * Math.PI) / 3 + t * 4.4 + (i % 2 ? 0.15 : -0.12);
+  const r = 8 + t * 58;
+  return [Math.cos(a) * r, Math.sin(a) * r, 0.6 + (i % 3) * 0.35] as [number, number, number];
+});
+
+/** Via Láctea: uma galáxia espiral enorme e inclinada girando devagar atrás do personagem, com o miolo brilhando. */
+function MilkyWayAura({ id }: { id: string }) {
+  return (
+    <g clipPath={`url(#${id}-ceu)`}>
+      <defs>
+        <clipPath id={`${id}-ceu`}>
+          <circle cx="64" cy="64" r="63" />
+        </clipPath>
+      </defs>
+      {(
+        [
+          [10, 14],
+          [118, 20],
+          [8, 100],
+          [122, 96],
+          [30, 4],
+          [100, 6],
+          [120, 58],
+          [6, 56],
+        ] as [number, number][]
+      ).map(([x, y], i) => (
+        <Anim key={`${x}-${y}`} c="blink" d={-i * 0.4} dur={2.4}>
+          <circle cx={x} cy={y} r="0.9" fill="#fff" />
+        </Anim>
+      ))}
+      <g transform="translate(64 58) rotate(-22) scale(1 0.52)">
+        <circle r="34" fill="#f5d0fe" opacity="0.16" />
+        <Anim c="spin" dur={60} origin="0px 0px">
+          {GALAXY_ARMS.map((d, i) => (
+            <g key={i}>
+              <path d={d} stroke="#c4b5fd" strokeWidth="9" fill="none" opacity="0.22" strokeLinecap="round" />
+              <path d={d} stroke={i === 1 ? "#f0abfc" : "#e0e7ff"} strokeWidth="2.2" fill="none" opacity="0.75" strokeLinecap="round" />
+            </g>
+          ))}
+          {GALAXY_STARS.map(([x, y, r], i) => (
+            <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity="0.9" />
+          ))}
+        </Anim>
+        <circle r="13" fill="#fef3c7" opacity="0.5" />
+        <circle r="6" fill="#fffbeb" />
+      </g>
+      <ShootingStar x={104} y={30} dur={6} />
+    </g>
+  );
+}
+
+// Chuva de meteoros: [x, y de onde sai, tamanho, duração, atraso]
+const METEOR_RAIN: [number, number, number, number, number][] = [
+  [96, -6, 1, 2.6, 0],
+  [124, 20, 0.8, 2.2, -0.7],
+  [80, -10, 0.7, 2.9, -1.5],
+  [132, 54, 1.1, 2.5, -1.1],
+  [112, -2, 0.6, 2.1, -1.8],
+  [60, -8, 0.9, 3.1, -2.3],
+];
+
+/** Chuva de meteoros: meteoros riscando o céu atrás do personagem sem parar, e a Lua olhando lá do alto. */
+function MeteorRainAura({ id }: { id: string }) {
+  return (
+    <g clipPath={`url(#${id}-ceu)`}>
+      <defs>
+        <clipPath id={`${id}-ceu`}>
+          <circle cx="64" cy="64" r="63" />
+        </clipPath>
+      </defs>
+      <circle cx="28" cy="28" r="8" fill="#e2e8f0" opacity="0.85" />
+      <circle cx="25.5" cy="25.5" r="1.8" fill="#cbd5e1" />
+      <circle cx="30.5" cy="31" r="1.3" fill="#cbd5e1" />
+      <circle cx="30" cy="24" r="0.9" fill="#cbd5e1" />
+      {(
+        [
+          [40, 8],
+          [108, 40],
+          [10, 70],
+          [118, 86],
+          [52, 2],
+        ] as [number, number][]
+      ).map(([x, y], i) => (
+        <Anim key={`${x}-${y}`} c="blink" d={-i * 0.5} dur={2}>
+          <circle cx={x} cy={y} r="0.9" fill="#fff" />
+        </Anim>
+      ))}
+      {METEOR_RAIN.map(([x, y, sz, dur, d]) => (
+        <g
+          key={`${x}-${y}`}
+          className="cg-anim-astro-meteor"
+          style={{ "--cg-tx": "-96px", "--cg-ty": "52px", "--cg-duration": `${dur}s`, "--cg-delay": `${d}s` } as React.CSSProperties}
+        >
+          <g transform={`translate(${x} ${y}) scale(${sz})`}>
+            <path d="M0 0 L22 -12" stroke="#fdba74" strokeWidth="3.4" strokeLinecap="round" opacity="0.45" />
+            <path d="M0 0 L16 -8.7" stroke="#fef3c7" strokeWidth="1.4" strokeLinecap="round" />
+            <circle r="3.2" fill="#f97316" opacity="0.45" />
+            <path d="M-2.2 -0.8 L-0.6 -2.4 L1.8 -1.8 L2.4 0.6 L0.6 2.2 L-1.8 1.8 Z" fill="#78716c" stroke="#fb923c" strokeWidth="0.7" />
+          </g>
+        </g>
+      ))}
+    </g>
+  );
+}
+
+/** Um satélite Lúmen bem pequeno (aura Constelação Lúmen), centrado em (x, y). */
+function MiniLumen({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <rect x="-9" y="-2.2" width="5.5" height="4.4" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="0.5" />
+      <rect x="3.5" y="-2.2" width="5.5" height="4.4" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="0.5" />
+      <path d="M-3.5 0 L-2.6 0 M2.6 0 L3.5 0" stroke="#94a3b8" strokeWidth="0.8" />
+      <rect x="-2.6" y="-2.6" width="5.2" height="5.2" rx="0.8" fill="#fbbf24" stroke="#a16207" strokeWidth="0.5" />
+      <path d="M0 -2.6 L0 -4.4" stroke="#94a3b8" strokeWidth="0.6" />
+      <circle cy="-5" r="1" fill="#22d3ee" />
+    </g>
+  );
+}
+
+const LUMEN_ORBIT = [0, 1, 2].map((k) => {
+  const a = -Math.PI / 2 + (k * 2 * Math.PI) / 3;
+  return [64 + Math.cos(a) * 50, 60 + Math.sin(a) * 50] as [number, number];
+});
+
+/** Constelação Lúmen: três satélites dando voltas no personagem, sempre em pé, ligados pelas linhas de sinal. */
+function LumenNetworkAura() {
+  return (
+    <g>
+      <circle cx="64" cy="60" r="50" fill="none" stroke="#67e8f9" strokeWidth="0.6" strokeDasharray="2 3" opacity="0.45" />
+      {(
+        [
+          [16, 16],
+          [112, 18],
+          [8, 92],
+          [120, 104],
+        ] as [number, number][]
+      ).map(([x, y], i) => (
+        <Anim key={`${x}-${y}`} c="blink" d={-i * 0.6} dur={2.2}>
+          <circle cx={x} cy={y} r="0.9" fill="#fff" />
+        </Anim>
+      ))}
+      <Anim c="spin" dur={22}>
+        <path
+          d={`M${LUMEN_ORBIT.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(" L")} Z`}
+          fill="none"
+          stroke="#a5f3fc"
+          strokeWidth="0.9"
+          strokeDasharray="14 10"
+          opacity="0.7"
+          className="cg-anim-aura-flow"
+          style={{ "--cg-dur": "1.3s" } as React.CSSProperties}
+        />
+        {LUMEN_ORBIT.map(([x, y], i) => (
+          <g key={i}>
+            <circle cx={x} cy={y} r="6" fill="none" stroke="#67e8f9" strokeWidth="0.8" className="cg-anim-astro-ping" style={{ "--cg-delay": `${i * 0.8}s` } as React.CSSProperties} />
+            {/* gira ao contrário no próprio lugar: o satélite fica sempre em pé */}
+            <Anim c="spin-rev" dur={22} origin={`${x}px ${y}px`}>
+              <MiniLumen x={x} y={y} />
+            </Anim>
+          </g>
+        ))}
+      </Anim>
     </g>
   );
 }
@@ -2621,6 +2987,9 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
       )}
       {aura === "dragao-ancestral" && <AncientDragonAura />}
       {aura === "buraco-negro" && <BlackHoleAura id={gradientId} />}
+      {aura === "via-lactea" && <MilkyWayAura id={gradientId} />}
+      {aura === "chuva-meteoros" && <MeteorRainAura id={gradientId} />}
+      {aura === "constelacao-lumen" && <LumenNetworkAura />}
       {aura === "mago-danilo" && (
         // o mesmo círculo mágico divino que gira atrás do Mago Danilo, com traços mais grossos pro tamanho do avatar
         <DivineCircle cx={64} cy={60} r={50} line={1.7} />
@@ -2760,6 +3129,114 @@ function drawnPet(pet: Pet) {
           <path d="M94.6 99.6 Q97 101.3 99.4 99.6" stroke="#2a0510" strokeWidth="0.8" fill="none" strokeLinecap="round" />
           <path d="M95.4 100.2 L95.9 101.6 L96.4 100.5 Z M97.6 100.5 L98.1 101.6 L98.6 100.2 Z" fill="#fff" />
         </g>
+      );
+    // --- Astronomia em: Salve o Wi-Fi! ---
+    case "cometinha":
+      // um cometa filhote: a cabecinha de gelo brilhando, a carinha feliz e a cauda azul e dourada balançando
+      return (
+        <Anim c="bob" dur={2.4}>
+          <g className="cg-anim-aura-sway" style={{ "--cg-dur": "1.8s" } as React.CSSProperties}>
+            <path d="M93 96 C100 88 108 82 120 76 C112 86 108 94 101 104 Z" fill="#67e8f9" opacity="0.45" />
+            <path d="M95 98 C102 91 109 86 117 82 C110 90 106 96 100 103 Z" fill="#fef9c3" opacity="0.85" />
+          </g>
+          <circle cx="94" cy="103" r="11" fill="#bae6fd" opacity="0.3" />
+          <circle cx="94" cy="103" r="7.5" fill="#e0f2fe" stroke="#7dd3fc" strokeWidth="1" />
+          <circle cx="91" cy="100" r="2" fill="#fff" opacity="0.8" />
+          <circle cx="91.6" cy="103" r="1.2" fill="#1e1b2e" />
+          <circle cx="96.4" cy="103" r="1.2" fill="#1e1b2e" />
+          <circle cx="92" cy="102.6" r="0.4" fill="#fff" />
+          <circle cx="96.8" cy="102.6" r="0.4" fill="#fff" />
+          <path d="M92.2 105.6 Q94 107.2 95.8 105.6" stroke="#1e1b2e" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          <circle cx="89.6" cy="105.4" r="1.1" fill="#f472b6" opacity="0.5" />
+          <circle cx="98.4" cy="105.4" r="1.1" fill="#f472b6" opacity="0.5" />
+          <Anim c="blink" dur={1.4}>
+            <Sparkle x={111} y={92} r={0.9} />
+            <Sparkle x={105} y={84} r={0.7} />
+          </Anim>
+        </Anim>
+      );
+    case "ursinha-menor":
+      // a Ursa Menor em forma de ursinha: o corpo de céu noturno, a constelação desenhada na barriga
+      // e a Estrela Polar brilhando na ponta da orelha
+      return (
+        <g>
+          <circle cx="90.5" cy="89" r="3" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.9" />
+          <circle cx="103.5" cy="89" r="3" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.9" />
+          <ellipse cx="97" cy="105" rx="9" ry="7.5" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.9" />
+          <ellipse cx="89.5" cy="103.5" rx="2.4" ry="3.4" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.8" />
+          <ellipse cx="104.5" cy="103.5" rx="2.4" ry="3.4" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.8" />
+          <circle cx="97" cy="94" r="7" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="0.9" />
+          <ellipse cx="97" cy="96.6" rx="3" ry="2.2" fill="#312e81" />
+          <ellipse cx="97" cy="95.6" rx="1" ry="0.7" fill="#e0e7ff" />
+          <circle cx="94.3" cy="92.6" r="1" fill="#fef9c3" />
+          <circle cx="99.7" cy="92.6" r="1" fill="#fef9c3" />
+          <path d="M95.8 97.8 Q97 98.8 98.2 97.8" stroke="#e0e7ff" strokeWidth="0.6" fill="none" strokeLinecap="round" />
+          <path d="M93 102 L96 104 L99 103.5 L101.5 106 L99 109.5 L95 109.5 L93.5 106.5 Z" stroke="#c7d2fe" strokeWidth="0.5" fill="none" opacity="0.8" />
+          {(
+            [
+              [93, 102],
+              [96, 104],
+              [99, 103.5],
+              [101.5, 106],
+              [99, 109.5],
+              [95, 109.5],
+              [93.5, 106.5],
+            ] as [number, number][]
+          ).map(([x, y], i) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r="0.8" fill="#fff" className="cg-anim-twinkle" style={{ animationDelay: `${i * 0.3}s` }} />
+          ))}
+          <path
+            d={starPath(89.5, 84.5, 3.4, 1.4)}
+            fill="#fde047"
+            className="cg-anim-twinkle"
+            style={{ filter: "drop-shadow(0 0 2px #fde047)" }}
+          />
+        </g>
+      );
+    case "luazinha":
+      // uma lua crescente dorminhoca, de bochecha rosada, com uma estrelinha pendurada e os "z" subindo
+      return (
+        <Anim c="bob" dur={3}>
+          <path d="M96.8 88 A11 11 0 1 0 106.1 103.4 A9 9 0 1 1 96.8 88 Z" fill="#fde68a" stroke="#f59e0b" strokeWidth="0.8" />
+          <circle cx="87.6" cy="102" r="1.1" fill="#fcd34d" />
+          <circle cx="92" cy="107.4" r="0.8" fill="#fcd34d" />
+          <path d="M88 96.6 Q89.8 98 91.6 96.6" stroke="#78350f" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <circle cx="90.6" cy="100.4" r="1.4" fill="#fb7185" opacity="0.45" />
+          <path d="M89.2 103 Q91 104.2 92.6 102.8" stroke="#78350f" strokeWidth="0.8" fill="none" strokeLinecap="round" />
+          <path d="M104 91 L104 96" stroke="#fde68a" strokeWidth="0.5" />
+          <path d={starPath(104, 98, 2, 0.9)} fill="#fef9c3" className="cg-anim-twinkle" />
+          <Anim c="rise" dur={2.6}>
+            <text x="106" y="88" fontSize="5" fontWeight="bold" fill="#e0e7ff" fontFamily="sans-serif">
+              z
+            </text>
+          </Anim>
+          <Anim c="rise" d={1.3} dur={2.6}>
+            <text x="110" y="84" fontSize="3.6" fontWeight="bold" fill="#e0e7ff" fontFamily="sans-serif">
+              z
+            </text>
+          </Anim>
+        </Anim>
+      );
+    case "foguetinho":
+      // um foguetinho de estimação com carinha na janela, inclinado pra frente e com o foguinho saindo embaixo
+      return (
+        <Anim c="bob" dur={2}>
+          <g transform="rotate(18 97 99)">
+            <g className="cg-anim-astro-flame" style={{ "--cg-dur": "0.18s" } as React.CSSProperties}>
+              <path d="M93.5 109.5 C93 114 95.5 117 97 120 C98.5 117 101 114 100.5 109.5 Z" fill="#f97316" />
+              <path d="M95.2 109.5 C95 112.5 96.2 114.5 97 116.5 C97.8 114.5 99 112.5 98.8 109.5 Z" fill="#fde68a" />
+            </g>
+            <path d="M91.5 103 L87.5 109 L92 108.5 Z M102.5 103 L106.5 109 L102 108.5 Z" fill="#7c3aed" stroke="#4c1d95" strokeWidth="0.6" />
+            <path d="M97 84 C102.5 88 103.5 95 103 103 L102 109 L92 109 L91 103 C90.5 95 91.5 88 97 84 Z" fill="#f8fafc" stroke="#94a3b8" strokeWidth="0.8" />
+            <path d="M97 84 C100.5 86.5 102.2 89.5 102.8 92 L91.2 92 C91.8 89.5 93.5 86.5 97 84 Z" fill="#d946ef" />
+            <rect x="91.3" y="92" width="11.4" height="1.6" fill="#fbbf24" />
+            <circle cx="97" cy="98.5" r="3.6" fill="#1e3a8a" stroke="#94a3b8" strokeWidth="0.8" />
+            <circle cx="95.8" cy="98" r="0.7" fill="#fff" />
+            <circle cx="98.2" cy="98" r="0.7" fill="#fff" />
+            <path d="M95.9 99.8 Q97 100.8 98.1 99.8" stroke="#e0f2fe" strokeWidth="0.5" fill="none" strokeLinecap="round" />
+            <rect x="93.5" y="108.5" width="7" height="1.8" rx="0.5" fill="#475569" />
+          </g>
+        </Anim>
       );
     case "ia-orbe":
       return (
@@ -3512,6 +3989,93 @@ function HatLayer({ hat, accent, steelId, goldId }: { hat: Hat; accent: string; 
               <path d={`M${x - 2} 61 L${x + 2} 61 M${x} 59 L${x} 63`} stroke="#475569" strokeWidth="1" />
             </g>
           ))}
+        </g>
+      );
+    // --- Astronomia em: Salve o Wi-Fi! ---
+    case "headset-catarina":
+      // o headset de rádio da Catarina: arco com a faixa fúcsia, conchas com a luz, o microfone com
+      // a pontinha ciano e a antena mandando o sinal pros satélites
+      return (
+        <g>
+          <path d="M34 58 C33 24 95 24 94 58" stroke="#334155" strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path d="M34 58 C33 24 95 24 94 58" stroke="#d946ef" strokeWidth="1.6" fill="none" strokeLinecap="round" />
+          <rect x="27" y="50" width="12" height="19" rx="5" fill="#475569" stroke="#1e293b" strokeWidth="1.2" />
+          <rect x="89" y="50" width="12" height="19" rx="5" fill="#475569" stroke="#1e293b" strokeWidth="1.2" />
+          <circle cx="33" cy="59.5" r="3" fill="#d946ef" />
+          <circle cx="95" cy="59.5" r="3" fill="#d946ef" />
+          <path d="M33 67 C36 80 46 86 55 84" stroke="#334155" strokeWidth="2.2" fill="none" strokeLinecap="round" />
+          <circle cx="56" cy="84" r="4" fill="#22d3ee" opacity="0.3" />
+          <circle cx="56" cy="84" r="2.4" fill="#22d3ee" className="cg-anim-twinkle" />
+          <path d="M97 51 L103 38" stroke="#64748b" strokeWidth="1.4" />
+          <circle cx="103.5" cy="37" r="1.8" fill="#f0abfc" />
+          <Anim c="blink" dur={1.5}>
+            <path d="M99.5 33 Q103.5 29 107.5 33 M97 30 Q103.5 23.5 110 30" stroke="#67e8f9" strokeWidth="1.2" fill="none" strokeLinecap="round" />
+          </Anim>
+        </g>
+      );
+    case "coroa-saturno":
+      // um Saturno pequenininho flutuando em cima da cabeça, com os anéis e duas luas dando voltas
+      return (
+        <Anim c="bob" dur={3.2}>
+          <ellipse cx="64" cy="31" rx="14" ry="2" fill="#fde68a" opacity="0.25" />
+          <g transform="rotate(-14 64 16)">
+            <path d="M44 16 A20 5 0 0 1 84 16" stroke="#fde68a" strokeWidth="2.4" fill="none" />
+            <path d="M47.5 16 A16.5 3.6 0 0 1 80.5 16" stroke="#d6a74a" strokeWidth="1" fill="none" opacity="0.8" />
+            <circle cx="64" cy="16" r="9" fill="#f59e0b" />
+            <path d="M55.5 13 C60 14.5 68 14.5 72.5 13 M55 18.5 C60 20 68 20 73 18.5" stroke="#b45309" strokeWidth="1.2" fill="none" opacity="0.7" />
+            <circle cx="61" cy="12.5" r="2.4" fill="#fde68a" opacity="0.6" />
+            <path d="M44 16 A20 5 0 0 0 84 16" stroke="#fde68a" strokeWidth="2.4" fill="none" />
+            <path d="M47.5 16 A16.5 3.6 0 0 0 80.5 16" stroke="#d6a74a" strokeWidth="1" fill="none" opacity="0.8" />
+          </g>
+          <Anim c="spin" dur={5} origin="64px 16px">
+            <circle cx="89" cy="16" r="1.6" fill="#e2e8f0" />
+          </Anim>
+          <Anim c="spin-rev" dur={7} origin="64px 16px">
+            <circle cx="41" cy="16" r="1.2" fill="#c4b5fd" />
+          </Anim>
+        </Anim>
+      );
+    case "cruzeiro-do-sul":
+      // tiara prateada com o Cruzeiro do Sul flutuando em cima: as quatro estrelas da cruz,
+      // a Intrometida pequenininha e as linhas da constelação
+      return (
+        <g>
+          <path d="M43 31 C52 24 76 24 85 31 L83 33.5 C75 28 53 28 45 33.5 Z" fill={`url(#${steelId})`} stroke="#64748b" strokeWidth="0.8" />
+          <path d="M64 4 L64 24 M54 15 L75 12" stroke="#bae6fd" strokeWidth="0.7" strokeDasharray="1.6 1.4" opacity="0.8" />
+          {(
+            [
+              [64, 4, 2.6, 0],
+              [64, 24, 3, 0.4],
+              [54, 15, 2.3, 0.8],
+              [75, 12, 2.4, 1.2],
+              [69.5, 18.5, 1.3, 1.6],
+            ] as [number, number, number, number][]
+          ).map(([x, y, r, d]) => (
+            <path
+              key={`${x}-${y}`}
+              d={starPath(x, y, r, r * 0.45)}
+              fill="#f8fafc"
+              className="cg-anim-twinkle"
+              style={{ animationDelay: `${d}s`, filter: "drop-shadow(0 0 1.5px #93c5fd)" }}
+            />
+          ))}
+        </g>
+      );
+    case "gorro-astronomo":
+      // gorro de tricô azul-noite com a lua e as estrelas, a barra canelada e o pompom de estrela
+      return (
+        <g>
+          <path d="M34 46 C31 22 46 9 64 9 C82 9 97 22 94 46 Z" fill="#1e3a8a" />
+          <path d="M44 22 C48 16 54 13 60 12" stroke="#93c5fd" strokeWidth="1.6" fill="none" strokeLinecap="round" opacity="0.5" />
+          <circle cx="54" cy="28" r="5" fill="#fde68a" />
+          <circle cx="56.6" cy="26.4" r="4.3" fill="#1e3a8a" />
+          <path d={starPath(74, 21, 2.2, 0.95)} fill="#fde68a" />
+          <path d={starPath(83, 33, 1.7, 0.75)} fill="#fde68a" />
+          <path d={starPath(44, 37, 1.5, 0.65)} fill="#fde68a" />
+          <path d={starPath(66, 34, 1.2, 0.5)} fill="#fde68a" />
+          <path d="M32 45 C44 37 84 37 96 45 L95 51 C84 44 44 44 33 51 Z" fill="#312e81" />
+          <path d="M38 42.5 L38 48 M44 40.6 L44 46 M50 39.4 L50 44.8 M56 38.8 L56 44.2 M62 38.6 L62 44 M68 38.6 L68 44 M74 38.8 L74 44.2 M80 39.4 L80 44.8 M86 40.6 L86 46 M92 42.5 L92 48" stroke="#4338ca" strokeWidth="1.2" />
+          <path d={starPath(64, 7, 6, 2.6)} fill="#fde047" stroke="#ca8a04" strokeWidth="0.8" strokeLinejoin="round" />
         </g>
       );
     default:

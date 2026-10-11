@@ -146,6 +146,31 @@ export const COLLECTION_THEME: Record<CosmeticCollection, CollectionTheme> = {
     // estrelinhas cadentes
     falling: { char: "✦", colorClass: "text-emerald-200/70" },
   },
+  astronomia: {
+    emoji: "🔭",
+    title: "Astronomia em: Salve o Wi-Fi!",
+    tagline: "📡 Sinal da Constelação Lúmen recebido",
+    subtitle: "O headset da Catarina, o Manto das Galáxias, óculos de eclipse, a Via Láctea girando, chuva de meteoros e um cometinha de estimação. Pra quem salvou o Wi-Fi da Terra!",
+    background:
+      "radial-gradient(45% 60% at 90% 0%, rgba(217,70,239,0.32), transparent 70%), radial-gradient(45% 60% at 0% 100%, rgba(34,211,238,0.3), transparent 70%), linear-gradient(160deg, #02030c 0%, #1e1b4b 55%, #0c4a6e 100%)",
+    borderClass: "border-fuchsia-400/40",
+    cardBorderClass: "!border-fuchsia-400/40",
+    titleClass: "text-fuchsia-300",
+    titleGlow: "0 0 18px rgba(240,171,252,0.8)",
+    subtitleClass: "text-cyan-100/80",
+    buttonClass: "from-fuchsia-500 to-cyan-400 shadow-fuchsia-500/30",
+    glow: "#e879f9",
+    decor: [
+      { emoji: "🔭", left: 4, top: 6, size: 26, delay: 0 },
+      { emoji: "🛰️", left: 88, top: 4, size: 24, delay: 0.7 },
+      { emoji: "☄️", left: 68, top: 14, size: 20, delay: 1.4 },
+      { emoji: "🌙", left: 46, top: 2, size: 18, delay: 2 },
+      { emoji: "🚀", left: 94, top: 60, size: 22, delay: 0.9 },
+      { emoji: "🌌", left: 2, top: 70, size: 20, delay: 1.7 },
+    ],
+    // estrelinhas cadentes cor-de-rosa
+    falling: { char: "✦", colorClass: "text-fuchsia-200/70" },
+  },
   futuro: {
     emoji: "🤖",
     title: "Robôs e Inteligência Artificial",

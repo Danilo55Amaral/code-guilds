@@ -771,6 +771,67 @@ const FUTURE_PRESETS: Preset[] = [
     description: "Processa todas as respostas possíveis ao mesmo tempo. Use pra ganhar +350 XP." },
 ];
 
+// ============================================================================
+// COLEÇÃO ASTRONOMIA EM: SALVE O WI-FI! — a coleção do evento da Catarina
+// Vitória: cometas, constelações, planetas, eclipses, galáxias e os satélites
+// da Constelação Lúmen. Os itens do evento (recompensas das fases e itens das
+// missões prontas) entram nela também.
+// ============================================================================
+
+const ASTRONOMY_PRESETS: Preset[] = [
+  // mascotes
+  { name: "Cometinha", icon: "☄️", rarity: "lendario", price: 380, featured: true, cosmetic: { slot: "pet", value: "cometinha" },
+    description: "Um cometa filhote de cabecinha de gelo e cauda brilhante. Os cometas voltam perto do Sol de tempos em tempos, mas esse resolveu ficar no seu ombro." },
+  { name: "Ursinha Menor", icon: "🐻", rarity: "epico", price: 230, cosmetic: { slot: "pet", value: "ursinha-menor" },
+    description: "A constelação da Ursa Menor em forma de ursinha, com a Estrela Polar brilhando na orelha. Com ela, você nunca perde o norte." },
+  { name: "Luazinha", icon: "🌙", rarity: "raro", price: 160, cosmetic: { slot: "pet", value: "luazinha" },
+    description: "Uma lua crescente dorminhoca que vive cochilando no seu ombro. Só acorda pra ver as fases dela mudarem." },
+  { name: "Foguetinho", icon: "🚀", rarity: "comum", price: 110, cosmetic: { slot: "pet", value: "foguetinho" },
+    description: "Um foguete de estimação, com carinha na janela e foguinho saindo embaixo. Contagem regressiva: 3, 2, 1... fofura!" },
+  // chapéus
+  { name: "Headset da Catarina", icon: "🎧", rarity: "lendario", price: 330, featured: true, cosmetic: { slot: "hat", value: "headset-catarina" },
+    description: "Igualzinho ao da Catarina Vitória: arco fúcsia, microfone com a luzinha ciano e a antena que conversa com os satélites." },
+  { name: "Coroa de Saturno", icon: "💫", rarity: "epico", price: 220, cosmetic: { slot: "hat", value: "coroa-saturno" },
+    description: "Um Saturno pequenininho flutuando em cima da sua cabeça, com os anéis e duas luas dando voltas nele." },
+  { name: "Tiara do Cruzeiro do Sul", icon: "✨", rarity: "raro", price: 160, cosmetic: { slot: "hat", value: "cruzeiro-do-sul" },
+    description: "A constelação que aparece na bandeira do Brasil brilhando em cima da sua cabeça, com a estrelinha Intrometida e tudo." },
+  { name: "Gorro de Astrônomo", icon: "🌙", rarity: "comum", price: 90, cosmetic: { slot: "hat", value: "gorro-astronomo" },
+    description: "Gorro de tricô azul-noite com a lua e as estrelas, e um pompom de estrela no topo. Pras noites frias no observatório." },
+  // óculos
+  { name: "Óculos de Eclipse", icon: "🕶️", rarity: "epico", price: 200, cosmetic: { slot: "eyewear", value: "oculos-eclipse" },
+    description: "Os óculos certos pra olhar um eclipse: nas lentes, o Sol escondido atrás da Lua, com a coroa brilhando. Nunca olhe pro Sol sem proteção!" },
+  { name: "Óculos Nebulosa", icon: "🌌", rarity: "raro", price: 150, cosmetic: { slot: "eyewear", value: "oculos-nebulosa" },
+    description: "Lentes redondas com uma nebulosa dentro: nuvens rosa, roxas e ciano, o berçário onde as estrelas nascem." },
+  { name: "Olhos do TON 618", icon: "🕳️", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "eyewear", value: "olhos-ton618" },
+    description: "Os olhos de fogo do buraco negro mais faminto do universo: inclinados de raiva, laranja e dourados, com a pupila fininha, brilhando e piscando igualzinho aos dele." },
+  // fantasias
+  { name: "Manto das Galáxias", icon: "🌌", rarity: "lendario", price: 350, featured: true, cosmetic: { slot: "outfit", value: "manto-galaxia" },
+    description: "Capa azul-noite com a Via Láctea atravessando, estrelas piscando, o fecho de estrela e uma galáxia espiral girando no peito." },
+  { name: "Jaleco de Astrônomo", icon: "🔭", rarity: "epico", price: 250, cosmetic: { slot: "outfit", value: "jaleco-astronomo" },
+    description: "O jaleco de quem passa a noite no observatório: bolso com caneta, o patch do Cruzeiro do Sul e a camisa da cor que você escolher por baixo." },
+  { name: "Uniforme da Constelação Lúmen", icon: "🛰️", rarity: "epico", price: 240, cosmetic: { slot: "outfit", value: "uniforme-lumen" },
+    description: "O macacão dos engenheiros que cuidam dos satélites Lúmen: emblema do L com o Wi-Fi piscando, faixas douradas e o rádio no peito." },
+  // cores de roupa
+  { name: "Traje Fúcsia da Catarina", icon: "👕", rarity: "raro", price: 100, cosmetic: { slot: "outfitColor", value: "#d946ef" },
+    description: "A cor favorita da astrônoma mais jovem da CodeGuilds." },
+  { name: "Traje Índigo do Espaço", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#312e81" },
+    description: "O azul profundo do céu longe das luzes da cidade." },
+  { name: "Traje Laranja do TON 618", icon: "👕", rarity: "comum", price: 80, cosmetic: { slot: "outfitColor", value: "#fb923c" },
+    description: "O laranja quente do disco de gás girando em volta do buraco negro." },
+  // auras
+  { name: "Via Láctea", icon: "🌌", rarity: "lendario", price: 370, featured: true, cosmetic: { slot: "aura", value: "via-lactea" },
+    description: "Uma galáxia espiral enorme girando devagar atrás de você, com o miolo brilhando e os braços cheios de estrelas. A nossa casa no universo!" },
+  { name: "Constelação Lúmen", icon: "🛰️", rarity: "raro", price: 180, cosmetic: { slot: "aura", value: "constelacao-lumen" },
+    description: "Três satélites Lúmen dando voltas em volta de você, ligados pelas linhas de sinal. Wi-Fi garantido onde você estiver." },
+  { name: "Chuva de Meteoros", icon: "☄️", rarity: "epico", price: 230, cosmetic: { slot: "aura", value: "chuva-meteoros" },
+    description: "Meteoros riscando o céu atrás de você sem parar, com o rastro de fogo, e a Lua olhando tudo lá do alto. Faça um pedido!" },
+  // itens comuns
+  { name: "Painel Solar Dobrável", icon: "☀️", rarity: "raro", price: 60, xp: 200,
+    description: "Um painel solar de satélite que cabe no bolso: abre, carrega com a luz do Sol e devolve a energia. Use no Inventário pra ganhar +200 XP." },
+  { name: "Supernova Engarrafada", icon: "💥", rarity: "epico", price: 90, xp: 350,
+    description: "O brilho de uma estrela gigante explodindo, guardado num potinho. Use pra ganhar +350 XP." },
+];
+
 function toCollection(presets: Preset[], collection: CosmeticCollection): ShopItemData[] {
   return presets.map((p) => ({ ...p, value: Math.floor(p.price / 2), xp: p.xp ?? 0, featured: p.featured ?? false, collection }));
 }
@@ -811,6 +872,7 @@ export const SHOP_COLLECTIONS: Record<CosmeticCollection, ShopItemData[]> = {
   halloween: withEventItems("halloween", toCollection(HALLOWEEN_PRESETS, "halloween")),
   zumbi: withEventItems("zumbi", toCollection(ZOMBIE_PRESETS, "zumbi")),
   alien: withEventItems("alien", toCollection(ALIEN_PRESETS, "alien")),
+  astronomia: withEventItems("astronomia", toCollection(ASTRONOMY_PRESETS, "astronomia")),
   futuro: toCollection(FUTURE_PRESETS, "futuro"),
   grega: toCollection(GREEK_PRESETS, "grega"),
   egipcia: toCollection(EGYPTIAN_PRESETS, "egipcia"),
