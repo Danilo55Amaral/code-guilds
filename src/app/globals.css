@@ -649,6 +649,76 @@
   25% { transform: translateX(-1.5px); }
   75% { transform: translateX(1.5px); }
 }
+/* evento Astronomia em: Salve o Wi-Fi */
+@keyframes cg-astro-meteor {
+  0% { transform: translate(0, 0); opacity: 0; }
+  6%, 88% { opacity: 1; }
+  100% { transform: translate(var(--cg-tx, -125vw), var(--cg-ty, 75vh)); opacity: 0; }
+}
+@keyframes cg-astro-ping {
+  0% { transform: scale(0.2); opacity: 0.95; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+@keyframes cg-astro-drift {
+  to { transform: translateX(var(--cg-dx, -280px)); }
+}
+@keyframes cg-astro-fall {
+  from { transform: translateY(-60vh); }
+  to { transform: translateY(160vh); }
+}
+@keyframes cg-astro-sink {
+  from { transform: translateY(0); }
+  to { transform: translateY(115%); }
+}
+@keyframes cg-astro-puff {
+  0% { transform: translate(0, 0) scale(0.3); opacity: 0.9; }
+  100% { transform: translate(var(--cg-tx, 0px), var(--cg-ty, -20px)) scale(1.8); opacity: 0; }
+}
+@keyframes cg-astro-flame {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(0.9, 1.2); }
+}
+@keyframes cg-astro-pull {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  100% { transform: translate(var(--cg-tx, 0px), var(--cg-ty, 0px)) scale(0.12); opacity: 0; }
+}
+@keyframes cg-astro-warp {
+  0% { transform: translateX(3vmax) scaleX(0.05); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translateX(72vmax) scaleX(1); opacity: 0; }
+}
+@keyframes cg-astro-count {
+  0% { transform: scale(2.4); opacity: 0; }
+  12% { transform: scale(1); opacity: 1; }
+  75% { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(0.6); opacity: 0; }
+}
+@keyframes cg-astro-drain {
+  from { transform: scaleY(1); }
+  to { transform: scaleY(var(--cg-to, 0.5)); }
+}
+@keyframes cg-astro-slide {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12%, 80% { opacity: 1; }
+  100% { transform: translate(var(--cg-tx, 0px), var(--cg-ty, 0px)); opacity: 0; }
+}
+@keyframes cg-astro-shortcut {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  35% { transform: translate(70px, 34px); }
+  65% { transform: translate(70px, 102px); }
+  90% { opacity: 1; }
+  100% { transform: translate(140px, 136px); opacity: 0; }
+}
+@keyframes cg-astro-wobble {
+  0%, 100% { transform: rotate(-7deg) scale(1); }
+  50% { transform: rotate(7deg) scale(0.94); }
+}
+@keyframes cg-astro-shrink {
+  0% { transform: scale(1); }
+  100% { transform: scale(var(--cg-to, 0.55)); }
+}
 
 @layer components {
   .cg-anim-pop { animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
@@ -819,6 +889,22 @@
     color: transparent;
     animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 1.3s both, cg-shimmer 3s linear infinite;
   }
+  /* evento Astronomia em: Salve o Wi-Fi (nos desenhos SVG, o que gira/escala usa o próprio desenho como caixa) */
+  .cg-anim-astro-meteor { animation: cg-astro-meteor var(--cg-duration, 3s) linear var(--cg-delay, 0s) infinite both; }
+  .cg-anim-astro-ping { animation: cg-astro-ping var(--cg-dur, 2.4s) ease-out var(--cg-delay, 0s) infinite both; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-astro-drift { animation: cg-astro-drift var(--cg-dur, 60s) linear var(--cg-delay, 0s) infinite; }
+  .cg-anim-astro-fall { animation: cg-astro-fall var(--cg-duration, 2s) linear var(--cg-delay, 0s) infinite both; }
+  .cg-anim-astro-sink { animation: cg-astro-sink 3s cubic-bezier(0.5, 0, 0.8, 0.4) var(--cg-delay, 0.4s) both; }
+  .cg-anim-astro-puff { animation: cg-astro-puff var(--cg-dur, 1.8s) ease-out var(--cg-delay, 0s) infinite both; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-astro-flame { animation: cg-astro-flame var(--cg-dur, 0.16s) ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 0%; }
+  .cg-anim-astro-pull { animation: cg-astro-pull var(--cg-dur, 5s) cubic-bezier(0.5, 0, 0.9, 0.6) var(--cg-delay, 0s) infinite both; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-astro-warp { animation: cg-astro-warp var(--cg-duration, 1.2s) cubic-bezier(0.6, 0, 1, 0.6) var(--cg-delay, 0s) infinite both; transform-origin: 0 50%; }
+  .cg-anim-astro-count { animation: cg-astro-count var(--cg-dur, 0.8s) ease-out var(--cg-delay, 0s) both; }
+  .cg-anim-astro-drain { animation: cg-astro-drain var(--cg-dur, 30s) linear var(--cg-delay, 0s) both; transform-box: fill-box; transform-origin: 50% 100%; }
+  .cg-anim-astro-slide { animation: cg-astro-slide var(--cg-dur, 5s) ease-in var(--cg-delay, 0s) infinite both; }
+  .cg-anim-astro-shortcut { animation: cg-astro-shortcut var(--cg-dur, 4s) ease-in-out var(--cg-delay, 0s) infinite both; }
+  .cg-anim-astro-wobble { animation: cg-astro-wobble var(--cg-dur, 1.4s) ease-in-out var(--cg-delay, 0s) infinite; transform-box: fill-box; transform-origin: center; }
+  .cg-anim-astro-shrink { animation: cg-astro-shrink var(--cg-dur, 4s) cubic-bezier(0.5, 0, 0.75, 0) var(--cg-delay, 0.6s) both; transform-origin: 50% 50%; }
 }
 
 /* Quem pediu menos movimento no sistema vê direto o estado final das cenas. */
@@ -847,7 +933,15 @@
   .cg-anim-dissolve,
   .cg-anim-dragon-shockwave,
   .cg-anim-dragon-flash,
-  .cg-anim-dragon-bolt-sky {
+  .cg-anim-dragon-bolt-sky,
+  .cg-anim-astro-meteor,
+  .cg-anim-astro-puff,
+  .cg-anim-astro-pull,
+  .cg-anim-astro-warp,
+  .cg-anim-astro-count,
+  .cg-anim-astro-slide,
+  .cg-anim-astro-shortcut,
+  .cg-anim-astro-fall {
     display: none;
   }
 }

@@ -6,12 +6,15 @@ import { Student } from "@/engine/students";
 import {
   isSoundMuted,
   playBatSwarm,
+  playCosmicAmbience,
   playCreepyCircus,
   playCrows,
   playLaser,
   playMagicChime,
   playMidnightBell,
   playOrganSting,
+  playRadioStatic,
+  playRocketLaunch,
   playSiren,
   playSleighBells,
   playSpookyAmbience,
@@ -53,9 +56,10 @@ interface SpeakerStyle {
   voice: { pitch: number; rate: number };
 }
 
-// Narrador, Mago, Papai Noel e os capangas do Dracoding (Lobisloop e
-// Espantabyte) são iguais em todo evento; o vilão principal (nome, voz e cores)
-// vem de cada evento.
+// Narrador, Mago, Papai Noel, os capangas do Dracoding (Lobisloop e
+// Espantabyte) e a Catarina Vitória (protagonista de Astronomia em: Salve o
+// Wi-Fi) são iguais em todo evento; o vilão principal (nome, voz e cores) vem
+// de cada evento.
 const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
   narrador: {
     name: "Narrador",
@@ -97,6 +101,14 @@ const SPEAKERS: Record<Exclude<SceneSpeaker, "vilao">, SpeakerStyle> = {
     glow: "0 12px 50px -10px rgba(234,88,12,0.8)",
     voice: { pitch: 1.7, rate: 1.15 },
   },
+  catarina: {
+    name: "Catarina Vitória",
+    icon: "👩‍🚀",
+    plate: "border-fuchsia-400/80 bg-fuchsia-950/95 text-pink-100",
+    border: "border-fuchsia-400/60",
+    glow: "0 12px 50px -10px rgba(217,70,239,0.8)",
+    voice: { pitch: 1.45, rate: 1.05 },
+  },
 };
 
 function speakerStyle(speaker: SceneSpeaker, event: AcademyEvent, visual: EventVisual): SpeakerStyle {
@@ -120,6 +132,8 @@ const SOUNDS: Record<SceneSound, () => () => void> = {
   corvos: playCrows,
   circo: playCreepyCircus,
   morcegos: playBatSwarm,
+  foguete: playRocketLaunch,
+  radio: playRadioStatic,
 };
 
 // Sons longos tocam um pouco antes de a voz começar (em ms; o resto espera 400).
@@ -134,6 +148,8 @@ const VOICE_DELAY: Partial<Record<SceneSound, number>> = {
   uivo: 1500,
   orgao: 1500,
   circo: 1200,
+  foguete: 1500,
+  radio: 900,
 };
 
 function prefersReducedMotion(): boolean {
@@ -193,11 +209,13 @@ export default function EventScene({
     return () => window.clearTimeout(timer);
   }, []);
 
-  const winter = visual.ambience === "inverno";
+  const ambience = visual.ambience ?? "sombrio";
   useEffect(() => {
     if (!soundOn || !spooky) return;
-    return winter ? playWinterAmbience() : playSpookyAmbience();
-  }, [soundOn, spooky, winter]);
+    if (ambience === "inverno") return playWinterAmbience();
+    if (ambience === "espaco") return playCosmicAmbience();
+    return playSpookyAmbience();
+  }, [soundOn, spooky, ambience]);
 
   // Nova cena: o texto recomeça a ser "digitado".
   useEffect(() => {

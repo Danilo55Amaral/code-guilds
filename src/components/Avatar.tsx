@@ -586,6 +586,30 @@ function Outfit({ config, skin, steelId }: { config: AvatarConfig; skin: string;
           <circle cx="80" cy="118" r="2" fill="#38bdf8" />
         </g>
       );
+    // --- Astronomia em: Salve o Wi-Fi (recompensa da Fase 1) ---
+    case "traje-estelar":
+      // o traje da equipe da Catarina Vitória: branco com faixas fúcsia, a gola onde encaixa o capacete,
+      // o painel do peito com as luzes piscando, o emblema do Wi-Fi e a estrela da equipe
+      return (
+        <g strokeLinejoin="round">
+          <path d={body} fill="#f8fafc" stroke="#94a3b8" strokeWidth="1.2" />
+          <path d="M84 100 C98 104 107 114 108 128 L94 128 C94 116 91 107 84 100 Z" fill="#cbd5e1" opacity="0.75" />
+          <path d="M30 128 C30 114 36 106 46 101 M98 128 C98 114 92 106 82 101" stroke="#d946ef" strokeWidth="3.6" fill="none" strokeLinecap="round" />
+          <path d="M34 128 C34 116 39 109 47 105 M94 128 C94 116 89 109 81 105" stroke="#7c3aed" strokeWidth="1.4" fill="none" strokeLinecap="round" />
+          <ellipse cx="64" cy="97.5" rx="17" ry="5" fill="#7c3aed" stroke="#fbbf24" strokeWidth="1.4" />
+          <rect x="54" y="106" width="20" height="14" rx="2.5" fill="#e2e8f0" stroke="#64748b" strokeWidth="1" />
+          <circle cx="59" cy="111" r="1.8" fill="#22d3ee" className="cg-anim-twinkle" />
+          <circle cx="64" cy="111" r="1.8" fill="#fbbf24" className="cg-anim-twinkle" style={{ animationDelay: "0.5s" }} />
+          <circle cx="69" cy="111" r="1.8" fill="#d946ef" className="cg-anim-twinkle" style={{ animationDelay: "1s" }} />
+          <path d="M57 116.5 L71 116.5" stroke="#94a3b8" strokeWidth="1.2" />
+          <g transform="translate(38 114)">
+            <circle r="6.5" fill="#7c3aed" stroke="#fbbf24" strokeWidth="1" />
+            <path d="M-3.6 -0.4 Q0 -3.6 3.6 -0.4 M-2.2 1.3 Q0 -0.7 2.2 1.3" stroke="#e0f2fe" strokeWidth="1" fill="none" strokeLinecap="round" />
+            <circle cy="2.9" r="0.9" fill="#e0f2fe" />
+          </g>
+          <path d={starPath(90, 114, 5, 2.2)} fill="#fbbf24" stroke="#a16207" strokeWidth="0.6" />
+        </g>
+      );
     // --- visuais do Mago Danilo ---
     case "mago-danilo":
       // a armadura do Mago Danilo (components/WizardDanilo.tsx): capa preta por trás, roupa escura por
@@ -1199,6 +1223,7 @@ const AURA_COLORS: Record<Exclude<Aura, "nenhum">, [string, string]> = {
   "lua-prateada": ["#a5b4c8", "#111827"],
   "mago-danilo": ["#fde68a", "#1e1b3a"],
   "dragao-ancestral": ["#7f1d1d", "#0b1416"],
+  "buraco-negro": ["#fb923c", "#07040f"],
 };
 
 // Colunas da Chuva de código: [x, y do primeiro dígito, quantos dígitos].
@@ -1627,6 +1652,63 @@ function AncientDragonAura() {
         </g>
       </Anim>
     </Anim>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Aura do Buraco Negro (Astronomia em: Salve o Wi-Fi, Fase 3): um pedaço do TON 618 atrás do
+// personagem — o anel de luz em volta da cabeça, o disco de fogo girando (a parte de trás aparece
+// curvada por cima, como a luz dobrada pela gravidade), os jatos de luz e as estrelas sendo puxadas.
+// ---------------------------------------------------------------------------
+
+function BlackHoleAura({ id }: { id: string }) {
+  return (
+    <g>
+      <defs>
+        <linearGradient id={`${id}-bn-disk`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" stopColor="#b91c1c" />
+          <stop offset="0.3" stopColor="#f97316" />
+          <stop offset="0.5" stopColor="#fef3c7" />
+          <stop offset="0.7" stopColor="#f97316" />
+          <stop offset="1" stopColor="#b91c1c" />
+        </linearGradient>
+        <linearGradient id={`${id}-bn-jet`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#67e8f9" stopOpacity="0" />
+          <stop offset="1" stopColor="#a5f3fc" stopOpacity="0.85" />
+        </linearGradient>
+      </defs>
+      {/* jato de luz saindo pra cima */}
+      <Anim c="blink" dur={2.2}>
+        <rect x="61.5" y="-4" width="5" height="34" fill={`url(#${id}-bn-jet)`} />
+      </Anim>
+      {/* estrelas sendo puxadas, girando em espiral */}
+      <Anim c="spin-rev" dur={14}>
+        {(
+          [
+            [12, 26, 1.4],
+            [112, 20, 1.2],
+            [6, 92, 1.1],
+            [120, 96, 1.3],
+            [40, 6, 1],
+            [92, 8, 1.1],
+          ] as [number, number, number][]
+        ).map(([x, y, r]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#fef9c3" />
+        ))}
+      </Anim>
+      {/* a parte de trás do disco, curvada por cima do buraco */}
+      <path d="M6 66 C6 14 122 14 122 66" fill="none" stroke={`url(#${id}-bn-disk)`} strokeWidth="9" strokeLinecap="round" opacity="0.9" />
+      <path d="M10 64 C12 22 116 22 118 64" fill="none" stroke="#fef3c7" strokeWidth="1.6" strokeDasharray="14 10" opacity="0.8" className="cg-anim-aura-flow" style={{ "--cg-dur": "1.4s" } as React.CSSProperties} />
+      {/* o buraco e o anel de luz em volta */}
+      <circle cx="64" cy="60" r="37" fill="#000" />
+      <circle cx="64" cy="60" r="38.5" fill="none" stroke="#fde68a" strokeWidth="1.8" style={{ filter: "drop-shadow(0 0 3px #fbbf24)" }} />
+      <circle cx="64" cy="60" r="41" fill="none" stroke="#fb923c" strokeWidth="1" opacity="0.55" />
+      {/* o disco de fogo girando na frente */}
+      <g transform="rotate(-8 64 70)">
+        <ellipse cx="64" cy="70" rx="62" ry="13" fill="none" stroke={`url(#${id}-bn-disk)`} strokeWidth="7" opacity="0.9" />
+        <ellipse cx="64" cy="70" rx="62" ry="13" fill="none" stroke="#fffbeb" strokeWidth="1.4" strokeDasharray="8 4" className="cg-anim-aura-flow" style={{ "--cg-dur": "0.9s" } as React.CSSProperties} />
+      </g>
+    </g>
   );
 }
 
@@ -2538,6 +2620,7 @@ function AuraLayer({ aura, gradientId }: { aura: Aura; gradientId: string }) {
         </g>
       )}
       {aura === "dragao-ancestral" && <AncientDragonAura />}
+      {aura === "buraco-negro" && <BlackHoleAura id={gradientId} />}
       {aura === "mago-danilo" && (
         // o mesmo círculo mágico divino que gira atrás do Mago Danilo, com traços mais grossos pro tamanho do avatar
         <DivineCircle cx={64} cy={60} r={50} line={1.7} />
@@ -2621,6 +2704,34 @@ function drawnPet(pet: Pet) {
           <circle cx="101.6" cy="95.5" r="0.5" fill="#fff" />
           <path d="M90 108.5 C94 110.5 100 110.5 104 108.5" stroke="#dc2626" strokeWidth="1.8" fill="none" />
           <circle cx="97" cy="111" r="1.6" fill="#fbbf24" stroke="#a16207" strokeWidth="0.4" />
+        </g>
+      );
+    case "lumenzinho":
+      // Astronomia em: Salve o Wi-Fi (Fase 2): o mini satélite da Constelação Lúmen que a Catarina montou,
+      // de painéis solares, carinha feliz, antena piscando e o sinal de Wi-Fi sempre cheio
+      return (
+        <g className="cg-anim-aura-bob" style={{ "--cg-dur": "2.6s" } as React.CSSProperties}>
+          {[0, 1].map((side) => (
+            <g key={side} transform={side ? "translate(194 0) scale(-1 1)" : undefined}>
+              <path d="M90 101 L86 101" stroke="#94a3b8" strokeWidth="1.2" />
+              <rect x="74" y="95.5" width="12" height="11" rx="1" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="0.8" />
+              <path d="M78 95.5 L78 106.5 M82 95.5 L82 106.5 M74 101 L86 101" stroke="#60a5fa" strokeWidth="0.6" />
+            </g>
+          ))}
+          <rect x="90" y="94" width="14" height="14" rx="2.5" fill="#fbbf24" stroke="#a16207" strokeWidth="0.9" />
+          <path d="M91.5 95.5 L102.5 95.5" stroke="#fef3c7" strokeWidth="1" opacity="0.8" />
+          <circle cx="94.5" cy="100" r="1.4" fill="#1e1b2e" />
+          <circle cx="99.5" cy="100" r="1.4" fill="#1e1b2e" />
+          <circle cx="95" cy="99.5" r="0.45" fill="#fff" />
+          <circle cx="100" cy="99.5" r="0.45" fill="#fff" />
+          <path d="M94.5 103.5 Q97 105.4 99.5 103.5" stroke="#1e1b2e" strokeWidth="0.9" fill="none" strokeLinecap="round" />
+          <path d="M97 94 L97 89" stroke="#94a3b8" strokeWidth="1.1" />
+          <path d="M92.5 89.5 Q97 84 101.5 89.5 Z" fill="#e2e8f0" stroke="#94a3b8" strokeWidth="0.7" />
+          <circle cx="97" cy="85.5" r="1.5" fill="#22d3ee" className="cg-anim-twinkle" />
+          <g className="cg-anim-aura-blink" style={{ "--cg-dur": "1.6s" } as React.CSSProperties} fill="none" stroke="#67e8f9" strokeWidth="1.1" strokeLinecap="round">
+            <path d="M92.5 82 Q97 77.5 101.5 82" />
+            <path d="M89.5 79.5 Q97 72.5 104.5 79.5" />
+          </g>
         </g>
       );
     case "dracoding":

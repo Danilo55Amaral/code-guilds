@@ -6,13 +6,15 @@ import ZombieArt, { AntidoteVial } from "./ZombieArt";
 import AlienArt, { EnergyCrystal } from "./AlienArt";
 import ChristmasArt, { ChristmasProgress } from "./ChristmasArt";
 import DracodingArt, { DracodingProgress } from "./DracodingArt";
+import AstronomiaArt, { AstronomiaProgress } from "./AstronomiaArt";
 
 // ============================================================================
 // VISUAL DOS EVENTOS — pra cada evento: o desenho das cenas, o ícone de
 // progresso (no Halloween, uma Lanterna Sagrada por missão; no Apocalipse
 // Zumbi, um frasco do antídoto; na Invasão Alienígena, um Cristal de Energia; no Natal,
 // um por fase: presente, Estrela da Aurora e Selo de Gelo; em A Noite de Dracoding,
-// abóbora amaldiçoada, Fragmento da Lua e Vitral do Amanhecer) e as cores do card, do banner,
+// abóbora amaldiçoada, Fragmento da Lua e Vitral do Amanhecer; em Astronomia em: Salve o
+// Wi-Fi, sistema do foguete, satélite Lúmen e anel do portal) e as cores do card, do banner,
 // dos botões e do balão do vilão. Os textos da história ficam em engine/specialEvents.ts.
 // ============================================================================
 
@@ -38,8 +40,8 @@ export interface EventVisual {
   progressNoun: ProgressNoun;
   /** Evento em fases: o nome do progresso de cada fase (1, 2, 3...), se mudar. */
   phaseNouns?: Record<number, ProgressNoun>;
-  /** Fundo sonoro das cenas: sombrio (padrão) ou de inverno. */
-  ambience?: "sombrio" | "inverno";
+  /** Fundo sonoro das cenas: sombrio (padrão), de inverno ou o cósmico (no espaço). */
+  ambience?: "sombrio" | "inverno" | "espaco";
   missionsTitle: string; // título da lista de missões na tela do evento
   titleClass: string;
   titleGlow: string; // text-shadow do título
@@ -105,6 +107,35 @@ export const EVENT_VISUALS: Record<EventId, EventVisual> = {
       plate: "border-rose-500/80 bg-rose-950/95 text-rose-200",
       border: "border-rose-500/60",
       glow: "0 12px 50px -10px rgba(225,29,72,0.85)",
+    },
+  },
+  astronomia: {
+    Art: AstronomiaArt,
+    ProgressIcon: AstronomiaProgress,
+    progressNoun: { one: "sistema do foguete", many: "sistemas do foguete", doneOne: "ligado", doneMany: "ligados" },
+    phaseNouns: {
+      1: { one: "sistema do foguete", many: "sistemas do foguete", doneOne: "ligado", doneMany: "ligados" },
+      2: { one: "satélite Lúmen", many: "satélites Lúmen", doneOne: "realinhado", doneMany: "realinhados" },
+      3: { one: "anel do portal", many: "anéis do portal", doneOne: "estabilizado", doneMany: "estabilizados" },
+    },
+    ambience: "espaco",
+    missionsTitle: "🛰️ Missões da fase",
+    titleClass: "text-fuchsia-300",
+    titleGlow: "0 0 24px rgba(217,70,239,0.85), 0 0 60px rgba(34,211,238,0.45)",
+    accentClass: "text-cyan-200",
+    accentDot: "bg-fuchsia-400",
+    accentDotSoft: "bg-cyan-200/70",
+    chipClass: "border-cyan-300/50 text-cyan-100 hover:border-cyan-200",
+    borderClass: "border-fuchsia-400/40",
+    buttonClass: "bg-gradient-to-r from-fuchsia-500 via-violet-400 to-cyan-400 text-cg-ink shadow-lg shadow-fuchsia-500/40",
+    progressBar: "from-fuchsia-500 via-violet-400 to-cyan-300",
+    glow: "#d946ef",
+    panelBackground:
+      "radial-gradient(45% 60% at 90% 0%, rgba(217,70,239,0.28), transparent 70%), radial-gradient(40% 60% at 0% 100%, rgba(34,211,238,0.25), transparent 70%), linear-gradient(160deg, #02030c 0%, #1e1b4b 55%, #0c4a6e 100%)",
+    villainStyle: {
+      plate: "border-orange-400/80 bg-orange-950/95 text-orange-200",
+      border: "border-orange-400/60",
+      glow: "0 12px 50px -10px rgba(251,146,60,0.8)",
     },
   },
   zumbi: {
