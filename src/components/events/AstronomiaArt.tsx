@@ -405,7 +405,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
           </Backdrop>
           <div className="cg-anim-pop absolute right-[4%] top-[8%] aspect-square w-[min(54%,52vh)] overflow-hidden rounded-full border-[6px] border-slate-300 shadow-[0_0_60px_rgba(34,211,238,0.4)] sm:right-[12%]" style={{ animationDelay: "0.3s" }}>
             <SpaceSky variant="orbita" milkyWay={false} />
-            <EarthHorizon className="h-[30%]" />
+            <EarthHorizon className="h-[30%]" size="w-[190%]" />
             <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden="true">
               <ellipse cx="50" cy="62" rx="44" ry="16" fill="none" stroke="#67e8f9" strokeWidth="0.6" strokeDasharray="4 3" opacity="0.5" />
             </svg>
@@ -477,7 +477,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
             </div>
           </Backdrop>
           <div className="cg-anim-alarm pointer-events-none absolute inset-0 bg-red-700" style={{ mixBlendMode: "screen" }} />
-          <Alert text="Sistemas desligados" className="right-[6%] top-[5%] sm:right-[14%]" />
+          <Alert text="Sistemas desligados" className="right-[6%] top-[8%] sm:right-[14%]" />
           <Stage className="!justify-start pl-[3%] sm:pl-[10%]">
             <CatarinaHero talking={talkingCatarina} pose="aponta" className="h-[64%] sm:h-[92%]" />
           </Stage>
@@ -516,14 +516,14 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
           <div className="absolute bottom-[1%] left-1/2 h-[70%] -translate-x-1/2 sm:left-[64%] sm:h-[88%]">
             <LaunchPad lights={[true, true, true]} flame="small" ignite className="h-full w-auto" />
           </div>
-          <div className="absolute left-[4%] top-[6%] flex flex-col gap-1.5 sm:left-[8%] sm:top-[10%]">
+          <div className="absolute left-[4%] top-[8%] flex flex-col gap-1.5 sm:left-[8%] sm:top-[10%]">
             {["🔥 Motores", "🧭 Navegação", "💨 Suporte de vida"].map((label, i) => (
               <span key={label} className="cg-anim-pop rounded-full border border-emerald-300/70 bg-emerald-950/80 px-3 py-1 text-[11px] font-black text-emerald-200 sm:text-sm" style={{ animationDelay: `${0.3 + i * 0.3}s`, boxShadow: "0 0 14px rgba(74,222,128,0.45)" }}>
                 ✓ {label}
               </span>
             ))}
           </div>
-          <div className="pointer-events-none absolute right-[2%] top-[5%] grid h-[20%] w-[42%] place-items-center sm:left-[12%] sm:right-auto sm:top-[38%] sm:h-[24%] sm:w-[32%]">
+          <div className="pointer-events-none absolute right-[2%] top-[8%] grid h-[20%] w-[42%] place-items-center sm:left-[12%] sm:right-auto sm:top-[38%] sm:h-[24%] sm:w-[32%]">
             {Array.from({ length: 10 }, (_, i) => (
               <span
                 key={i}
@@ -582,7 +582,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
         <Scene>
           <Backdrop>
             <SpaceSky variant="orbita" />
-            <EarthHorizon className="h-[42%]" />
+            <EarthHorizon className="h-[54%] sm:h-[42%]" />
             <LostSatellites spots={LOST_SPOTS} />
             <div className="cg-anim-hover absolute right-[6%] top-[40%] h-[22%] sm:right-[16%]">
               <Rocket flame="small" tilt={70} className="h-full w-auto" style={{ transform: "rotate(70deg)" }} />
@@ -632,7 +632,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
         <Scene>
           <Backdrop>
             <SpaceSky variant="orbita" />
-            <EarthHorizon className="h-[28%]" />
+            <EarthHorizon className="h-[50%] sm:h-[28%]" />
             <LostSatellites spots={LOST_SPOTS} />
           </Backdrop>
           <MeteorShower count={11} />
@@ -648,7 +648,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
         <Scene>
           <Backdrop>
             <SpaceSky variant="orbita" />
-            <EarthHorizon className="h-[32%]" />
+            <EarthHorizon className="h-[50%] sm:h-[32%]" />
           </Backdrop>
           <div className="cg-anim-walk absolute top-[6%] w-[46%] min-w-[220px] max-w-[600px]" style={{ "--cg-duration": "30s", "--cg-delay": "-13s" } as React.CSSProperties}>
             <ISS className="w-full drop-shadow-[0_0_24px_rgba(251,191,36,0.35)]" />
@@ -711,7 +711,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
         <Scene>
           <Backdrop>
             <SpaceSky variant="orbita" />
-            <EarthHorizon className="h-[24%]" />
+            <EarthHorizon className="h-[48%] sm:h-[24%]" />
           </Backdrop>
           <MeteorShower count={4} />
           <div className="absolute right-[-6%] top-[8%] w-[72%] max-w-[820px] sm:right-[2%] sm:w-[58%]">
@@ -734,7 +734,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
         <Scene>
           <Backdrop>
             <SpaceSky variant="orbita" />
-            <EarthHorizon className="h-[26%]" />
+            <EarthHorizon className="h-[48%] sm:h-[26%]" />
             <LostSatellites spots={LOST_SPOTS} />
           </Backdrop>
           <Stage className="gap-[3%]">
@@ -807,10 +807,10 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
             <SpaceSky variant="orbita" />
           </Backdrop>
           <div className="cg-anim-alarm pointer-events-none absolute inset-0 bg-red-700" style={{ mixBlendMode: "screen" }} />
-          <div className="absolute right-[3%] top-[6%] w-[min(58%,50vh)] sm:right-[12%] sm:top-[8%]">
+          <div className="absolute right-[3%] top-[13%] w-[min(48%,50vh)] sm:right-[12%] sm:top-[14%] sm:w-[min(58%,50vh)]">
             <Radar className="w-full drop-shadow-[0_0_30px_rgba(34,211,238,0.4)]" />
           </div>
-          <Alert text="Lúmen-Mãe sumiu do radar" className="left-1/2 top-[3%] -translate-x-1/2 whitespace-nowrap" />
+          <Alert text="Lúmen-Mãe sumiu do radar" className="left-1/2 top-[7%] -translate-x-1/2 whitespace-nowrap" />
           <Stage className="!justify-start pl-[3%] sm:pl-[10%]">
             <CatarinaHero talking={talkingCatarina} pose="aponta" helmet className="h-[64%] sm:h-[92%]" />
           </Stage>
@@ -1014,7 +1014,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
             <LumenSat mother className="w-full" />
           </div>
           <Confetti colors={["#f0abfc", "#d946ef", "#fbbf24", "#22d3ee", "#ffffff"]} />
-          <div className="absolute inset-x-0 top-[3%] flex flex-col items-center gap-1 px-4 text-center">
+          <div className="absolute inset-x-0 top-[7%] flex flex-col items-center gap-1 px-4 text-center">
             <p className="cg-anim-shimmer-cosmic text-2xl font-black uppercase tracking-[0.18em] sm:text-5xl" style={{ filter: "drop-shadow(0 0 14px rgba(217,70,239,0.7))" }}>
               Catarina Vitória
             </p>
@@ -1022,7 +1022,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
               ✦ a heroína do Wi-Fi ✦
             </p>
           </div>
-          <div className="absolute inset-x-0 bottom-[20%] top-[15%] flex items-end justify-center sm:top-[17%]">
+          <div className="absolute inset-x-0 bottom-[20%] top-[19%] flex items-end justify-center sm:top-[21%]">
             <CatarinaHero talking={talkingCatarina} pose="comemora" helmet tag={false} className="h-[86%] sm:h-full" />
           </div>
         </Scene>
@@ -1055,7 +1055,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
           <Backdrop>
             <SpaceSky variant="orbita" />
           </Backdrop>
-          <div className="absolute left-1/2 top-[19%] aspect-square w-[min(70%,46vh)] -translate-x-1/2">
+          <div className="absolute left-1/2 top-[22%] aspect-square w-[min(70%,44vh)] -translate-x-1/2">
             <Earth mode="conectada" className="h-full w-full" />
             <div className="absolute -top-[13%] left-1/2 w-[30%] -translate-x-1/2">
               <LumenSat mother className="cg-anim-float w-full" />
@@ -1081,7 +1081,7 @@ export default function AstronomiaArt({ art, speaker, mouthOpen = false, student
               <WifiGlyph className="cg-anim-float w-full" />
             </div>
           ))}
-          <div className="absolute inset-x-0 top-[2%] flex justify-center gap-2 sm:gap-4">
+          <div className="absolute inset-x-0 top-[7%] flex justify-center gap-2 sm:gap-4">
             {["CA-", "TA-", "RI-", "NA!"].map((syllable, i) => (
               <span key={syllable} className="cg-anim-pop text-2xl font-black text-fuchsia-100 sm:text-5xl" style={{ animationDelay: `${1.6 + i * 0.45}s`, textShadow: "0 0 18px #d946ef, 0 0 40px #7c3aed" }}>
                 {syllable}

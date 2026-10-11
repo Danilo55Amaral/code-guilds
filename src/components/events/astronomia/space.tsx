@@ -525,108 +525,131 @@ export function SpacetimeHologram({ className = "" }: { className?: string }) {
 }
 
 // ---------------------------------------------------------------------------
-// A Terra vista da órbita: a curva do planeta lá embaixo, ocupando a largura
-// toda (o planeta é um círculo enorme com o topo em y=160 do desenho).
+// A Terra vista da órbita: o topo de uma bola enorme aparecendo lá embaixo.
+// A bola é um quadrado (aspect-square) mais largo que a cena e o topo dela
+// fica na altura da caixa (`className`), então a curva aparece em qualquer
+// tela, da mais larga à do celular. Os continentes, as nuvens e as luzes giram
+// num ladrilho de 1000 de largura (dois iguais, um atrás do outro).
 // ---------------------------------------------------------------------------
 
 const LANDS = [
-  "M40 230 C90 200 180 196 240 214 C300 232 290 270 240 290 C200 330 140 360 90 340 C50 320 10 270 40 230 Z",
-  "M380 190 C440 172 520 180 560 200 C590 216 560 240 520 244 C480 250 470 290 430 300 C390 304 360 260 370 230 C372 214 366 198 380 190 Z",
-  "M680 260 C740 230 840 236 880 262 C920 290 900 340 840 360 C780 380 700 360 670 320 C650 296 656 272 680 260 Z",
-  "M960 180 C1010 168 1080 172 1120 190 C1150 206 1130 232 1090 236 C1050 240 1020 262 980 254 C940 246 930 196 960 180 Z",
+  "M60 70 C100 30 200 24 260 50 C310 72 290 120 240 134 C200 170 150 210 100 196 C60 180 30 110 60 70 Z",
+  "M400 40 C450 10 560 14 600 40 C630 62 600 96 560 100 C520 108 500 150 460 156 C420 160 380 110 390 80 C392 60 384 50 400 40 Z",
+  "M700 100 C760 70 880 78 920 110 C960 140 930 200 870 216 C810 232 730 210 700 170 C680 144 676 116 700 100 Z",
+  "M160 330 C220 290 330 300 360 350 C390 400 340 470 280 490 C220 510 150 470 140 420 C134 384 140 350 160 330 Z",
+  "M580 360 C640 330 740 340 770 390 C800 440 760 520 690 540 C620 560 560 500 550 450 C544 410 556 376 580 360 Z",
+  "M860 520 C900 500 960 510 980 550 C996 590 960 630 920 630 C880 628 846 590 850 560 C852 540 850 528 860 520 Z",
+  "M40 600 C80 570 160 580 180 630 C196 680 150 720 100 720 C50 716 20 670 40 600 Z",
+  "M380 660 C430 630 520 640 540 690 C560 740 510 790 450 790 C390 786 360 720 380 660 Z",
 ];
+const DESERTS = "M150 90 C180 76 220 80 236 96 C218 112 172 110 150 90 Z M480 50 C500 40 530 44 540 56 C524 66 496 64 480 50 Z M760 130 C790 118 830 124 846 140 C824 152 784 148 760 130 Z M620 410 C650 398 690 404 704 420 C684 434 644 430 620 410 Z";
+const MOUNTAINS = "M90 150 L120 124 L146 150 M720 180 L750 154 L776 180 M220 420 L250 394 L276 420 M640 480 L670 454 L696 480";
 const LAND_LIGHTS: [number, number][] = [
-  [80, 250], [130, 236], [190, 228], [150, 300], [110, 320], [420, 200], [480, 214], [520, 226], [410, 260], [720, 280], [790, 262],
-  [850, 300], [760, 340], [1000, 200], [1060, 210], [1090, 222], [990, 240],
+  [100, 80], [160, 60], [230, 70], [140, 150], [200, 120], [430, 60], [500, 40], [560, 70], [440, 120], [740, 120], [800, 100],
+  [860, 150], [780, 190], [200, 360], [300, 380], [260, 450], [620, 380], [700, 420], [660, 500], [900, 560], [100, 640], [450, 700],
 ];
-const SKY_CLOUDS = [
-  "M100 180 C140 170 220 172 260 182 C220 190 140 190 100 180 Z",
-  "M600 210 C660 196 760 198 800 212 C750 224 650 222 600 210 Z",
-  "M300 300 C350 286 440 290 470 302 C430 314 340 312 300 300 Z",
-  "M900 280 C950 268 1030 270 1060 282 C1020 292 940 292 900 280 Z",
+const SKY_CLOUDS: [number, number, number, number][] = [
+  [200, 150, 90, 14],
+  [620, 70, 110, 12],
+  [820, 300, 120, 16],
+  [340, 230, 100, 14],
+  [80, 300, 80, 12],
+  [560, 620, 110, 16],
+  [900, 760, 90, 12],
+  [300, 560, 90, 14],
+];
+const HORIZON_PINGS: [number, number, number][] = [
+  [300, 70, 0],
+  [520, 40, 0.7],
+  [720, 110, 1.4],
+  [440, 190, 2],
+  [180, 260, 0.4],
+  [820, 280, 1.1],
 ];
 
-export function EarthHorizon({ mode = "dia", className = "h-[34%]" }: { mode?: "dia" | "sem-sinal" | "conectada"; className?: string }) {
+export function EarthHorizon({
+  mode = "dia",
+  className = "h-[34%]",
+  size = "w-[max(160%,130vh)]",
+}: {
+  mode?: "dia" | "sem-sinal" | "conectada";
+  /** A altura da parte da Terra que aparece (do chão da cena até o topo da bola). */
+  className?: string;
+  /** A largura da bola (quanto maior, mais suave a curva). */
+  size?: string;
+}) {
   const id = `eh${useId().replace(/:/g, "")}`;
   const night = mode !== "dia";
   const glow = mode === "conectada" ? "#22d3ee" : "#7dd3fc";
-  const spin = { "--cg-dur": "160s", "--cg-dx": "-1200px" } as React.CSSProperties;
+  const spin = { "--cg-dur": "200s", "--cg-dx": "-1000px" } as React.CSSProperties;
   return (
-    <svg viewBox="0 0 1200 400" preserveAspectRatio="xMidYMax slice" className={`absolute bottom-0 left-0 w-full ${className}`} aria-hidden="true">
-      <defs>
-        <clipPath id={`${id}-clip`}>
-          <circle cx="600" cy="1560" r="1400" />
-        </clipPath>
-        <linearGradient id={`${id}-ocean`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#60a5fa" />
-          <stop offset="0.25" stopColor="#2563eb" />
-          <stop offset="1" stopColor="#172554" />
-        </linearGradient>
-        <linearGradient id={`${id}-haze`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#bae6fd" stopOpacity="0.6" />
-          <stop offset="1" stopColor="#bae6fd" stopOpacity="0" />
-        </linearGradient>
-        <radialGradient id={`${id}-limb`} gradientUnits="userSpaceOnUse" cx="600" cy="1560" r="1400">
-          <stop offset="0.86" stopColor="#020617" stopOpacity="0" />
-          <stop offset="0.96" stopColor="#020617" stopOpacity="0.3" />
-          <stop offset="1" stopColor="#020617" stopOpacity="0.55" />
-        </radialGradient>
-        <linearGradient id={`${id}-side`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#020617" stopOpacity="0.55" />
-          <stop offset="0.25" stopColor="#020617" stopOpacity="0" />
-          <stop offset="0.75" stopColor="#020617" stopOpacity="0" />
-          <stop offset="1" stopColor="#020617" stopOpacity="0.55" />
-        </linearGradient>
-      </defs>
-      <circle cx="600" cy="1560" r="1422" fill="none" stroke={glow} strokeWidth="34" opacity="0.3" style={{ filter: "blur(12px)" }} />
-      <g clipPath={`url(#${id}-clip)`}>
-        <rect x="0" y="150" width="1200" height="250" fill={`url(#${id}-ocean)`} />
-        <g className="cg-anim-astro-drift" style={spin}>
-          {[0, 1200].map((dx) => (
-            <g key={dx} transform={`translate(${dx} 0)`}>
-              {LANDS.map((d, i) => (
-                <path key={i} d={d} fill="#22c55e" stroke="#15803d" strokeWidth="6" strokeOpacity="0.5" />
-              ))}
-              <path d="M120 250 C150 236 190 240 210 256 C190 270 150 270 120 250 Z M460 214 C480 206 510 210 520 220 C506 230 476 228 460 214 Z M760 290 C790 278 830 284 846 300 C824 312 784 308 760 290 Z" fill="#ca8a04" opacity="0.55" />
-              <path d="M70 290 L100 268 L126 290 M700 300 L730 276 L756 300 M1000 214 L1030 194 L1056 214" stroke="#166534" strokeWidth="5" fill="none" strokeLinejoin="round" opacity="0.6" />
-            </g>
-          ))}
-        </g>
-        <g className="cg-anim-astro-drift" style={{ "--cg-dur": "90s", "--cg-dx": "-1200px" } as React.CSSProperties} fill="#ffffff" opacity="0.7">
-          {[0, 1200].map((dx) => (
-            <g key={dx} transform={`translate(${dx} 0)`}>
-              {SKY_CLOUDS.map((d, i) => (
-                <path key={i} d={d} />
-              ))}
-            </g>
-          ))}
-        </g>
-        {night && <rect x="0" y="150" width="1200" height="250" fill="#020617" opacity={mode === "sem-sinal" ? 0.62 : 0.45} />}
-        {night && (
+    <div className={`pointer-events-none absolute inset-x-0 bottom-0 ${className}`}>
+      <svg viewBox="0 0 1000 1000" className={`absolute left-1/2 top-0 aspect-square -translate-x-1/2 overflow-visible ${size}`} aria-hidden="true">
+        <defs>
+          <clipPath id={`${id}-clip`}>
+            <circle cx="500" cy="500" r="500" />
+          </clipPath>
+          <radialGradient id={`${id}-ocean`} cx="0.5" cy="0.25" r="0.75">
+            <stop offset="0" stopColor="#3b82f6" />
+            <stop offset="0.45" stopColor="#1d4ed8" />
+            <stop offset="1" stopColor="#172554" />
+          </radialGradient>
+          <radialGradient id={`${id}-limb`} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.8" stopColor="#020617" stopOpacity="0" />
+            <stop offset="0.95" stopColor="#020617" stopOpacity="0.35" />
+            <stop offset="1" stopColor="#020617" stopOpacity="0.6" />
+          </radialGradient>
+          <radialGradient id={`${id}-air`} cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0.9" stopColor={glow} stopOpacity="0" />
+            <stop offset="0.955" stopColor={glow} stopOpacity="0.5" />
+            <stop offset="1" stopColor={glow} stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        {/* a atmosfera brilhando em volta */}
+        <circle cx="500" cy="500" r="530" fill={`url(#${id}-air)`} className={mode === "conectada" ? "cg-anim-glow" : undefined} />
+        <g clipPath={`url(#${id}-clip)`}>
+          <rect x="0" y="0" width="1000" height="1000" fill={`url(#${id}-ocean)`} />
           <g className="cg-anim-astro-drift" style={spin}>
-            {[0, 1200].map((dx) => (
+            {[0, 1000].map((dx) => (
               <g key={dx} transform={`translate(${dx} 0)`}>
-                {LAND_LIGHTS.map(([x, y], i) => (
-                  <circle key={i} cx={x} cy={y} r={mode === "conectada" ? 4 : 3} fill={mode === "conectada" && i % 3 === 0 ? "#67e8f9" : "#fde68a"} opacity={mode === "conectada" ? 1 : 0.4} />
+                {LANDS.map((d, i) => (
+                  <path key={i} d={d} fill="#22c55e" stroke="#15803d" strokeWidth="5" strokeOpacity="0.5" />
+                ))}
+                <path d={DESERTS} fill="#ca8a04" opacity="0.55" />
+                <path d={MOUNTAINS} stroke="#166534" strokeWidth="4" fill="none" strokeLinejoin="round" opacity="0.6" />
+              </g>
+            ))}
+          </g>
+          <g className="cg-anim-astro-drift" style={{ "--cg-dur": "110s", "--cg-dx": "-1000px" } as React.CSSProperties} fill="#ffffff" opacity="0.7">
+            {[0, 1000].map((dx) => (
+              <g key={dx} transform={`translate(${dx} 0)`}>
+                {SKY_CLOUDS.map(([cx, cy, rx, ry], i) => (
+                  <ellipse key={i} cx={cx} cy={cy} rx={rx} ry={ry} />
                 ))}
               </g>
             ))}
           </g>
-        )}
-        <rect x="0" y="150" width="1200" height="250" fill={`url(#${id}-side)`} />
-        <rect x="0" y="150" width="1200" height="250" fill={`url(#${id}-limb)`} />
-        <rect x="0" y="150" width="1200" height="90" fill={`url(#${id}-haze)`} />
-      </g>
-      <circle cx="600" cy="1560" r="1401" fill="none" stroke={glow} strokeWidth="5" opacity="0.85" />
-      {mode === "conectada" &&
-        [
-          [240, 260, 0],
-          [520, 230, 0.7],
-          [800, 300, 1.4],
-          [1040, 240, 2],
-        ].map(([x, y, delay], i) => (
-          <circle key={i} cx={x} cy={y} r="14" fill="none" stroke="#67e8f9" strokeWidth="3" className="cg-anim-astro-ping" style={{ "--cg-delay": `${delay}s` } as React.CSSProperties} />
-        ))}
-    </svg>
+          {night && <rect x="0" y="0" width="1000" height="1000" fill="#020617" opacity={mode === "sem-sinal" ? 0.62 : 0.45} />}
+          {night && (
+            <g className="cg-anim-astro-drift" style={spin}>
+              {[0, 1000].map((dx) => (
+                <g key={dx} transform={`translate(${dx} 0)`}>
+                  {LAND_LIGHTS.map(([x, y], i) => (
+                    <circle key={i} cx={x} cy={y} r={mode === "conectada" ? 4 : 3} fill={mode === "conectada" && i % 3 === 0 ? "#67e8f9" : "#fde68a"} opacity={mode === "conectada" ? 1 : 0.4} />
+                  ))}
+                </g>
+              ))}
+            </g>
+          )}
+          <rect x="0" y="0" width="1000" height="1000" fill={`url(#${id}-limb)`} />
+        </g>
+        {/* a borda fininha da atmosfera */}
+        <circle cx="500" cy="500" r="501" fill="none" stroke={glow} strokeWidth="3" opacity="0.85" />
+        {mode === "conectada" &&
+          HORIZON_PINGS.map(([x, y, delay], i) => (
+            <circle key={i} cx={x} cy={y} r="12" fill="none" stroke="#67e8f9" strokeWidth="3" className="cg-anim-astro-ping" style={{ "--cg-delay": `${delay}s` } as React.CSSProperties} />
+          ))}
+      </svg>
+    </div>
   );
 }
