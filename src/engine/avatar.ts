@@ -22,7 +22,8 @@ export type ShopOutfit =
   | "roupa-zumbi" | "sobrevivente" | "hazmat"
   | "traje-espacial" | "fantasia-alien" | "uniforme-galactico"
   | "armadura-mecha" | "jaqueta-cyberpunk" | "traje-androide"
-  | "mago-danilo";
+  | "mago-danilo"
+  | "traje-estelar"; // exclusivo de Astronomia em: Salve o Wi-Fi (recompensa da Fase 1), não vai pra Loja
 export type ShopEyewear = "neon" | "coracao" | "pixel"
   | "oculos-abobora" | "vampiro" | "teia"
   | "olhar-medusa" | "oraculo"
@@ -58,7 +59,8 @@ export type Aura = "nenhum" | "fogo" | "arcana" | "gelo" | "estrelas"
   | "circuito" | "codigo-matrix" | "grade-neon"
   | "mago-danilo" | "dragao-ancestral"
   | "estrela-polar" // exclusiva do evento de Natal (recompensa da Fase 2), não vai pra Loja
-  | "lua-prateada"; // exclusiva de A Noite de Dracoding (recompensa da Fase 2), não vai pra Loja
+  | "lua-prateada" // exclusiva de A Noite de Dracoding (recompensa da Fase 2), não vai pra Loja
+  | "buraco-negro"; // exclusiva de Astronomia em: Salve o Wi-Fi (recompensa da Fase 3), não vai pra Loja
 export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
   | "abobora" | "lobo" | "morcego" | "aranha" | "caveira"
   | "aguia" | "serpente" | "minotauro" | "golfinho"
@@ -69,7 +71,8 @@ export type Pet = "nenhum" | "dragao" | "coruja" | "gato" | "fantasma" | "robo"
   | "alien" | "ovni" | "invasor" | "polvo"
   | "ia-orbe" | "drone" | "gato-robo" | "satelite"
   | "cometa" // exclusivo do evento de Natal (recompensa da Fase 1), não vai pra Loja
-  | "dracoding"; // exclusivo de A Noite de Dracoding (recompensa da Fase 3), não vai pra Loja
+  | "dracoding" // exclusivo de A Noite de Dracoding (recompensa da Fase 3), não vai pra Loja
+  | "lumenzinho"; // exclusivo de Astronomia em: Salve o Wi-Fi (recompensa da Fase 2), não vai pra Loja
 
 export interface AvatarConfig {
   skinTone: number; // índice em SKIN_TONES
@@ -205,6 +208,7 @@ export const SHOP_OUTFIT_LABELS: Record<ShopOutfit, string> = {
   "jaqueta-cyberpunk": "Jaqueta cyberpunk",
   "traje-androide": "Traje de androide",
   "mago-danilo": "Fantasia do Mago Danilo",
+  "traje-estelar": "Traje Estelar da Catarina",
 };
 export const SHOP_EYEWEAR_LABELS: Record<ShopEyewear, string> = {
   neon: "Óculos neon",
@@ -304,6 +308,7 @@ export const AURA_LABELS: Record<Aura, string> = {
   "grade-neon": "Horizonte neon",
   "mago-danilo": "Aura do Mago Danilo",
   "dragao-ancestral": "Aura do Dragão Ancestral",
+  "buraco-negro": "Aura do Buraco Negro",
 };
 export const PET_LABELS: Record<Pet, string> = {
   nenhum: "Nenhum",
@@ -347,6 +352,7 @@ export const PET_LABELS: Record<Pet, string> = {
   satelite: "Satélite de bolso",
   cometa: "Cometa, a renazinha estelar",
   dracoding: "Dracoding de Bolso",
+  lumenzinho: "Lumenzinho",
 };
 /** Emoji do mascote: ícone na Loja e desenho no canto do avatar (alguns mascotes têm desenho próprio em components/Avatar.tsx). */
 export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
@@ -390,6 +396,7 @@ export const PET_EMOJI: Record<Exclude<Pet, "nenhum">, string> = {
   satelite: "🛰️",
   cometa: "🦌",
   dracoding: "🧛",
+  lumenzinho: "🛰️",
 };
 /** Cores de roupa que só a Loja vende. */
 export const SHOP_OUTFIT_COLORS: { hex: string; label: string; collection?: CosmeticCollection }[] = [

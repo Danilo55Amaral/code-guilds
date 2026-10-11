@@ -1445,3 +1445,96 @@ export function playArcaneSurge(): () => void {
 
   return autoClose(ctx, 7000);
 }
+
+// ============================================================================
+// ASTRONOMIA EM: SALVE O WI-FI — a decolagem do foguete Vitória-1 e o rádio
+// procurando o sinal dos satélites da Constelação Lúmen.
+// ============================================================================
+
+/** Decolagem: o ronco grave do motor crescendo e o chiado do fogo subindo junto. */
+export function playRocketLaunch(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.5);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  // o chiado do fogo: ruído que abre (fica mais agudo) enquanto o foguete sobe e depois se afasta
+  const fire = ctx.createBufferSource();
+  fire.buffer = noiseBuffer(ctx, 4.6);
+  const fireFilter = ctx.createBiquadFilter();
+  fireFilter.type = "lowpass";
+  fireFilter.frequency.setValueAtTime(180, t);
+  fireFilter.frequency.exponentialRampToValueAtTime(950, t + 2.4);
+  fireFilter.frequency.exponentialRampToValueAtTime(260, t + 4.4);
+  const fireGain = ctx.createGain();
+  fireGain.gain.setValueAtTime(0.0001, t);
+  fireGain.gain.exponentialRampToValueAtTime(0.85, t + 1.1);
+  fireGain.gain.setValueAtTime(0.85, t + 2.6);
+  fireGain.gain.exponentialRampToValueAtTime(0.0001, t + 4.5);
+  fire.connect(fireFilter).connect(fireGain).connect(out);
+  fire.start(t);
+  fire.stop(t + 4.6);
+  // o ronco do motor por baixo
+  const engine = ctx.createOscillator();
+  engine.type = "sawtooth";
+  engine.frequency.setValueAtTime(38, t);
+  engine.frequency.exponentialRampToValueAtTime(72, t + 3);
+  const engineFilter = ctx.createBiquadFilter();
+  engineFilter.type = "lowpass";
+  engineFilter.frequency.value = 170;
+  const engineGain = ctx.createGain();
+  engineGain.gain.setValueAtTime(0.0001, t);
+  engineGain.gain.exponentialRampToValueAtTime(0.4, t + 1);
+  engineGain.gain.exponentialRampToValueAtTime(0.0001, t + 4.4);
+  engine.connect(engineFilter).connect(engineGain).connect(out);
+  engine.start(t);
+  engine.stop(t + 4.5);
+  return closeScene(ctx);
+}
+
+/** Rádio procurando sinal: estática que vai e volta e bipes de dados, como um modem antigo. */
+export function playRadioStatic(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.3);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+  const hiss = ctx.createBufferSource();
+  hiss.buffer = noiseBuffer(ctx, 3);
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.frequency.value = 2600;
+  band.Q.value = 0.7;
+  const hissGain = ctx.createGain();
+  hissGain.gain.setValueAtTime(0.0001, t);
+  // a estática chiando em ondas, como um rádio sendo sintonizado
+  [0, 0.45, 0.9, 1.5, 2.1].forEach((d, i) => {
+    hissGain.gain.exponentialRampToValueAtTime(i % 2 ? 0.08 : 0.45, t + d + 0.2);
+  });
+  hissGain.gain.exponentialRampToValueAtTime(0.0001, t + 2.9);
+  hiss.connect(band).connect(hissGain).connect(out);
+  hiss.start(t);
+  hiss.stop(t + 3);
+  // os bipes de dados
+  [
+    [0.55, 1320],
+    [0.7, 1760],
+    [1.25, 1320],
+    [1.38, 990],
+    [1.52, 1760],
+    [2.35, 2093],
+  ].forEach(([d, f]) => {
+    const at = t + d;
+    const beep = ctx.createOscillator();
+    beep.type = "square";
+    beep.frequency.value = f;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, at);
+    g.gain.exponentialRampToValueAtTime(0.12, at + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 0.1);
+    beep.connect(g).connect(out);
+    beep.start(at);
+    beep.stop(at + 0.12);
+  });
+  return closeScene(ctx);
+}

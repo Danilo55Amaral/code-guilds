@@ -27,6 +27,7 @@ export interface EventItemEntry {
 export const EVENT_COLLECTION: Record<EventId, CosmeticCollection> = {
   halloween: "halloween",
   dracoding: "halloween",
+  astronomia: "alien",
   zumbi: "zumbi",
   alien: "alien",
   natal: "natal",

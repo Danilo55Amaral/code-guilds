@@ -13,20 +13,23 @@
 import { Mission, MissionContent, RewardItem } from "./missions";
 import { EventProgress, Student, addXp, grantItem } from "./students";
 import { HOUSES, HouseId } from "./houses";
+import { ASTRONOMIA_FASE1_MISSIONS, ASTRONOMIA_FASE2_MISSIONS, ASTRONOMIA_FASE3_MISSIONS } from "./astronomyMissions";
 
-export type EventId = "halloween" | "dracoding" | "zumbi" | "alien" | "natal";
+export type EventId = "halloween" | "dracoding" | "astronomia" | "zumbi" | "alien" | "natal";
 
 /**
  * Quem fala na cena — define o nome no balão, a cor e a voz. "vilao" é o vilão
  * principal de cada evento; "lobisomem" e "espantalho" são os outros dois
- * vilões de A Noite de Dracoding.
+ * vilões de A Noite de Dracoding; "catarina" é a Catarina Vitória, a
+ * protagonista de Astronomia em: Salve o Wi-Fi.
  */
-export type SceneSpeaker = "narrador" | "mago" | "vilao" | "noel" | "lobisomem" | "espantalho";
+export type SceneSpeaker = "narrador" | "mago" | "vilao" | "noel" | "lobisomem" | "espantalho" | "catarina";
 
 /** Efeito sonoro que toca quando a cena começa. */
 export type SceneSound =
   | "sino" | "trovao" | "plim" | "fanfarra" | "alarme" | "gemido" | "ovni" | "laser" | "guizos" | "vento"
-  | "uivo" | "orgao" | "corvos" | "circo" | "morcegos";
+  | "uivo" | "orgao" | "corvos" | "circo" | "morcegos"
+  | "foguete" | "radio";
 
 export interface EventSceneStep {
   art: string; // qual desenho aparece (cada evento tem os seus, em components/events/)
@@ -2248,8 +2251,339 @@ const DRACODING: PhasedEvent = {
   ],
 };
 
-/** Todos os eventos, na ordem em que aparecem na tela de Eventos. */
-export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, DRACODING, ZOMBIE, ALIEN, NATAL];
+// ============================================================================
+// 🔭 ASTRONOMIA EM: SALVE O WI-FI — ideia da aluna Catarina Vitória, que é a
+// protagonista: a astrônoma mais jovem da CodeGuilds. Um evento em 3 fases
+// (uma por semana): o TON 618, o buraco negro mais faminto do universo, puxou
+// os satélites da Constelação Lúmen pra fora de órbita e a Terra ficou sem
+// Wi-Fi. Os alunos ajudam a Catarina e o Mago Danilo a decolar no foguete
+// Vitória-1, a desviar de meteoros e da ISS com o oxigênio contado e a abrir
+// um buraco de minhoca pra resgatar a Lúmen-Mãe. As missões prontas (9, com 10
+// perguntas de astronomia, astrofísica e cosmologia cada) ficam em
+// engine/astronomyMissions.ts.
+// ============================================================================
+
+const ASTRONOMIA: PhasedEvent = {
+  id: "astronomia",
+  icon: "🔭",
+  title: "Astronomia em: Salve o Wi-Fi!",
+  tagline: "🔭 Evento de Astronomia • 3 fases • ideia da aluna Catarina Vitória",
+  summary:
+    "A Terra acordou sem Wi-Fi! O TON 618, o buraco negro mais faminto do universo, puxou os satélites da Constelação Lúmen pra fora de órbita. Ajude a Catarina Vitória, a astrônoma mais brilhante da CodeGuilds, e o Mago Danilo a decolar no foguete Vitória-1, desviar de meteoros e da Estação Espacial, cuidar do oxigênio e abrir um buraco de minhoca pra trazer o sinal de volta.",
+  goal: "Complete as três fases com a Catarina, conserte a Constelação Lúmen, resgate a Lúmen-Mãe do TON 618 e devolva o Wi-Fi à Terra. Cada fase concluída vale um item lendário!",
+  villain: { name: "TON 618", icon: "🕳️", voice: { pitch: 0.1, rate: 0.75 } },
+  phases: [
+    {
+      number: 1,
+      icon: "🚀",
+      title: "Sem Sinal",
+      summary:
+        "A Terra inteira ficou sem internet. No observatório da CodeGuilds, a Catarina descobriu o motivo: os satélites da Constelação Lúmen saíram de órbita. O foguete Vitória-1 está pronto pra subir, mas os sistemas dele estão desligados. Ligue cada sistema e prepare a decolagem!",
+      goal: "Ligue os sistemas do foguete Vitória-1 e decole com a Catarina rumo à órbita da Terra.",
+      missionHint: "Cada missão que você vencer liga um sistema do foguete Vitória-1: motores, navegação e suporte de vida.",
+      finishCall: {
+        title: "Todos os sistemas do foguete estão ligados!",
+        text: "Luzes verdes no painel! Só falta o último passo: começar a contagem regressiva, decolar com a Catarina e ganhar o item lendário da Fase 1.",
+      },
+      intro: [
+        {
+          art: "terra-sem-wifi",
+          speaker: "narrador",
+          sound: "radio",
+          text: "Numa segunda-feira de manhã, a Terra inteira acordou sem sinal. Celulares sem Wi-Fi, vídeos travados, jogos parados, mensagens que não chegavam... e até a CodeGuilds ficou fora do ar!",
+        },
+        {
+          art: "observatorio",
+          speaker: "catarina",
+          sound: "plim",
+          text: "Oi, gente! Eu sou a Catarina Vitória, a astrônoma mais jovem da CodeGuilds! Passei a noite inteira aqui no observatório, olhando o céu pelo telescópio... e descobri o que aconteceu!",
+        },
+        {
+          art: "lumen-perdidos",
+          speaker: "catarina",
+          sound: "radio",
+          text: "Estão vendo esses pontinhos? São os satélites da Constelação Lúmen, que levam internet pra todo canto do planeta. Uma força gigante, vinda lá do fundo do universo, puxou todos eles pra fora do lugar!",
+        },
+        {
+          art: "ton618-sombra",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Hohoho... Eu sou o TON 618, o buraco negro mais faminto do universo! Tenho a massa de dezenas de bilhões de sóis e nada escapa de mim: nem a luz... e muito menos o Wi-Fi de vocês!",
+        },
+        {
+          art: "mago-catarina",
+          speaker: "mago",
+          sound: "plim",
+          text: "Catarina, ninguém entende o céu como você! Se os satélites estão perdidos, nós vamos buscá-los lá em cima. Aprendiz, você vem com a gente: o foguete Vitória-1 está esperando na plataforma!",
+        },
+        {
+          art: "foguete-plataforma",
+          speaker: "catarina",
+          sound: "alarme",
+          text: "Só que os sistemas do Vitória-1 estão desligados! Cada missão que você vencer liga um deles: os motores, a navegação e o suporte de vida. Com tudo pronto, é contagem regressiva!",
+        },
+        {
+          art: "chamado-1",
+          speaker: "catarina",
+          sound: "plim",
+          text: "Vista o traje, aprendiz! Eu piloto, o Mago cuida da magia e você cuida dos cálculos. A cada semana, uma fase nova. Vamos salvar o Wi-Fi da Terra!",
+        },
+      ],
+      outro: [
+        {
+          art: "contagem",
+          speaker: "narrador",
+          sound: "alarme",
+          text: "Motores, navegação, suporte de vida: tudo verde no painel! Na CodeGuilds, todo mundo contava junto: dez, nove, oito... três, dois, um...",
+        },
+        {
+          art: "decolagem",
+          speaker: "narrador",
+          sound: "foguete",
+          text: "DECOLAR! O Vitória-1 subiu num rastro de fogo, atravessou as nuvens e foi deixando a Terra cada vez menor lá embaixo.",
+        },
+        {
+          art: "orbita-terra",
+          speaker: "catarina",
+          sound: "plim",
+          text: "Uau, olhem a Terra daqui de cima! Azul, redondinha, sem fronteira nenhuma. E lá estão os satélites Lúmen: espalhados, girando sem rumo e com as antenas apagadas.",
+        },
+        {
+          art: "ton618-ameaca",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Subiram até a órbita? Que gracinha... Mas eu já mandei uma chuva de meteoros na direção de vocês. E lembrem: o oxigênio dessa latinha não dura pra sempre! Hohoho!",
+        },
+        {
+          art: "recompensa-1",
+          speaker: "catarina",
+          sound: "fanfarra",
+          text: "Você foi incrível, aprendiz! Toma: um traje estelar igualzinho ao meu, pra gente ficar uniformizado. É o seu prêmio lendário! Na próxima fase, vamos consertar os satélites... e desviar de muita coisa!",
+        },
+      ],
+      reward: {
+        xp: 250,
+        coins: 150,
+        item: {
+          name: "Traje Estelar da Catarina",
+          icon: "👩‍🚀",
+          description:
+            "O traje espacial da equipe da Catarina Vitória: branco, com detalhes fúcsia e violeta, o painel de luzes no peito e o emblema do Wi-Fi. Equipe no Inventário e use no seu avatar.",
+          rarity: "lendario",
+          value: 200,
+          xp: 0,
+          cosmetic: { slot: "outfit", value: "traje-estelar" },
+        },
+      },
+      presetMissions: ASTRONOMIA_FASE1_MISSIONS,
+    },
+    {
+      number: 2,
+      icon: "☄️",
+      title: "Chuva de Meteoros",
+      summary:
+        "Na órbita da Terra, a nave enfrenta uma chuva de meteoros, precisa passar longe da Estação Espacial Internacional e o oxigênio está contado. Enquanto isso, os satélites Lúmen giram sem rumo. Realinhe a constelação e traga o sinal de volta!",
+      goal: "Desvie dos meteoros, passe longe da ISS e realinhe os satélites da Constelação Lúmen.",
+      missionHint: "Cada missão que você vencer realinha um satélite Lúmen e acende a antena dele.",
+      finishCall: {
+        title: "Todos os satélites estão realinhados!",
+        text: "A rede de luz já cobre a Terra... Só falta o último passo pra ligar o sinal, descobrir onde está a Lúmen-Mãe e ganhar o item lendário da Fase 2.",
+      },
+      intro: [
+        {
+          art: "meteoros",
+          speaker: "narrador",
+          sound: "trovao",
+          text: "Na semana seguinte, na órbita da Terra, uma chuva de pequenos meteoritos cortava o espaço como faíscas de fogo. E no meio deles, os satélites Lúmen giravam fora do lugar.",
+        },
+        {
+          art: "estacao-espacial",
+          speaker: "catarina",
+          sound: "alarme",
+          text: "Cuidado, essa é a Estação Espacial Internacional, a ISS! Ela dá uma volta na Terra a cada 90 minutos, a uns 28 mil quilômetros por hora. Temos que passar bem longe dela!",
+        },
+        {
+          art: "oxigenio",
+          speaker: "catarina",
+          sound: "alarme",
+          text: "E atenção, tripulação: o nosso oxigênio tem um tempo certinho pra acabar. Olhem o marcador aqui no painel. Não dá pra perder nem um minuto!",
+        },
+        {
+          art: "ton618-meteoros",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Desviem, desviem! Cada meteoro é um presentinho meu. E enquanto vocês fogem, os satélites vão escorregando, pouquinho a pouquinho, na minha direção... Hohoho!",
+        },
+        {
+          art: "braco-robotico",
+          speaker: "mago",
+          sound: "plim",
+          text: "Catarina, pegue o braço robótico que eu protejo a nave com um escudo mágico! Aprendiz: cada missão que você vencer realinha um satélite Lúmen e acende a antena dele.",
+        },
+        {
+          art: "chamado-2",
+          speaker: "catarina",
+          sound: "plim",
+          text: "Vamos lá, tripulação! Três satélites, um de cada vez. A Terra inteira está esperando o sinal voltar!",
+        },
+      ],
+      outro: [
+        {
+          art: "lumen-alinhados",
+          speaker: "narrador",
+          sound: "plim",
+          text: "O último satélite girou, travou no lugar certo e acendeu a antena. Uma rede de luz se formou em volta da Terra... e, lá embaixo, os primeiros celulares voltaram a ter sinal!",
+        },
+        {
+          art: "wifi-voltando",
+          speaker: "catarina",
+          sound: "radio",
+          text: "Funcionou! Uma barrinha de sinal... duas barrinhas! Mas espera... o sinal está fraco demais. Está faltando alguém na rede.",
+        },
+        {
+          art: "lumen-mae-sumiu",
+          speaker: "catarina",
+          sound: "alarme",
+          text: "É a Lúmen-Mãe, o satélite principal, que conecta todos os outros! O radar diz que ela foi puxada pra muito longe... direto pro TON 618!",
+        },
+        {
+          art: "ton618-puxando",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Agora ela é minha! Venham buscar, se tiverem coragem... Mas cuidado com o meu horizonte de eventos: quem passa dele nunca mais volta!",
+        },
+        {
+          art: "recompensa-2",
+          speaker: "catarina",
+          sound: "fanfarra",
+          text: "Olha quem quer vir com a gente: o Lumenzinho, um mini satélite que eu montei com as peças que sobraram! Ele vai ser o seu mascote e o seu prêmio lendário. Na última fase... vamos até o buraco negro!",
+        },
+      ],
+      reward: {
+        xp: 350,
+        coins: 200,
+        item: {
+          name: "Lumenzinho",
+          icon: "🛰️",
+          description:
+            "Um mini satélite da Constelação Lúmen que a Catarina montou com as peças que sobraram: painéis solares, antena piscando e um sinal de Wi-Fi sempre cheio. Equipe no Inventário e ele vira o mascote no seu ombro.",
+          rarity: "lendario",
+          value: 250,
+          xp: 0,
+          cosmetic: { slot: "pet", value: "lumenzinho" },
+        },
+      },
+      presetMissions: ASTRONOMIA_FASE2_MISSIONS,
+    },
+    {
+      number: 3,
+      icon: "🕳️",
+      title: "Além do Horizonte",
+      summary:
+        "A Lúmen-Mãe foi puxada até o TON 618, um buraco negro com dezenas de bilhões de vezes a massa do Sol. Com o oxigênio acabando, a Catarina tem um plano: abrir um buraco de minhoca, um atalho no espaço-tempo, pra resgatar o satélite e voltar pra casa num piscar de olhos.",
+      goal: "Estabilize os anéis do buraco de minhoca, resgate a Lúmen-Mãe do TON 618 e devolva o Wi-Fi à Terra.",
+      missionHint: "Cada missão que você vencer estabiliza um anel do buraco de minhoca.",
+      finishCall: {
+        title: "Todos os anéis do buraco de minhoca estão estáveis!",
+        text: "O portal está aberto e a Lúmen-Mãe está ao alcance... Só falta o último passo pra resgatá-la, escapar do TON 618, salvar o Wi-Fi da Terra e ganhar o item lendário final.",
+      },
+      intro: [
+        {
+          art: "viagem",
+          speaker: "narrador",
+          sound: "vento",
+          text: "Chegou a última semana. O Vitória-1 voou pra longe, muito longe, até o coração de uma galáxia distante. E lá estava ele: o TON 618, girando, cercado por um disco de gás que brilhava mais que trilhões de sóis.",
+        },
+        {
+          art: "ton618",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Bem-vindos à minha casa! Aqui a minha gravidade é tão forte que até o tempo anda mais devagar. A Lúmen-Mãe está quase no meu horizonte de eventos... e, quando ela passar dele, nunca mais vai sair!",
+        },
+        {
+          art: "catarina-plano",
+          speaker: "catarina",
+          sound: "plim",
+          text: "Calma, tripulação, eu tenho um plano! Se a gente abrir um buraco de minhoca, um atalho no espaço-tempo, dá pra puxar a Lúmen-Mãe e voltar pra Terra num piscar de olhos!",
+        },
+        {
+          art: "buraco-minhoca",
+          speaker: "mago",
+          sound: "plim",
+          text: "Um atalho no tecido do universo! Eu abro o portal com magia, Catarina, mas ele precisa de três anéis estáveis. Aprendiz: cada missão que você vencer estabiliza um anel do buraco de minhoca.",
+        },
+        {
+          art: "oxigenio-pouco",
+          speaker: "catarina",
+          sound: "alarme",
+          text: "E rápido! O oxigênio está acabando, e a gravidade do TON 618 puxa a nave cada vez mais forte. Eu estou contando com você!",
+        },
+        {
+          art: "chamado-3",
+          speaker: "mago",
+          sound: "plim",
+          text: "É a última fase, aprendiz. A Catarina pilota, eu seguro o portal e você estabiliza os anéis. Vamos salvar o Wi-Fi da Terra!",
+        },
+      ],
+      outro: [
+        {
+          art: "aneis-estaveis",
+          speaker: "narrador",
+          sound: "plim",
+          text: "O terceiro anel se acendeu, e o buraco de minhoca se abriu como um túnel de luz azul. No último segundo, a Catarina agarrou a Lúmen-Mãe com o braço robótico!",
+        },
+        {
+          art: "ton618-perde",
+          speaker: "vilao",
+          sound: "trovao",
+          text: "Nããão! A minha Lúmen-Mãe! Ninguém nunca escapou da minha gravidade! Como uma menina conseguiu?!",
+        },
+        {
+          art: "catarina-heroina",
+          speaker: "catarina",
+          sound: "fanfarra",
+          text: "Com ciência, TON 618! Eu calculei a órbita certinha e usei um atalho no espaço-tempo. E tive a melhor tripulação do universo! Até nunca mais, buraco negro!",
+        },
+        {
+          art: "atravessando",
+          speaker: "narrador",
+          sound: "vento",
+          text: "O Vitória-1 mergulhou no túnel de luz e, num piscar de olhos, estava de volta à órbita da Terra. A Catarina ligou a Lúmen-Mãe na rede...",
+        },
+        {
+          art: "wifi-restaurado",
+          speaker: "narrador",
+          sound: "fanfarra",
+          text: "...e a Terra inteira se acendeu! Wi-Fi em cada casa, em cada escola, em cada celular. Na CodeGuilds, os alunos gritavam o nome da heroína: CA-TA-RI-NA!",
+        },
+        {
+          art: "recompensa-3",
+          speaker: "mago",
+          sound: "fanfarra",
+          text: "Você ajudou a Catarina a salvar o Wi-Fi do planeta, aprendiz! E o TON 618 deixou um presente sem querer: um pedaço do disco de luz dele, que agora gira atrás de você. É a Aura do Buraco Negro, o seu prêmio lendário!",
+        },
+      ],
+      reward: {
+        xp: 500,
+        coins: 300,
+        item: {
+          name: "Aura do Buraco Negro",
+          icon: "🕳️",
+          description:
+            "Um pedaço do disco de luz do TON 618, que a Catarina arrancou do buraco negro ao resgatar a Lúmen-Mãe: o disco de fogo gira atrás de você, com o anel de luz e as estrelas sendo puxadas. Equipe no Inventário e ela gira em volta do seu avatar.",
+          rarity: "lendario",
+          value: 300,
+          xp: 0,
+          cosmetic: { slot: "aura", value: "buraco-negro" },
+        },
+      },
+      presetMissions: ASTRONOMIA_FASE3_MISSIONS,
+    },
+  ],
+};
+
+/** Todos os eventos (no Salão dos Eventos, o liberado mais recentemente vem primeiro). */
+export const ACADEMY_EVENTS: AcademyEvent[] = [HALLOWEEN, DRACODING, ASTRONOMIA, ZOMBIE, ALIEN, NATAL];
 
 export function getEvent(id: string): AcademyEvent | undefined {
   return ACADEMY_EVENTS.find((e) => e.id === id);
