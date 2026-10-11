@@ -24,8 +24,8 @@ export default function ItemDetailsModal({ item, onClose }: { item: RewardItem &
   const glow = RARITY_GLOW[item.rarity];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.name}>
-      <div className="cg-card cg-anim-pop relative w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[60] flex overflow-y-auto bg-black/80 p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.name}>
+      <div className="cg-card cg-anim-pop relative m-auto w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="pointer-events-none absolute inset-0" style={{ background: `radial-gradient(70% 40% at 50% 18%, ${glow}33, transparent)` }} />
         <button
           onClick={onClose}

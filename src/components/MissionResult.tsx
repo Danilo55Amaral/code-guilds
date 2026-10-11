@@ -164,10 +164,10 @@ export function VictoryScreen({
   const sound = useSceneSound(playVictoryFanfare);
 
   return (
-    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex overflow-y-auto bg-black/80 p-4">
       <Confetti />
       <div
-        className="cg-card cg-anim-pop relative w-full max-w-md overflow-hidden p-8 text-center"
+        className="cg-card cg-anim-pop relative m-auto w-full max-w-md overflow-hidden p-8 text-center"
         style={{ boxShadow: "0 0 80px -20px rgba(251,191,36,0.45)" }}
       >
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_45%_at_50%_25%,rgba(251,191,36,0.14),transparent)]" />
@@ -288,7 +288,7 @@ export function DefeatScreen({
   const sound = useSceneSound(playDeathSound);
 
   return (
-    <div className="cg-dark-scope fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4">
+    <div className="cg-dark-scope fixed inset-0 z-50 flex overflow-y-auto bg-black/85 p-4">
       {/* vinheta vermelha pulsando e o corte da foice atravessando a tela */}
       <div
         className="cg-anim-red-flash pointer-events-none fixed inset-0 bg-[radial-gradient(circle,transparent_35%,rgba(127,29,29,0.75))]"
@@ -298,7 +298,7 @@ export function DefeatScreen({
         <div className="cg-anim-slash h-1.5 w-[140%] rounded-full bg-gradient-to-r from-transparent via-white to-transparent shadow-[0_0_24px_6px_rgba(255,255,255,0.7)]" />
       </div>
 
-      <div className="cg-anim-shake w-full max-w-md">
+      <div className="cg-anim-shake m-auto w-full max-w-md">
         <div className="cg-card relative overflow-hidden !border-rose-900/60 !bg-cg-deep p-8 text-center">
           {/* névoa no pé da cena */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 overflow-hidden" aria-hidden="true">
