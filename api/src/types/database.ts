@@ -32,6 +32,14 @@ export interface ChatMessages {
   toId: string;
 }
 
+export interface DailyRewards {
+  claimedAt: Generated<Timestamp>;
+  coins: number;
+  day: Timestamp;
+  studentId: string;
+  xp: number;
+}
+
 export interface EventRuns {
   endedAt: Timestamp | null;
   eventId: string;
@@ -226,6 +234,7 @@ export interface Trades {
 
 export interface DB {
   chatMessages: ChatMessages;
+  dailyRewards: DailyRewards;
   eventRuns: EventRuns;
   friendships: Friendships;
   messages: Messages;

@@ -408,6 +408,29 @@ export function playMagicChime(): () => void {
 }
 
 /**
+ * Presente da recompensa diária (~3s), sincronizado com o DailyReward:
+ * subida mágica enquanto o pergaminho desenrola (~0.5s a 1.6s) → sinos em
+ * arpejo quando ele abre → "bling" de moeda quando cada recompensa aparece
+ * (~2s e ~2.25s) → acorde final brilhante.
+ */
+export function playDailyRewardChime(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  playRiser(ctx, out, t + 0.45, t + 1.55);
+  [72, 76, 79, 84, 88, 91].forEach((m, i) => playChime(ctx, out, m, t + 1.55 + i * 0.08, 1.2, 0.06));
+  playCoin(ctx, out, t + 2);
+  playCoin(ctx, out, t + 2.25);
+  [84, 88, 91, 96].forEach((m) => playChime(ctx, out, m, t + 2.5, 1.8, 0.05));
+  playBrass(ctx, out, 60, t + 2.5, 1.2, 0.06); // Dó4 por baixo, dá corpo
+
+  return closeScene(ctx);
+}
+
+/**
  * Um personagem lê a fala em voz alta, com a altura (`pitch`, 0 a 2) e a
  * velocidade (`rate`) da voz dele. Emojis saem do texto (a voz leria o nome
  * deles). Devolve a função que interrompe a fala.
