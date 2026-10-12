@@ -30,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
 const MESSAGES_HREF = "/academia/casa/mensagens";
 const INVENTORY_HREF = "/academia/inventario";
 const FRIENDS_HREF = "/academia/amigos";
+const MISSIONS_HREF = "/academia/missoes";
 
 export default function AcademySidebar() {
   const pathname = usePathname();
@@ -40,7 +41,8 @@ export default function AcademySidebar() {
   const { incoming: friendRequests, unreadTotal: unreadChats } = useFriends(activeStudent?.id ?? null);
 
   function renderLink(item: NavItem, isChild: boolean) {
-    const active = pathname === item.href;
+    // dentro de um tomo da Biblioteca (/academia/missoes/scratch...) o "Missões" continua marcado
+    const active = pathname === item.href || (item.href === MISSIONS_HREF && pathname.startsWith(`${MISSIONS_HREF}/`));
     // mensagens não lidas no "Mensagens"; ofertas de compra, propostas de troca e itens esperando espaço no "Inventário";
     // pedidos de amizade + balões não lidos no "Amigos"
     const count =
