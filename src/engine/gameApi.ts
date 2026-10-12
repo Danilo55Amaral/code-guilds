@@ -101,6 +101,20 @@ export function attemptMission(missionId: string, answers: Record<string, string
 }
 
 // ---------------------------------------------------------------------------
+// Recompensa diária
+// ---------------------------------------------------------------------------
+
+/** O que a API contou sobre a recompensa do login diário. */
+export type DailyRewardOutcome =
+  | { claimed: false } // já ganhou a de hoje
+  | { claimed: true; reward: { xp: number; coins: number }; leveledUp: boolean; fromLevel: number; newLevel: number };
+
+/** Pede a recompensa do dia: a API só dá uma vez por dia (o dia do horário de Brasília). */
+export function claimDailyReward() {
+  return run<DailyRewardOutcome>(api.post("/daily-reward"));
+}
+
+// ---------------------------------------------------------------------------
 // Eventos
 // ---------------------------------------------------------------------------
 

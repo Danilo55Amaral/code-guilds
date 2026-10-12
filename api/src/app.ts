@@ -7,6 +7,7 @@ import { loadUser } from "./middlewares/auth";
 import { ValidationError } from "./validation/validations";
 import { authRoutes } from "./routes/auth";
 import { chatsRoutes } from "./routes/chats";
+import { dailyRewardRoutes } from "./routes/dailyReward";
 import { eventsRoutes } from "./routes/events";
 import { friendsRoutes } from "./routes/friends";
 import { giftsRoutes } from "./routes/gifts";
@@ -168,4 +169,8 @@ app.register(submissionsRoutes, {
 
 app.register(presenceRoutes, {
     prefix: 'presence',
+})
+
+app.register(dailyRewardRoutes, {
+    prefix: 'daily-reward',
 })

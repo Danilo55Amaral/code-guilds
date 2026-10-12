@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useStudents } from "@/engine/store";
 import AcademyHeader from "@/components/AcademyHeader";
 import AcademySidebar from "@/components/AcademySidebar";
+import DailyReward from "@/components/DailyReward";
 
 export default function AcademiaLayout({ children }: { children: React.ReactNode }) {
   const { activeStudent, ready } = useStudents();
@@ -30,6 +31,8 @@ export default function AcademiaLayout({ children }: { children: React.ReactNode
         <AcademySidebar />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
+      {/* o presente do Mago Danilo no primeiro acesso do dia */}
+      <DailyReward student={activeStudent} />
     </div>
   );
 }

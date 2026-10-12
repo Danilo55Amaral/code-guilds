@@ -29,6 +29,7 @@
 - [Fase 5: as entregas no servidor](#fase-5-as-entregas-no-servidor)
 - [Status online dos alunos](#status-online-dos-alunos)
 - [Dashboard do aluno](#dashboard-do-aluno)
+- [Recompensa diária](#recompensa-diária)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -92,6 +93,7 @@ api/
 │   ├── routes/            → as rotas, cada arquivo é um plugin do Fastify
 │   │   ├── auth.ts        → login, logout e "quem sou eu"
 │   │   ├── chats.ts       → conversa com balões entre amigos (fase 4)
+│   │   ├── dailyReward.ts → recompensa diária: 80 moedas e 120 XP no primeiro acesso do dia
 │   │   ├── events.ts      → agenda dos eventos e o progresso do aluno em cada fase
 │   │   ├── friends.ts     → pedidos de amizade e amizades
 │   │   ├── gifts.ts       → presentes do professor/ADM
@@ -1145,6 +1147,7 @@ Resumo:
 | GET | `/students/:id/dashboard` | O professor dele ou o ADM (dashboard do aluno) |
 | POST | `/presence` | Alunos (sinal de vida; devolve quem está online) |
 | GET | `/presence` | Logados (quem está online) |
+| POST | `/daily-reward` | Alunos (a recompensa do primeiro acesso do dia, ver [Recompensa diária](#recompensa-diária)) |
 
 As rotas do jogo (inventário, missões, Loja, presentes, amigos, Mercado, trocas e eventos)
 estão em [As rotas da fase 3](#as-rotas-da-fase-3).
@@ -2574,6 +2577,65 @@ variáveis CSS (`--viz-*`), com valores próprios pro tema escuro e pro claro (a
 validador de contraste e daltonismo nos dois temas); barras finas com a ponta arredondada e 2px
 de espaço; tooltip em cada barra (mouse e teclado); acertos e erros sempre com ✓/✗ e o nome, nunca
 só a cor; e "Ver dados em tabela" nos gráficos de barras.
+
+## Recompensa diária
+
+No primeiro acesso do dia, o aluno ganha **80 moedas e 120 XP** do Mago Danilo, uma vez só por
+dia. O site pede a recompensa ao abrir a Academia (e de novo se a aba voltar a ficar visível
+num dia novo); quem decide se ela já foi dada hoje é a API.
+
+### A tabela daily_rewards
+
+```
+daily_rewards
+├── student_id   uuid        → o aluno (excluir o aluno apaga as linhas dele)
+├── day          date        → o dia, no horário de Brasília
+├── xp           integer     → o XP que ele ganhou nesse dia
+├── coins        integer     → as moedas que ele ganhou nesse dia
+└── claimed_at   timestamptz → quando ele pegou
+    chave primária: (student_id, day)
+```
+
+A migration `20261012130000_create-table-daily-rewards` só **cria a tabela**: não mexe em
+nenhuma coluna de `students` nem em nada que os alunos já têm. E ela já serve de histórico
+(quantos dias cada aluno entrou), pro dashboard usar depois, se quiser.
+
+### A rota POST /daily-reward (src/routes/dailyReward.ts)
+
+Só alunos. Tudo numa transação:
+
+1. tenta gravar a linha de hoje (`insert ... on conflict do nothing returning day`), com o dia
+   de `TODAY_IN_BRAZIL` (o mesmo do tempo online, em `routes/presence.ts`);
+2. se a linha **já existia**, o aluno já ganhou a de hoje: nada muda e a resposta é
+   `{ claimed: false, student }`;
+3. se a linha é **nova**, trava a linha do aluno (`lockStudents`), aplica `applyDailyReward`
+   (de `src/engine/dailyReward.ts`, a regra que o site também conhece: XP com estouro de nível e
+   moedas) e salva. A resposta é
+   `{ claimed: true, reward: { xp, coins }, leveledUp, fromLevel, newLevel, student }`.
+
+Duas abas pedindo ao mesmo tempo não dão a recompensa duas vezes: a chave `(student_id, day)`
+faz a segunda gravação esperar a primeira terminar, e aí ela encontra a linha e não faz nada.
+O valor (`DAILY_REWARD`) fica em `src/engine/dailyReward.ts`; mudar lá muda pra todo mundo a
+partir do próximo deploy (as linhas antigas guardam quanto cada um ganhou).
+
+### No site
+
+`src/components/DailyReward.tsx` fica no layout da Academia e chama `claimDailyReward()`
+(`src/engine/gameApi.ts`). Se a recompensa foi dada agora, abre a cena: o Mago Danilo entra
+no círculo mágico e entrega um pergaminho que desenrola, a carta dele vai sendo escrita com o
+nome do aluno (a boca mexe enquanto isso), o +120 de XP e o +80 moedas caem carimbados na folha,
+toca o som do presente (`playDailyRewardChime`) e, com o som ligado, o mago lê a carta. No
+primeiro acesso de todos, o pergaminho espera o tutorial fechar; se o XP fez o aluno subir de
+nível, a cena de subir de nível vem depois.
+
+### Testando
+
+Com a API e o banco local: entre como aluno e o pergaminho aparece; recarregue e ele não volta.
+Pra ver de novo no mesmo dia, apague a linha de hoje **no banco local**:
+
+```sql
+delete from daily_rewards where student_id = '<id do aluno>' and day = (now() at time zone 'America/Sao_Paulo')::date;
+```
 
 ## Build da aplicação
 
