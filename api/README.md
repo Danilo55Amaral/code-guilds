@@ -1854,8 +1854,9 @@ Do mesmo jeito, a `20261010120000_add-ancient-dragon-aura-to-shop` colocou à ve
 Dragão Ancestral (15.000 moedas; `ANCIENT_DRAGON_AURA_SHOP` entra no `DEFAULT_SHOP`).
 
 A `20261012120000_add-subject-to-missions` acrescentou a **matéria** da missão (`subject`:
-`ods`, `astronomia`, `programacao`, `scratch`, `roblox`, `informatica`, `app-inventor` ou
-`hardware`; a lista fica em `src/engine/subjects.ts` e a rota confere com `z.enum`). A coluna
+`ods`, `astronomia`, `programacao`, `scratch`, `roblox`, `informatica`, `app-inventor`,
+`hardware`, `biologia`, `fisica`, `quimica`, `portugues`, `historia` ou `ingles`; a lista fica em
+`src/engine/subjects.ts` e a rota confere com `z.enum`, então matéria nova não precisa de migration). A coluna
 nasce vazia: nenhuma missão nem aluno muda. Enquanto a missão não tem matéria, o site mostra
 ela na matéria que o título indica (`inferSubject`); quando o professor salva a missão no
 editor, a matéria escolhida fica gravada. Na edição, `subject: null` tira a matéria.
