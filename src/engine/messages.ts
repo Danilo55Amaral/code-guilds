@@ -139,13 +139,20 @@ export function purchaseMessage(data: { item: ItemSummary; sellerName: string; p
   );
 }
 
-/** Comprador: compra na Loja da Academia. */
-export function shopPurchaseMessage(data: { item: ItemSummary; price: number; isCosmetic: boolean }): string {
+/** Comprador: compra na Loja da Academia (uma unidade ou várias de uma vez; `price` é o de cada uma). */
+export function shopPurchaseMessage(data: { item: ItemSummary; price: number; isCosmetic: boolean; quantity?: number }): string {
+  const quantity = data.quantity ?? 1;
+  const bought =
+    quantity > 1
+      ? `${quantity} unidades de ${describeItem(data.item)} por ${data.price * quantity} moedas (${data.price} cada)`
+      : `${describeItem(data.item)} por ${data.price} moedas`;
   return (
-    `🛍️ Compra na Loja realizada com sucesso! Você comprou ${describeItem(data.item)} por ${data.price} moedas.\n\n` +
+    `🛍️ Compra na Loja realizada com sucesso! Você comprou ${bought}.\n\n` +
     (data.isCosmetic
       ? "É um visual pro seu avatar: vá ao Inventário e clique em 👕 Equipar pra usar."
-      : "O item já está no seu Inventário.")
+      : quantity > 1
+        ? "Os itens já estão no seu Inventário."
+        : "O item já está no seu Inventário.")
   );
 }
 

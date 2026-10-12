@@ -1888,7 +1888,7 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 | GET | `/shop` | Logados | ADM: todos os itens; os outros: só os que não estão escondidos |
 | POST / PUT / DELETE | `/shop`, `/shop/:id` | ADM | cadastra, edita e tira itens da Loja |
 | POST / DELETE | `/shop/collections/:collection` | ADM | coloca ou tira uma coleção inteira |
-| POST | `/shop/:id/buy` | Aluno | compra o item |
+| POST | `/shop/:id/buy` | Aluno | compra o item (uma ou várias unidades) |
 | POST | `/gifts` | Professores | dá um item pra uma lista de alunos |
 | GET / POST | `/friends` | Aluno | os vínculos do aluno / manda um pedido de amizade |
 | POST | `/friends/:id/accept` | Aluno (quem recebeu) | aceita o pedido |
@@ -1947,7 +1947,7 @@ espaço livre, o `pending/claim` responde `400`.
 
 #### Loja
 
-- `POST /shop/:id/buy` usa o `applyPurchase` do site: confere moedas, espaço no inventário e se o aluno já tem aquele visual. Resposta: `{ "student": {...}, "item": {...o item que entrou no inventário} }`. Item escondido não pode ser comprado (`400`).
+- `POST /shop/:id/buy` usa o `applyPurchase` do site: confere moedas, espaço no inventário e se o aluno já tem aquele visual. O corpo pode trazer `{ "quantity": 5 }` pra comprar várias unidades de uma vez (de 1 a `MAX_PURCHASE_QUANTITY`, 99; sem corpo, compra 1): as moedas saem `preço × quantidade`, cada unidade entra no inventário como um item próprio (e ocupa um espaço), a contagem de vendas sobe a quantidade e a mensagem 🛒 diz quantas foram. Visual é sempre um só (`400` com quantidade maior). Resposta: `{ "student": {...}, "item": {...a primeira unidade}, "items": [...todas], "quantity": 5 }`. Item escondido não pode ser comprado (`400`).
 - O ADM não consegue cadastrar dois itens com o mesmo visual (`400`).
 - Ao editar um item, o `eventItemKey` (o elo com um item de evento) e a `collection` só mudam se vierem no corpo: editar o preço não desliga o item do evento.
 - `POST /shop/collections/natal` coloca à venda os visuais da coleção que ainda não estão na Loja (`{ "added": 12 }`); o `DELETE` tira (`{ "removed": 12 }`).

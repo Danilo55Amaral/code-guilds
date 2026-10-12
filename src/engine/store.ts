@@ -424,7 +424,7 @@ export function useShop() {
   }, []);
 
   // A compra é decidida pela API, que também manda a mensagem 🛒 Compra pro aluno.
-  const buy = useCallback((shopItem: ShopItem) => game.buyShopItem(shopItem.id), []);
+  const buy = useCallback((shopItem: ShopItem, quantity = 1) => game.buyShopItem(shopItem.id, quantity), []);
 
   const addItemsOfCollection = useCallback(async (collection: CosmeticCollection) => {
     const result = await shopApi.addCollection(collection);

@@ -8,7 +8,7 @@ import { shopPurchaseMessage } from "../../../src/engine/messages";
 import { studentsQuery } from "../utils/queries";
 import { ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
-import { MAX_SPACE_SLOTS, SHOP_COLLECTIONS, ShopItem, applyPurchase, missingFromCollection } from "../../../src/engine/shop";
+import { MAX_PURCHASE_QUANTITY, MAX_SPACE_SLOTS, SHOP_COLLECTIONS, ShopItem, applyPurchase, missingFromCollection } from "../../../src/engine/shop";
 import { COLLECTIONS, sameCosmetic } from "../../../src/engine/avatar";
 
 // ============================================================================
@@ -226,14 +226,21 @@ export async function shopRoutes(app: FastifyInstance) {
         return { removed: removed.length, ids: removed.map((r) => r.id) }
     })
 
-    // Comprando um item (o aluno). Tudo numa transação: as moedas saem, o item
-    // entra no inventário e a contagem de vendas do item sobe.
+    // Comprando um item (o aluno), uma unidade ou várias de uma vez (quantity,
+    // de 1 a MAX_PURCHASE_QUANTITY; sem ela, 1). Tudo numa transação: as moedas
+    // saem (preço × quantidade), cada unidade entra no inventário e a contagem
+    // de vendas do item sobe a quantidade comprada.
     app.post('/:id/buy', { preHandler: ensureStudent }, async (request, reply) => {
         const buyParamsSchema = z.object({
             id: z.string().min(1),
         })
 
+        const buyBodySchema = z.object({
+            quantity: z.number().int().min(1).max(MAX_PURCHASE_QUANTITY).default(1),
+        })
+
         const { id } = buyParamsSchema.parse(request.params)
+        const { quantity } = buyBodySchema.parse(request.body ?? {})
         const studentId = request.user!.id
 
         const row = await shopItemsQuery().where('id', '=', id).executeTakeFirst()
@@ -247,16 +254,16 @@ export async function shopRoutes(app: FastifyInstance) {
         const result = await updateProgress(
             studentId,
             (student) => {
-                const purchase = applyPurchase(student, shopItem)
+                const purchase = applyPurchase(student, shopItem, quantity)
 
                 if (!purchase.ok) throw new ValidationError(purchase.error)
 
-                return { student: purchase.student, item: purchase.item }
+                return { student: purchase.student, item: purchase.item, items: purchase.items }
             },
             async (trx) => {
                 await trx
                     .updateTable('shopItems')
-                    .set((eb) => ({ sold: eb('sold', '+', 1) }))
+                    .set((eb) => ({ sold: eb('sold', '+', quantity) }))
                     .where('id', '=', id)
                     .execute()
 
@@ -264,13 +271,13 @@ export async function shopRoutes(app: FastifyInstance) {
                 await sendMessages(trx, [{
                     studentId,
                     kind: 'compra',
-                    body: shopPurchaseMessage({ item: shopItem, price: shopItem.price, isCosmetic: !!shopItem.cosmetic }),
+                    body: shopPurchaseMessage({ item: shopItem, price: shopItem.price, isCosmetic: !!shopItem.cosmetic, quantity }),
                 }])
             },
         )
 
         const student = await studentsQuery().where('id', '=', studentId).executeTakeFirst()
 
-        return { student, item: result.item }
+        return { student, item: result.item, items: result.items, quantity }
     })
 }
