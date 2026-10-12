@@ -143,9 +143,9 @@ export function finishEventPhase(eventId: EventId, phase: number) {
 // Loja
 // ---------------------------------------------------------------------------
 
-/** Compra um item da Loja: a API confere moedas, espaço e se o visual já é do aluno. */
-export function buyShopItem(shopItemId: string) {
-  return run<{ item: InventoryItem }>(api.post(`/shop/${shopItemId}/buy`));
+/** Compra um item da Loja (uma ou várias unidades): a API confere moedas, espaço e se o visual já é do aluno. */
+export function buyShopItem(shopItemId: string, quantity = 1) {
+  return run<{ item: InventoryItem; items: InventoryItem[]; quantity: number }>(api.post(`/shop/${shopItemId}/buy`, { quantity }));
 }
 
 // ---------------------------------------------------------------------------

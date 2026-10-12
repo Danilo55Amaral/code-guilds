@@ -910,20 +910,45 @@ export function eventItemCount(collection: CosmeticCollection): number {
 
 // ============================================================================
 // COMPRA — a regra que o servidor usa (a API importa esta função): confere se
-// dá pra comprar e devolve o aluno com as moedas descontadas e o item novo no
-// inventário. Não salva nada: quem salva é a API.
+// dá pra comprar e devolve o aluno com as moedas descontadas e os itens novos
+// no inventário. Não salva nada: quem salva é a API.
+// O aluno pode comprar várias unidades de uma vez (cada uma é um item no
+// inventário e ocupa um espaço); visual é sempre uma só, porque não repete.
 // ============================================================================
 
-export type PurchaseResult = { ok: true; student: Student; item: InventoryItem } | { ok: false; error: string };
+/** O máximo de unidades numa compra só. */
+export const MAX_PURCHASE_QUANTITY = 99;
 
-export function applyPurchase(student: Student, shopItem: ShopItem): PurchaseResult {
+export type PurchaseResult =
+  | { ok: true; student: Student; items: InventoryItem[]; item: InventoryItem; quantity: number; total: number }
+  | { ok: false; error: string };
+
+/** Quantas unidades do item o aluno consegue comprar agora (moedas, espaço e o limite por compra). */
+export function maxPurchaseQuantity(student: Student, shopItem: ShopItem): number {
+  if (shopItem.cosmetic && ownsCosmetic(student, shopItem.cosmetic)) return 0;
+  const limit = shopItem.cosmetic ? 1 : MAX_PURCHASE_QUANTITY;
+  const byCoins = shopItem.price > 0 ? Math.floor(student.coins / shopItem.price) : limit;
+  return Math.max(0, Math.min(limit, byCoins, freeSlots(student)));
+}
+
+export function applyPurchase(student: Student, shopItem: ShopItem, quantity = 1): PurchaseResult {
   if (shopItem.hidden) return { ok: false, error: "Esse item não está mais à venda." };
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PURCHASE_QUANTITY) {
+    return { ok: false, error: `A quantidade vai de 1 a ${MAX_PURCHASE_QUANTITY}.` };
+  }
   if (shopItem.cosmetic && ownsCosmetic(student, shopItem.cosmetic)) return { ok: false, error: "Você já tem esse visual — é só equipar no Inventário." };
-  if (student.coins < shopItem.price) return { ok: false, error: `Moedas insuficientes — faltam ${shopItem.price - student.coins}.` };
-  if (freeSlots(student) < 1) return { ok: false, error: inventoryFullError(student) };
+  if (shopItem.cosmetic && quantity > 1) return { ok: false, error: "Visual se compra um só: ele não repete no avatar." };
 
-  const item: InventoryItem = {
-    id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
+  const total = shopItem.price * quantity;
+  if (student.coins < total) return { ok: false, error: `Moedas insuficientes — faltam ${total - student.coins}.` };
+  if (freeSlots(student) < quantity) {
+    const free = freeSlots(student);
+    return { ok: false, error: free < 1 ? inventoryFullError(student) : `Só cabem mais ${free} ${free === 1 ? "item" : "itens"} no seu inventário.` };
+  }
+
+  const now = Date.now();
+  const items: InventoryItem[] = Array.from({ length: quantity }, (_, k) => ({
+    id: `i_${now}_${k}_${Math.round(Math.random() * 9999)}`,
     name: shopItem.name,
     icon: shopItem.icon,
     description: shopItem.description,
@@ -932,8 +957,15 @@ export function applyPurchase(student: Student, shopItem: ShopItem): PurchaseRes
     xp: shopItem.cosmetic || shopItem.slots ? 0 : shopItem.xp,
     ...(shopItem.cosmetic && { cosmetic: shopItem.cosmetic }),
     ...(shopItem.slots && { slots: shopItem.slots }),
-    obtainedAt: new Date().toISOString(),
-  };
+    obtainedAt: new Date(now).toISOString(),
+  }));
 
-  return { ok: true, student: { ...student, coins: student.coins - shopItem.price, inventory: [...student.inventory, item] }, item };
+  return {
+    ok: true,
+    student: { ...student, coins: student.coins - total, inventory: [...student.inventory, ...items] },
+    items,
+    item: items[0],
+    quantity,
+    total,
+  };
 }

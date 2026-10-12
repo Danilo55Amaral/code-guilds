@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useStudents, useShop, useGameActions } from "@/engine/store";
-import { ShopItem, collectionsNewestFirst } from "@/engine/shop";
+import { ShopItem, collectionsNewestFirst, maxPurchaseQuantity } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
 import { COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "@/components/collections";
@@ -66,6 +66,58 @@ function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: nu
   );
 }
 
+/** Quantas unidades comprar: − e +, o número digitado e os atalhos (1, 5, 10 e o máximo). */
+function QuantityPicker({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
+  const set = (n: number) => onChange(Math.max(1, Math.min(Math.max(1, max), Math.floor(n) || 1)));
+  const step =
+    "flex h-11 w-11 items-center justify-center rounded-full border border-slate-700 bg-cg-raised text-xl font-black text-white transition-colors hover:border-amber-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-700";
+  const shortcuts = Array.from(new Set([1, 5, 10, max])).filter((n) => n >= 1 && n <= max);
+
+  return (
+    <div className="mt-4">
+      <p className="text-[11px] uppercase tracking-wider text-slate-500">Quantos você quer?</p>
+      <div className="mt-2 flex items-center justify-center gap-3">
+        <button type="button" onClick={() => set(value - 1)} disabled={value <= 1} className={step} aria-label="Menos um">
+          −
+        </button>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={1}
+          max={Math.max(1, max)}
+          value={value}
+          onChange={(e) => set(Number(e.target.value))}
+          onFocus={(e) => e.target.select()}
+          aria-label="Quantidade"
+          className="w-20 rounded-xl border border-slate-700 bg-cg-sunken py-1.5 text-center text-2xl font-black text-white outline-none focus:border-amber-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
+        <button type="button" onClick={() => set(value + 1)} disabled={value >= max} className={step} aria-label="Mais um">
+          +
+        </button>
+      </div>
+      {max > 1 && (
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+          {shortcuts.map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => set(n)}
+              className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${
+                n === value ? "border-amber-400 bg-amber-400/15 text-amber-200" : "border-slate-700 text-slate-300 hover:border-slate-500"
+              }`}
+            >
+              {n === max ? `Máx (${max})` : n}
+            </button>
+          ))}
+        </div>
+      )}
+      <p className="mt-2 text-[11px] text-slate-500">
+        {max >= 1 ? `Você pode comprar até ${max} agora (pelas suas moedas e pelo espaço no inventário).` : "Sem moedas ou espaço pra comprar agora."}
+      </p>
+    </div>
+  );
+}
+
 export default function LojaPage() {
   const { activeStudent } = useStudents();
   const { items: allItems, ready, buy } = useShop();
@@ -77,7 +129,9 @@ export default function LojaPage() {
   const [sort, setSort] = useState<Sort>("destaques");
   const [tryOn, setTryOn] = useState<ShopItem | null>(null);
   const [confirming, setConfirming] = useState<ShopItem | null>(null);
-  const [bought, setBought] = useState<{ shopItem: ShopItem; inventoryId: string } | null>(null);
+  // quantas unidades o aluno escolheu no modal de compra
+  const [quantity, setQuantity] = useState(1);
+  const [bought, setBought] = useState<{ shopItem: ShopItem; inventoryId: string; quantity: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!activeStudent || !ready) return null;
@@ -106,17 +160,23 @@ export default function LojaPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function openBuy(item: ShopItem) {
+    setError(null);
+    setQuantity(1);
+    setConfirming(item);
+  }
+
   // A compra é decidida pela API (moedas, espaço e visual repetido)
   async function confirmBuy() {
     if (!confirming || busy) return;
     setBusy(true);
-    const result = await buy(confirming);
+    const result = await buy(confirming, quantity);
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
       return;
     }
-    setBought({ shopItem: confirming, inventoryId: result.item.id });
+    setBought({ shopItem: confirming, inventoryId: result.item.id, quantity: result.quantity });
     setConfirming(null);
     setError(null);
     setTryOn(null);
@@ -201,10 +261,7 @@ export default function LojaPage() {
           </Link>
         ) : (
           <button
-            onClick={() => {
-              setError(null);
-              setConfirming(item);
-            }}
+            onClick={() => openBuy(item)}
             disabled={!canAfford}
             className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-3 py-2 text-xs font-bold text-cg-onaccent shadow-lg shadow-amber-500/20 transition-transform hover:scale-[1.03] disabled:cursor-not-allowed disabled:from-slate-600 disabled:to-slate-600 disabled:shadow-none disabled:hover:scale-100"
           >
@@ -415,8 +472,8 @@ export default function LojaPage() {
 
       {/* ===== CONFIRMAR COMPRA ===== */}
       {confirming && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setConfirming(null)}>
-          <div className="cg-card cg-anim-pop w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/80 p-4" onClick={() => setConfirming(null)}>
+          <div className="cg-card cg-anim-pop m-auto w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <ItemPreview item={confirming} me={me} size={130} />
             <div className="px-6 pb-6 text-center">
               <p className="text-[11px] uppercase tracking-wider text-slate-500">Confirmar compra</p>
@@ -425,19 +482,44 @@ export default function LojaPage() {
                 <RarityBadge rarity={confirming.rarity} />
               </div>
               <p className="mt-3 text-sm text-slate-300">{confirming.description}</p>
+              {!confirming.cosmetic && (
+                <QuantityPicker value={quantity} max={maxPurchaseQuantity(me, confirming)} onChange={setQuantity} />
+              )}
               <div className="mt-4 rounded-xl border border-slate-800 bg-cg-sunken px-4 py-3 text-sm">
                 <div className="flex justify-between text-slate-400">
-                  <span>Preço</span>
+                  <span>{quantity > 1 ? "Preço de cada" : "Preço"}</span>
                   <span className="flex items-center gap-1 font-bold text-amber-300">
                     <CoinIcon size={14} /> {confirming.price}
                   </span>
                 </div>
+                {quantity > 1 && (
+                  <>
+                    <div className="mt-1 flex justify-between text-slate-400">
+                      <span>Quantidade</span>
+                      <span className="font-semibold text-slate-200">× {quantity}</span>
+                    </div>
+                    <div className="mt-2 flex justify-between border-t border-slate-800 pt-2 text-slate-300">
+                      <span className="font-semibold">Total</span>
+                      <span className="flex items-center gap-1 text-base font-black text-amber-300">
+                        <CoinIcon size={16} /> {confirming.price * quantity}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="mt-1 flex justify-between text-slate-400">
                   <span>Saldo depois da compra</span>
                   <span className="flex items-center gap-1 font-semibold text-slate-200">
-                    <CoinIcon size={14} /> {me.coins - confirming.price}
+                    <CoinIcon size={14} /> {me.coins - confirming.price * quantity}
                   </span>
                 </div>
+                {quantity > 1 && (
+                  <div className="mt-1 flex justify-between text-slate-400">
+                    <span>Espaço no inventário</span>
+                    <span className="font-semibold text-slate-200">
+                      {quantity} de {freeSlots(me)} livres
+                    </span>
+                  </div>
+                )}
               </div>
               {confirming.slots && (
                 <p className="mt-3 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3 py-2 text-xs text-teal-100">
@@ -456,9 +538,10 @@ export default function LojaPage() {
                 </button>
                 <button
                   onClick={confirmBuy}
-                  className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2.5 text-sm font-bold text-cg-onaccent shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.03]"
+                  disabled={busy || maxPurchaseQuantity(me, confirming) < quantity}
+                  className="flex-1 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-4 py-2.5 text-sm font-bold text-cg-onaccent shadow-lg shadow-amber-500/25 transition-transform hover:scale-[1.03] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  Comprar por {confirming.price}
+                  {busy ? "Comprando…" : quantity > 1 ? `Comprar ${quantity} por ${confirming.price * quantity}` : `Comprar por ${confirming.price}`}
                 </button>
               </div>
             </div>
@@ -498,9 +581,10 @@ export default function LojaPage() {
               <h2 className="cg-anim-shimmer mt-5 text-2xl font-black uppercase">Compra feita!</h2>
               <p className="mt-2 text-sm text-slate-300">
                 <span className="font-semibold text-white">
+                  {bought.quantity > 1 && `${bought.quantity}× `}
                   {bought.shopItem.icon} {bought.shopItem.name}
                 </span>{" "}
-                agora é seu.
+                {bought.quantity > 1 ? "agora são seus." : "agora é seu."}
               </p>
               {bought.shopItem.cosmetic ? (
                 <div className="mt-6 flex flex-col gap-2">
