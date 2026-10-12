@@ -118,6 +118,7 @@ async function importMissions() {
                 kind: body.kind ?? 'quiz',
                 eventId: body.eventId ?? null,
                 eventPhase: body.eventPhase ?? null,
+                subject: body.subject ?? null,
             })
             .execute()
 

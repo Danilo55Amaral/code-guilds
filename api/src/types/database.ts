@@ -77,6 +77,7 @@ export interface Missions {
   rewardCoins: Generated<number>;
   rewardItem: Json;
   rewardXp: Generated<number>;
+  subject: string | null;
   task: Json | null;
   teacherId: string;
   title: string;

@@ -4,11 +4,29 @@ import { useState } from "react";
 import { Mission, matchesSearch } from "@/engine/missions";
 import { Student } from "@/engine/students";
 import { getEvent } from "@/engine/specialEvents";
+import { getSubject, missionSubject } from "@/engine/subjects";
 import { DifficultyBadge } from "./GameUI";
 import SearchInput from "./SearchInput";
 import { PaginationFooter, usePagination } from "./Pagination";
 
 const MISSIONS_PER_PAGE = 10;
+
+/** A matéria da missão (a que o professor escolheu ou, em itálico, a que o título indica). */
+function SubjectTag({ mission }: { mission: Mission }) {
+  const id = missionSubject(mission);
+  const subject = id ? getSubject(id) : undefined;
+  if (!subject) {
+    return <span className="rounded-full border border-slate-600 bg-slate-500/10 px-2 text-[10px] font-semibold text-slate-400">📜 Sem matéria</span>;
+  }
+  return (
+    <span
+      title={mission.subject ? undefined : "Matéria pelo título da missão — abra a missão pra confirmar ou trocar"}
+      className={`rounded-full border border-amber-500/40 bg-amber-500/10 px-2 text-[10px] font-semibold text-amber-200 ${mission.subject ? "" : "italic"}`}
+    >
+      {subject.icon} {subject.name}
+    </span>
+  );
+}
 
 /**
  * Card de missões dos painéis (professor e ADM): mesma busca da tela de Missões
@@ -71,10 +89,12 @@ export default function MissionList({
                           {m.kind === "entrega" && (
                             <span className="rounded-full border border-indigo-500/40 bg-indigo-500/10 px-2 text-[10px] font-semibold text-indigo-300">📝 Entrega</span>
                           )}
-                          {m.eventId && (
+                          {m.eventId ? (
                             <span className="rounded-full border border-orange-500/40 bg-orange-500/10 px-2 text-[10px] font-semibold text-orange-300">
                               {getEvent(m.eventId)?.icon ?? "📅"} Evento
                             </span>
+                          ) : (
+                            <SubjectTag mission={m} />
                           )}
                         </p>
                         <p className="text-xs text-slate-500">{m.description}</p>

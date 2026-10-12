@@ -25,6 +25,7 @@ import ShopItemPicker from "./ShopItemPicker";
 import { eventItemOfReward } from "@/engine/eventItems";
 import { ItemStats, RarityBadge } from "./GameUI";
 import { MULTIVERSE_KEY_ITEM } from "@/engine/multiverse";
+import { SUBJECTS, SubjectId, inferSubject } from "@/engine/subjects";
 
 type OptionKey = "a" | "b" | "c" | "d";
 
@@ -38,6 +39,7 @@ interface QuestionDraft {
 
 interface MissionDraft {
   title: string;
+  subject: SubjectId | ""; // a matéria (vazio = ainda não escolhida)
   icon: string;
   difficulty: Difficulty;
   minLevel: number;
@@ -72,6 +74,7 @@ function emptyQuestion(): QuestionDraft {
 function emptyDraft(): MissionDraft {
   return {
     title: "",
+    subject: "",
     icon: "🧩",
     difficulty: "iniciante",
     minLevel: 1,
@@ -95,6 +98,8 @@ function emptyDraft(): MissionDraft {
 function missionToDraft(m: Mission): MissionDraft {
   return {
     title: m.title,
+    // missão de antes da Biblioteca: já vem marcada a matéria que o título indica
+    subject: m.subject ?? inferSubject(m) ?? "",
     icon: m.icon,
     difficulty: m.difficulty,
     minLevel: m.minLevel,
@@ -133,6 +138,7 @@ function draftToMission(d: MissionDraft, kind: MissionKind): MissionContent {
   const isTask = kind === "entrega";
   return {
     title: d.title.trim(),
+    ...(d.subject && { subject: d.subject }),
     icon: d.icon.trim() || "🧩",
     difficulty: d.difficulty,
     minLevel: d.minLevel,
@@ -172,8 +178,10 @@ function draftToMission(d: MissionDraft, kind: MissionKind): MissionContent {
   };
 }
 
-function draftIsValid(d: MissionDraft, kind: MissionKind): boolean {
+/** `needsSubject`: missão normal precisa da matéria (a de evento fica na tela do evento, sem matéria). */
+function draftIsValid(d: MissionDraft, kind: MissionKind, needsSubject: boolean): boolean {
   if (!d.title.trim() || !d.description.trim() || !d.rewardItemName.trim() || !d.rewardItemDescription.trim()) return false;
+  if (needsSubject && !d.subject) return false;
   if (kind === "entrega") return !!d.taskPrompt.trim() && (d.allowText || d.allowFiles) && (!d.allowFiles || d.fileKinds.length > 0);
   if (d.questions.length === 0) return false;
   return d.questions.every(
@@ -218,6 +226,10 @@ export default function MissionEditor({
   const lockedEventItem = lockEventItem ? eventItemOfReward({ name: draft.rewardItemName, icon: draft.rewardItemIcon }) : undefined;
   const [teacherId, setTeacherId] = useState(existingMission?.teacherId ?? defaultTeacherId ?? teachers?.[0]?.id ?? "");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Missão de evento não tem matéria (ela aparece na tela do evento, não na Biblioteca de Missões).
+  const needsSubject = !eventLabel && !existingMission?.eventId;
+  // Missão nova: enquanto o professor não escolhe a matéria, ela acompanha o que o título indica.
+  const [subjectTouched, setSubjectTouched] = useState(!!existingMission);
   // Esperando a API e o erro que ela devolveu (ex.: dado inválido)
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -267,7 +279,7 @@ export default function MissionEditor({
   }
 
   async function handleSave() {
-    if (!draftIsValid(draft, kind) || busy) return;
+    if (!draftIsValid(draft, kind, needsSubject) || busy) return;
     setBusy(true);
     const error = await onSave(draftToMission(draft, kind), teachers ? teacherId : undefined);
     setBusy(false);
@@ -304,7 +316,7 @@ export default function MissionEditor({
     setDraft((d) => ({ ...d, fileKinds: d.fileKinds.includes(k) ? d.fileKinds.filter((x) => x !== k) : [...d.fileKinds, k] }));
   }
 
-  const valid = draftIsValid(draft, kind);
+  const valid = draftIsValid(draft, kind, needsSubject);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
@@ -341,8 +353,43 @@ export default function MissionEditor({
 
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Título</label>
-              <input value={draft.title} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Ex: Recursão Amaldiçoada" className="cg-input" />
+              <input
+                value={draft.title}
+                onChange={(e) => {
+                  const title = e.target.value;
+                  setDraft((d) => ({ ...d, title, ...(!subjectTouched && { subject: inferSubject({ title, description: d.description }) ?? d.subject }) }));
+                }}
+                placeholder="Ex: Recursão Amaldiçoada"
+                className="cg-input"
+              />
             </div>
+
+            {needsSubject && (
+              <div className="sm:col-span-2">
+                <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Matéria</label>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {SUBJECTS.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => {
+                        setSubjectTouched(true);
+                        setDraft((d) => ({ ...d, subject: s.id }));
+                      }}
+                      className={`flex items-center gap-1.5 rounded-lg border px-2 py-2 text-left text-xs font-medium transition-colors ${
+                        draft.subject === s.id ? "border-white bg-white text-cg-ink" : "border-slate-700 text-slate-300 hover:border-slate-500"
+                      }`}
+                    >
+                      <span className="text-base">{s.icon}</span>
+                      <span className="leading-tight">{s.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {draft.subject ? "Na tela de Missões, o aluno encontra esta missão no livro dessa matéria." : "Escolha a matéria: é nela que o aluno vai encontrar a missão."}
+                </p>
+              </div>
+            )}
 
             <div className="sm:col-span-2">
               <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-slate-500">Ícone</label>

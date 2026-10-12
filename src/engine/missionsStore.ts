@@ -15,11 +15,12 @@ import { Mission, normalizeRewardItem } from "./missions";
 const MISSIONS_KEY = "cg-missions";
 
 /** Missão como a API manda: os campos opcionais vêm como null. */
-type MissionFromApi = Omit<Mission, "task" | "eventId" | "eventPhase" | "kind"> & {
+type MissionFromApi = Omit<Mission, "task" | "eventId" | "eventPhase" | "kind" | "subject"> & {
   kind?: Mission["kind"] | null;
   task?: Mission["task"] | null;
   eventId?: string | null;
   eventPhase?: number | null;
+  subject?: Mission["subject"] | null;
 };
 
 /** Deixa a missão no formato do site (null vira "sem valor"). */
@@ -30,6 +31,7 @@ function fromApi(m: MissionFromApi): Mission {
     task: m.task ?? undefined,
     eventId: m.eventId ?? undefined,
     eventPhase: m.eventPhase ?? undefined,
+    subject: m.subject ?? undefined,
     rewardItem: { ...m.rewardItem, ...normalizeRewardItem(m.rewardItem) },
   };
 }

@@ -4,6 +4,7 @@
 // ============================================================================
 
 import type { Cosmetic } from "./avatar";
+import type { SubjectId } from "./subjects";
 
 export type Rarity = "comum" | "raro" | "epico" | "lendario";
 export type Difficulty = "iniciante" | "medio" | "avancado" | "epico";
@@ -134,6 +135,7 @@ export interface Mission {
   task?: MissionTask; // só na missão de entrega
   eventId?: string; // missão exclusiva de um evento (engine/specialEvents.ts): só aparece na tela do evento
   eventPhase?: number; // em evento com fases (Natal): de qual fase a missão é (sem valor = fase 1)
+  subject?: SubjectId; // a matéria (engine/subjects.ts); sem valor = a que o título indica (missionSubject)
 }
 
 /** Missão de entrega (resposta aberta/arquivos, corrigida pelo professor)? */

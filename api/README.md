@@ -654,6 +654,7 @@ npm run missions:import -- professor@escola.com scripts/missions/programacao-12-
   - `scripts/missions/halloween.ts`: as 5 "Missão de Halloween Parte N" do evento A Noite do Bug Assombrado (`eventId: "halloween"`, só aparecem na tela do evento), com 50 perguntas sorteadas.
   - `scripts/missions/dracoding.ts`: as 9 missões do evento A Noite de Dracoding (`eventId: "dracoding"`), 3 por fase (`eventPhase` 1, 2 e 3), com 90 perguntas sorteadas. Ele também deixa de fora as perguntas que já estão nas missões de outros eventos do professor (ex.: as Missões de Halloween), pra não repetir. Rode **depois** das missões normais do professor estarem no banco: `npm run missions:import -- professor@escola.com scripts/missions/dracoding.ts` (precisa de pelo menos 10 missões de quiz).
 - Missões de evento passam o `eventId` (e o `eventPhase`, nos eventos em fases: Natal e A Noite de Dracoding); o script confere se o evento existe.
+- A missão pode passar a matéria (`subject`, ex.: `"scratch"`); sem ela, o site mostra a missão na matéria que o título indica.
 - Dá pra passar vários arquivos de uma vez: `npm run missions:import -- professor@escola.com scripts/missions/programacao-12-anos-parte-4.ts scripts/missions/programacao-12-anos-parte-5.ts`.
 - O id sai do título, como no site (`newMissionId`: "Introdução ao Scratch" vira `introducao-ao-scratch`).
 - Se o professor já tem uma missão com o mesmo título, ela é pulada: dá pra rodar de novo sem duplicar.
@@ -1809,6 +1810,7 @@ questions    jsonb                 event_item_key varchar(80)
 kind         'quiz' | 'entrega'    collection     varchar(20)
 task         jsonb                 sold           integer
 event_id, event_phase              created_at
+subject      varchar(30) (matéria)
 created_at
 
 friendships (amizades)             offers (Mercado)                  trades (trocas)
@@ -1851,6 +1853,13 @@ já comprou continua com o item.
 Do mesmo jeito, a `20261010120000_add-ancient-dragon-aura-to-shop` colocou à venda a Aura do
 Dragão Ancestral (15.000 moedas; `ANCIENT_DRAGON_AURA_SHOP` entra no `DEFAULT_SHOP`).
 
+A `20261012120000_add-subject-to-missions` acrescentou a **matéria** da missão (`subject`:
+`ods`, `astronomia`, `programacao`, `scratch`, `roblox`, `informatica`, `app-inventor` ou
+`hardware`; a lista fica em `src/engine/subjects.ts` e a rota confere com `z.enum`). A coluna
+nasce vazia: nenhuma missão nem aluno muda. Enquanto a missão não tem matéria, o site mostra
+ela na matéria que o título indica (`inferSubject`); quando o professor salva a missão no
+editor, a matéria escolhida fica gravada. Na edição, `subject: null` tira a matéria.
+
 ### As rotas da fase 3
 
 Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo formato do
@@ -1867,7 +1876,7 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 | POST | `/inventory/multiverse/enter` | Aluno | entra na Sala do Multiverso (gasta o passe) |
 | GET | `/missions` | Logados | aluno: as do professor dele; professor: as dele; ADM: todas (ou `?teacherId=`) |
 | POST | `/missions` | Professores | cria a missão (o ADM pode escolher o `teacherId`) |
-| PUT | `/missions/:id` | O dono ou o ADM | altera o que vier (`null` tira a tarefa/evento/fase) |
+| PUT | `/missions/:id` | O dono ou o ADM | altera o que vier (`null` tira a tarefa/evento/fase/matéria) |
 | DELETE | `/missions/:id` | O dono ou o ADM | exclui |
 | POST | `/missions/:id/attempt` | Aluno | manda as respostas do quiz; a API corrige e dá a recompensa |
 | POST | `/submissions/:id/review` | O professor da missão ou o ADM | corrige a entrega: aprova (dá a recompensa) ou pede pra refazer (fase 5; antes `/missions/:id/approve` e `/missions/:id/review`) |

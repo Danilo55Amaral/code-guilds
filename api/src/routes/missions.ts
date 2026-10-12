@@ -12,6 +12,7 @@ import { existsOrError, ValidationError } from "../validation/validations";
 import { itemSchema } from "../validation/schemas";
 import { Json } from "../types/database";
 import { Mission, SUBMISSION_FILE_KINDS, hasPassed } from "../../../src/engine/missions";
+import { SUBJECT_IDS } from "../../../src/engine/subjects";
 import { applyMissionReward } from "../../../src/engine/students";
 import { PENDING_ITEM_NOTE, missionRewardMessage } from "../../../src/engine/messages";
 
@@ -44,6 +45,7 @@ function missionsQuery() {
             'task',
             'eventId',
             'eventPhase',
+            'subject',
         ])
 }
 
@@ -76,7 +78,7 @@ const taskSchema = z.object({
 
 // Todos os campos são opcionais: o cadastro confere se o que é obrigatório
 // veio (checkMissionContent) e a edição muda só o que vier. Nos campos do
-// evento e da tarefa, null = tirar.
+// evento, da tarefa e da matéria, null = tirar.
 export const missionBodySchema = z.object({
     title: z.string().trim().min(1).max(120).optional(),
     icon: z.string().min(1).max(32).optional(),
@@ -91,6 +93,7 @@ export const missionBodySchema = z.object({
     task: taskSchema.nullable().optional(),
     eventId: z.string().max(40).nullable().optional(),
     eventPhase: z.number().int().min(1).max(10).nullable().optional(),
+    subject: z.enum(SUBJECT_IDS as [string, ...string[]]).nullable().optional(),
     teacherId: z.uuid().optional(),
 })
 
@@ -133,6 +136,7 @@ function missionColumns(mission: MissionBody) {
         ...(mission.task !== undefined && { task: mission.task === null ? null : (JSON.stringify(mission.task) as Json) }),
         ...(mission.eventId !== undefined && { eventId: mission.eventId }),
         ...(mission.eventPhase !== undefined && { eventPhase: mission.eventPhase }),
+        ...(mission.subject !== undefined && { subject: mission.subject }),
     }
 }
 
