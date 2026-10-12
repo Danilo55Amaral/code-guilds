@@ -34,6 +34,12 @@ export const TOME_STYLE: Record<TomeId, TomeStyle> = {
   informatica: { kind: "papiro", color: "#0f766e", dark: "#134e4a", glow: "#2dd4bf" },
   "app-inventor": { kind: "pergaminho", color: "#65a30d", dark: "#365314", glow: "#a3e635" },
   hardware: { kind: "grimorio", color: "#334155", dark: "#0f172a", glow: "#94a3b8" },
+  biologia: { kind: "grimorio", color: "#059669", dark: "#064e3b", glow: "#34d399" },
+  fisica: { kind: "papiro", color: "#4f46e5", dark: "#312e81", glow: "#818cf8" },
+  quimica: { kind: "pergaminho", color: "#a21caf", dark: "#581c87", glow: "#e879f9" },
+  portugues: { kind: "grimorio", color: "#be123c", dark: "#4c0519", glow: "#fb7185" },
+  historia: { kind: "papiro", color: "#92400e", dark: "#451a03", glow: "#fbbf24" },
+  ingles: { kind: "pergaminho", color: "#dc2626", dark: "#1e3a8a", glow: "#60a5fa" },
   outras: { kind: "grimorio", color: "#92400e", dark: "#431407", glow: "#fbbf24" },
 };
 
@@ -155,6 +161,90 @@ function Emblem({ id }: { id: TomeId }) {
           <rect x="-6.5" y="-6.5" width="13" height="13" rx="1.5" fill="#22d3ee" opacity="0.85" />
           <path d="M-3 -3 L3 -3 L3 3 L-3 3 Z" fill="#ecfeff" />
           <circle cx="-8.5" cy="-8.5" r="1.1" fill="#94a3b8" />
+        </g>
+      );
+    case "biologia":
+      // a dupla hélice do DNA
+      return (
+        <g>
+          <circle r="17" fill="#064e3b" stroke="#6ee7b7" strokeWidth="1.5" />
+          {[-9.5, -5, 5, 9.5].map((y) => (
+            <path key={y} d={`M${-5.2 + Math.abs(y) * 0.12} ${y} L${5.2 - Math.abs(y) * 0.12} ${y}`} stroke="#fde68a" strokeWidth="1.6" strokeLinecap="round" />
+          ))}
+          <path d="M-7 -13 C7 -9 7 -4 0 0 C-7 4 -7 9 7 13" stroke="#34d399" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          <path d="M7 -13 C-7 -9 -7 -4 0 0 C7 4 7 9 -7 13" stroke="#a7f3d0" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case "fisica":
+      // o átomo: o núcleo e os elétrons dando voltas
+      return (
+        <g>
+          <circle r="17" fill="#1e1b4b" stroke="#a5b4fc" strokeWidth="1.5" />
+          {[0, 60, 120].map((a) => (
+            <g key={a} transform={`rotate(${a})`}>
+              <ellipse rx="14" ry="5" fill="none" stroke="#a5b4fc" strokeWidth="1.3" />
+              <circle cx="14" r="1.7" fill="#e0e7ff" />
+            </g>
+          ))}
+          <circle r="3.4" fill="#fbbf24" />
+        </g>
+      );
+    case "quimica":
+      // o frasco de laboratório com o líquido borbulhando
+      return (
+        <g>
+          <path d="M-4 -15 L4 -15 L4 -6 L13 12 Q14 15 11 15 L-11 15 Q-14 15 -13 12 L-4 -6 Z" fill="#f5f3ff" stroke="#581c87" strokeWidth="1.3" strokeLinejoin="round" />
+          <path d="M-8.5 4 L8.5 4 L13 12 Q14 15 11 15 L-11 15 Q-14 15 -13 12 Z" fill="#e879f9" />
+          <rect x="-5.5" y="-17" width="11" height="3" rx="1" fill="#581c87" />
+          {[
+            [-2, 0, 1.4],
+            [2, -4, 1.1],
+            [0, -9, 0.9],
+          ].map(([x, y, r]) => (
+            <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#f0abfc" className="cg-anim-twinkle" />
+          ))}
+          <path d="M-9 9 L-5 9" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" opacity="0.7" />
+        </g>
+      );
+    case "portugues":
+      // o "Aa" da escrita, com a pena
+      return (
+        <g>
+          <circle r="17" fill="#4c0519" stroke="#fda4af" strokeWidth="1.5" />
+          <text x="-1.5" y="6" textAnchor="middle" fontSize="16" fontWeight="900" fontFamily="Georgia, serif" fill="#ffe4e6">
+            Aa
+          </text>
+          <path d="M9 -12 C13 -9 12 -3 8 1 L7 0 C9 -4 9 -8 9 -12 Z" fill="#fbbf24" />
+          <path d="M8 1 L5.5 6" stroke="#fbbf24" strokeWidth="1" />
+        </g>
+      );
+    case "historia":
+      // a ampulheta, com a areia do tempo caindo
+      return (
+        <g>
+          <rect x="-12" y="-17" width="24" height="3.5" rx="1.2" fill="#78350f" />
+          <rect x="-12" y="13.5" width="24" height="3.5" rx="1.2" fill="#78350f" />
+          <path d="M-9 -13.5 L9 -13.5 L1.2 0 L9 13.5 L-9 13.5 L-1.2 0 Z" fill="#fef3c7" stroke="#92400e" strokeWidth="1.2" strokeLinejoin="round" />
+          <path d="M-5.8 -9.5 L5.8 -9.5 L0.8 -1.5 L-0.8 -1.5 Z" fill="#f59e0b" />
+          <path d="M-7 12 Q0 4.5 7 12 Z" fill="#f59e0b" />
+          <path d="M0 -1 L0 9" stroke="#f59e0b" strokeWidth="1" strokeDasharray="1.5 1.5" className="cg-anim-aura-flow" style={{ "--cg-dur": "0.6s" } as React.CSSProperties} />
+        </g>
+      );
+    case "ingles":
+      // o balão de fala com o "Hi!"
+      return (
+        <g>
+          <path
+            d="M-15 -11 Q-15 -14 -12 -14 L12 -14 Q15 -14 15 -11 L15 5 Q15 8 12 8 L-2 8 L-8 14 L-7 8 L-12 8 Q-15 8 -15 5 Z"
+            fill="#eff6ff"
+            stroke="#1e3a8a"
+            strokeWidth="1.4"
+            strokeLinejoin="round"
+          />
+          <text y="1.5" textAnchor="middle" fontSize="12" fontWeight="900" fontFamily="Georgia, serif" fill="#dc2626">
+            Hi!
+          </text>
+          <path d="M-8 4.5 L8 4.5" stroke="#1e3a8a" strokeWidth="1.2" strokeLinecap="round" />
         </g>
       );
     case "outras":

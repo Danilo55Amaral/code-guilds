@@ -9,7 +9,9 @@
 
 import type { Mission } from "./missions";
 
-export type SubjectId = "ods" | "astronomia" | "programacao" | "scratch" | "roblox" | "informatica" | "app-inventor" | "hardware";
+export type SubjectId =
+  | "ods" | "astronomia" | "programacao" | "scratch" | "roblox" | "informatica" | "app-inventor" | "hardware"
+  | "biologia" | "fisica" | "quimica" | "portugues" | "historia" | "ingles";
 
 export interface Subject {
   id: SubjectId;
@@ -29,6 +31,12 @@ export const SUBJECTS: Subject[] = [
   { id: "informatica", name: "Informática", icon: "🖥️", tagline: "Computador, internet, Office e a nuvem" },
   { id: "app-inventor", name: "MIT App Inventor", icon: "📱", tagline: "Crie aplicativos de celular" },
   { id: "hardware", name: "Hardware", icon: "🔧", tagline: "As peças por dentro do computador" },
+  { id: "biologia", name: "Biologia", icon: "🧬", tagline: "Os seres vivos, o corpo humano e a natureza" },
+  { id: "fisica", name: "Física", icon: "⚛️", tagline: "Forças, energia, movimento e luz" },
+  { id: "quimica", name: "Química", icon: "🧪", tagline: "Átomos, moléculas e reações" },
+  { id: "portugues", name: "Língua Portuguesa", icon: "📝", tagline: "Leitura, escrita, gramática e literatura" },
+  { id: "historia", name: "História", icon: "🏛️", tagline: "Os povos, as civilizações e o passado do Brasil e do mundo" },
+  { id: "ingles", name: "Inglês", icon: "💬", tagline: "Vocabulário, gramática e conversação" },
 ];
 
 export const SUBJECT_IDS = SUBJECTS.map((s) => s.id);
@@ -41,7 +49,8 @@ export function getSubject(id: string): Subject | undefined {
 }
 
 // Palavras de cada matéria, conferidas em ordem (Scratch antes de Programação, porque
-// "Blocos de Código no Scratch" também fala de código). O texto vem sem acento e minúsculo.
+// "Blocos de Código no Scratch" também fala de código; e as matérias da escola por último,
+// pra "A História da Computação" continuar em Informática). O texto vem sem acento e minúsculo.
 const SUBJECT_KEYWORDS: [SubjectId, RegExp][] = [
   ["ods", /\bods\b|sustentav|objetivos de desenvolvimento/],
   ["astronomia", /astronom|astrofis|cosmolog|planeta|estrela|galaxi|universo|sistema solar|buraco negro|constela/],
@@ -51,6 +60,12 @@ const SUBJECT_KEYWORDS: [SubjectId, RegExp][] = [
   ["hardware", /hardware|placa[ -]mae|processador|perifer|memoria ram/],
   ["informatica", /informatica|office|\bword\b|excel|powerpoint|cultura geek|nuvem|computacao|internet|sistema operacional|seguranca digital|computador/],
   ["programacao", /programa|linguage|javascript|python|\bjava\b|\blua\b|html|css|codigo|algoritm|variave|loop|funca|funco|promess|\bdom\b|logica/],
+  ["biologia", /biolog|celula|genetic|\bdna\b|ecossistem|fotossintes|corpo humano|\bevoluc|seres vivos|bacteria/],
+  ["fisica", /\bfisica\b|\bforcas?\b|gravidade|energia|eletric|newton|velocidade|movimento|optica|magnet|\bondas?\b/],
+  ["quimica", /quimic|\batomos?\b|molecul|tabela periodica|substanc|\bacidos?\b/],
+  ["portugues", /portugues|gramatic|ortografi|redacao|literatura|acentuac|substantiv|interpretacao de texto/],
+  ["historia", /\bhistoria\b|brasil colonia|imperio|revoluc|guerra|idade media|antiguidade|civilizac|egito antigo|grecia antiga|roma antiga/],
+  ["ingles", /ingles|english/],
 ];
 
 function plain(text: string): string {

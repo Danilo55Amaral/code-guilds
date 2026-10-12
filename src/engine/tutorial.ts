@@ -22,7 +22,7 @@ export const STUDENT_TUTORIAL: TutorialStep[] = [
   {
     icon: "⚔️",
     title: "Missões",
-    body: "As missões são desafios em forma de quiz, criados pelo seu professor, e moram na Biblioteca de Missões: cada matéria tem o seu tomo (ODS, Astronomia, Linguagem de Programação, Scratch, Roblox Studio, Informática, MIT App Inventor e Hardware). Abra um tomo pra ver as missões daquela matéria. Acerte pelo menos 60% das perguntas e eu te recompenso com XP, moedas e um item! As missões mais difíceis só se revelam pra quem tem nível alto. Dentro do tomo, use a busca e os filtros pra achar a próxima aventura. E fique de olho nas missões 📝 de Entrega: nelas você escreve a resposta ou envia um arquivo (Scratch, PDF, Word, App Inventor ou Roblox Studio), e ganha a recompensa quando o professor corrigir e aprovar!",
+    body: "As missões são desafios em forma de quiz, criados pelo seu professor, e moram na Biblioteca de Missões: cada matéria tem o seu tomo (ODS, Astronomia, Linguagem de Programação, Scratch, Roblox Studio, Informática, MIT App Inventor, Hardware, Biologia, Física, Química, Língua Portuguesa, História e Inglês). Abra um tomo pra ver as missões daquela matéria. Acerte pelo menos 60% das perguntas e eu te recompenso com XP, moedas e um item! As missões mais difíceis só se revelam pra quem tem nível alto. Dentro do tomo, use a busca e os filtros pra achar a próxima aventura. E fique de olho nas missões 📝 de Entrega: nelas você escreve a resposta ou envia um arquivo (Scratch, PDF, Word, App Inventor ou Roblox Studio), e ganha a recompensa quando o professor corrigir e aprovar!",
   },
   {
     icon: "✨",
