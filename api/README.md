@@ -1377,7 +1377,11 @@ O aluno novo começa no nível 1, com 0 XP, 0 moedas e na etapa `casa` do primei
 
 Qualquer pessoa logada. A comunidade da Academia: **todos** os alunos, só com os dados
 públicos (sem e-mail, turma, login nem senha). É o que o aluno usa pra ver os pontos das
-casas, o ranking, os perfis dos colegas, os amigos e com quem negociar.
+casas, o ranking, os perfis dos colegas, os amigos e com quem negociar. As missões
+concluídas (`completedMissionIds`) e o progresso nos eventos (`events`) vêm junto porque o
+**ranking de cada evento** é calculado com eles (o XP das missões do evento + as fases
+concluídas de cada aluno). Antes eles não vinham, e o site só conhecia o progresso de quem
+já tinha entrado naquele navegador: os outros alunos sumiam do ranking dos eventos.
 
 ```json
 {
@@ -1391,6 +1395,10 @@ casas, o ranking, os perfis dos colegas, os amigos e com quem negociar.
       "level": 1,
       "xp": 0,
       "coins": 0,
+      "inventory": [ ... ],
+      "equipped": { ... },
+      "completedMissionIds": ["introducao-ao-scratch", "missao-de-halloween-parte-1"],
+      "events": { "halloween": { ... } },
       "onboardingStep": "completo",
       "createdAt": "..."
     }

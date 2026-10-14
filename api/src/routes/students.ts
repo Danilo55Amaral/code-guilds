@@ -119,10 +119,29 @@ export async function studentsRoutes(app: FastifyInstance) {
     // ver os pontos das casas, o ranking, os amigos e com quem negociar.
     // O inventário e os visuais equipados vêm junto: o perfil de um colega
     // mostra os itens dele, e o avatar "vestido" depende do que está equipado.
+    // As missões concluídas e o progresso nos eventos também: o ranking de cada
+    // evento soma o XP das missões do evento e as fases concluídas de cada
+    // aluno. Sem eles, o site só conhecia o progresso de quem já tinha entrado
+    // naquele navegador, e os outros alunos sumiam do ranking dos eventos.
     app.get('/community', { preHandler: ensureAuthenticated }, async () => {
         const students = await db
             .selectFrom('students')
-            .select(['id', 'teacherId', 'name', 'houseId', 'avatar', 'level', 'xp', 'coins', 'inventory', 'equipped', 'onboardingStep', 'createdAt'])
+            .select([
+                'id',
+                'teacherId',
+                'name',
+                'houseId',
+                'avatar',
+                'level',
+                'xp',
+                'coins',
+                'inventory',
+                'equipped',
+                'completedMissionIds',
+                'events',
+                'onboardingStep',
+                'createdAt',
+            ])
             .orderBy('createdAt', 'asc')
             .execute()
 
