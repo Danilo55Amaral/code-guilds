@@ -124,9 +124,9 @@ export default function EntrarPage() {
         <h1 className="text-3xl font-bold leading-tight text-white">
           {mode === "entrar" ? "Bem-vindo de volta," : "Entre para a"}
           <br />
-          {mode === "entrar" ? "aprendiz" : "Academia de Código"}
+          {mode === "entrar" ? "aprendiz" : "Academia do Conhecimento"}
         </h1>
-        <p className="mt-3 text-sm text-slate-400">Quatro casas. Missões reais. XP, moedas e itens lendários. Aprenda programando.</p>
+        <p className="mt-3 text-sm text-slate-400">Quatro casas. Missões de todas as matérias. XP, moedas e itens lendários. Aprenda jogando.</p>
 
         {activeStudent && (
           <div className="mt-5 flex items-center justify-between gap-3 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-xs text-violet-200">

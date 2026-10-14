@@ -408,6 +408,28 @@ export function playMagicChime(): () => void {
 }
 
 /**
+ * O salto pelo hiperespaço do Play da tela inicial (~2.8s): o "plim" do portal
+ * abrindo, a magia subindo, o "vuuush" das estrelas virando riscos de luz e o
+ * brilho de chegada.
+ */
+export function playHyperspaceJump(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.55);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.05;
+
+  [72, 76, 79, 84].forEach((m, i) => playChime(ctx, out, m, t + i * 0.06, 0.8, 0.06));
+  playRiser(ctx, out, t + 0.1, t + 1.1);
+  playWhoosh(ctx, out, t + 0.9);
+  playBoom(ctx, out, t + 1);
+  playWhoosh(ctx, out, t + 1.6);
+  [84, 88, 91, 96].forEach((m) => playChime(ctx, out, m, t + 2.3, 1.4, 0.05));
+
+  return autoClose(ctx, 4200);
+}
+
+/**
  * Presente da recompensa diária (~3s), sincronizado com o DailyReward:
  * subida mágica enquanto o pergaminho desenrola (~0.5s a 1.6s) → sinos em
  * arpejo quando ele abre → "bling" de moeda quando cada recompensa aparece

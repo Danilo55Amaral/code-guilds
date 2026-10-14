@@ -6,7 +6,7 @@ import { PresenceHeartbeat } from "@/components/OnlineStatus";
 
 export const metadata: Metadata = {
   title: "CodeGuilds",
-  description: "Academia de Código gamificada — quatro casas, missões reais, XP, moedas e itens lendários.",
+  description: "Academia do Conhecimento gamificada — quatro casas, missões de todas as matérias, XP, moedas e itens lendários.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
