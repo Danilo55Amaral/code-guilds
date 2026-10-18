@@ -69,7 +69,8 @@ function arc(r1: number, r2: number, a1: number, a2: number): string {
   return `M${p(r2, a1)} A${r2} ${r2} 0 0 1 ${p(r2, a2)} L${p(r1, a2)} A${r1} ${r1} 0 0 0 ${p(r1, a1)} Z`;
 }
 
-function Emblem({ id }: { id: TomeId }) {
+/** O emblema da matéria (numa caixa de 40×40 centrada em 0, 0): no medalhão do tomo e na capa do livro da Biblioteca Virtual. */
+export function Emblem({ id }: { id: TomeId }) {
   switch (id) {
     case "ods":
       // a roda colorida dos 17 objetivos
