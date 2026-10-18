@@ -64,9 +64,16 @@ export default function AcademySidebar() {
       >
         <span>{item.icon}</span>
         {item.label}
-        {badge !== null && (
-          <span className="ml-auto rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-cg-onaccent">{badge > 9 ? "9+" : badge}</span>
-        )}
+        {badge !== null &&
+          (item.href === FRIENDS_HREF ? (
+            // pedido de amizade ou balão sem ler: o selo fica rosa e pulsando, pra chamar atenção
+            <span className="relative ml-auto flex">
+              <span className="absolute inset-0 animate-ping rounded-full bg-pink-400/70" aria-hidden="true" />
+              <span className="relative rounded-full bg-pink-500 px-1.5 text-[10px] font-semibold text-white">{badge > 9 ? "9+" : badge}</span>
+            </span>
+          ) : (
+            <span className="ml-auto rounded-full bg-violet-500 px-1.5 text-[10px] font-semibold text-cg-onaccent">{badge > 9 ? "9+" : badge}</span>
+          ))}
       </Link>
     );
   }

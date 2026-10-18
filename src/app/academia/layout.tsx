@@ -6,6 +6,7 @@ import { useStudents } from "@/engine/store";
 import AcademyHeader from "@/components/AcademyHeader";
 import AcademySidebar from "@/components/AcademySidebar";
 import DailyReward from "@/components/DailyReward";
+import SocialAlerts from "@/components/SocialAlerts";
 
 export default function AcademiaLayout({ children }: { children: React.ReactNode }) {
   const { activeStudent, ready } = useStudents();
@@ -33,6 +34,8 @@ export default function AcademiaLayout({ children }: { children: React.ReactNode
       </div>
       {/* o presente do Mago Danilo no primeiro acesso do dia */}
       <DailyReward student={activeStudent} />
+      {/* o aviso animado de pedido de amizade e de mensagem de amigo */}
+      <SocialAlerts student={activeStudent} />
     </div>
   );
 }

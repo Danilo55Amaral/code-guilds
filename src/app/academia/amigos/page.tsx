@@ -14,7 +14,8 @@ import { OnlineDot } from "@/components/OnlineStatus";
 // AMIGOS — a lista de amigos (com as mensagens não lidas de cada um), os
 // pedidos de amizade recebidos e enviados e a conversa com balões. Pedidos
 // novos são enviados pelo perfil de um aluno (ranking de Minha Casa, Ranking
-// Geral, rankings de evento). ?com=<id> abre direto a conversa com esse amigo.
+// Geral, rankings de evento). ?com=<id> abre direto a conversa com esse amigo;
+// ?aba=pedidos abre direto os pedidos (o "Ver pedidos" do aviso de amizade).
 // ============================================================================
 
 type Tab = "amigos" | "pedidos";
@@ -54,10 +55,12 @@ export default function AmigosPage() {
   const [busy, setBusy] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
 
-  // Veio do perfil de um amigo ("💬 Conversar"): abre a conversa dele.
+  // Veio do perfil de um amigo ("💬 Conversar") ou de um aviso: abre a conversa dele ou os pedidos.
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("com");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("com");
     if (id) setChatWith(id);
+    if (params.get("aba") === "pedidos") setTab("pedidos");
   }, []);
 
   const { markRead } = friends;
