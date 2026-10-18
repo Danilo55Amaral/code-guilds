@@ -291,7 +291,7 @@ function FrogCycleArt() {
     </g>,
   ];
   return (
-    <Art viewBox="0 0 540 256" label="O ciclo da metamorfose do sapo: ovos, girino, girino com patas e sapo adulto">
+    <Art viewBox="0 -18 540 298" label="O ciclo da metamorfose do sapo: ovos, girino, girino com patas e sapo adulto">
       <circle cx={cx} cy={cy} r={r} fill="none" stroke="#b08a52" strokeWidth="3" strokeDasharray="8 6" />
       <circle r="7" fill="#f59e0b" stroke="#92400e" strokeWidth="2">
         <animateMotion dur="8s" repeatCount="indefinite" path={`M${cx} ${cy - r} A${r} ${r} 0 1 1 ${cx} ${cy + r} A${r} ${r} 0 1 1 ${cx} ${cy - r}`} />
@@ -301,7 +301,7 @@ function FrogCycleArt() {
       </text>
       {stages.map((s, i) => (
         <g key={s.label} opacity="0.4">
-          <animate attributeName="opacity" values="1;1;0.4;0.4" keyTimes="0;0.25;0.32;1" dur="8s" begin={`${i * 2}s`} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;1;0.4;0.4" keyTimes="0;0.25;0.32;1" dur="8s" begin={`${i * 2 - 8}s`} repeatCount="indefinite" />
           <circle cx={s.x} cy={s.y} r="30" fill="#fffaf0" stroke="#16a34a" strokeWidth="2.5" />
           <g transform={`translate(${s.x} ${s.y})`}>{art[i]}</g>
           <text x={s.x} y={s.y + (i === 0 ? -38 : 46)} textAnchor="middle" fontSize="12" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
@@ -337,7 +337,7 @@ function FrogCycleArt() {
 function InsectSpiderArt() {
   const leg = (d: string, k: number) => (
     <path key={d} d={d} stroke="#1c1917" strokeWidth="3" fill="none" strokeLinecap="round">
-      <animateTransform attributeName="transform" type="rotate" values={`-5 0 0;5 0 0;-5 0 0`} dur="0.5s" begin={`${(k % 2) * 0.25}s`} repeatCount="indefinite" additive="sum" />
+      <animateTransform attributeName="transform" type="rotate" values={`-5 0 0;5 0 0;-5 0 0`} dur="0.5s" begin={`${(k % 2) * 0.25 - 0.5}s`} repeatCount="indefinite" additive="sum" />
     </path>
   );
   return (

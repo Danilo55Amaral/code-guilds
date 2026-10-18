@@ -36,19 +36,19 @@ function GlandsArt() {
       {GLANDS.map((g, i) => (
         <g key={g.name}>
           <circle cx={g.x} cy={g.y} r={g.r * 2.6} fill={g.color} opacity="0">
-            <animate attributeName="opacity" values="0;0.45;0;0" keyTimes={`0;0.1;0.2;1`} {...loop} begin={`${i * 2}s`} />
+            <animate attributeName="opacity" values="0;0.45;0;0" keyTimes={`0;0.1;0.2;1`} {...loop} begin={`${i * 2 - 10}s`} />
           </circle>
           <circle cx={g.x} cy={g.y} r={g.r} fill={g.color} stroke="#3b0764" strokeWidth="1.5" />
           {/* os hormônios saindo */}
           {[0, 1].map((k) => (
             <circle key={k} r="2.6" fill={g.color}>
-              <animateMotion path={`M${g.x} ${g.y} L${g.x + (k ? 18 : -18)} ${g.y + 26}`} dur="2s" begin={`${i * 2 + k * 0.4}s`} repeatCount="indefinite" />
-              <animate attributeName="opacity" values="1;0" dur="2s" begin={`${i * 2 + k * 0.4}s`} repeatCount="indefinite" />
+              <animateMotion path={`M${g.x} ${g.y} L${g.x + (k ? 18 : -18)} ${g.y + 26}`} dur="2s" begin={`${k * 0.4 - 2}s`} repeatCount="indefinite" />
+              <animate attributeName="opacity" values="1;0" dur="2s" begin={`${k * 0.4 - 2}s`} repeatCount="indefinite" />
             </circle>
           ))}
           <line x1={g.x + g.r} y1={g.y} x2={g.tx - 4} y2={g.ty} stroke="#7c6a48" strokeWidth="1" strokeDasharray="3 2" />
           <text x={g.tx} y={g.ty + 4} fontSize="13.5" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif" opacity="0.45">
-            <animate attributeName="opacity" values="0.45;1;1;0.45;0.45" keyTimes="0;0.05;0.2;0.25;1" {...loop} begin={`${i * 2}s`} />
+            <animate attributeName="opacity" values="0.45;1;1;0.45;0.45" keyTimes="0;0.05;0.2;0.25;1" {...loop} begin={`${i * 2 - 10}s`} />
             {g.name}
           </text>
         </g>
@@ -73,13 +73,13 @@ function MessengerArt() {
       <path d="M20 130 L520 130" stroke="#fecaca" strokeWidth="40" strokeLinecap="round" />
       {[0, 1, 2, 3, 4].map((k) => (
         <ellipse key={k} rx="9" ry="5" fill="#ef4444" stroke="#991b1b" strokeWidth="1">
-          <animateMotion path="M20 138 L520 138" dur="5s" begin={`${k}s`} repeatCount="indefinite" />
+          <animateMotion path="M20 138 L520 138" dur="5s" begin={`${k - 5}s`} repeatCount="indefinite" />
         </ellipse>
       ))}
       {/* os hormônios: descem da glândula, andam no sangue e encaixam na célula */}
       {[0, 1, 2].map((k) => (
         <g key={k}>
-          <animateMotion path="M70 96 L80 124 L380 124 C410 120 420 100 430 84" dur="6s" begin={`${k * 2}s`} repeatCount="indefinite" />
+          <animateMotion path="M70 96 L80 124 L380 124 C410 120 420 100 430 84" dur="6s" begin={`${k * 2 - 6}s`} repeatCount="indefinite" />
           <path d="M-6 -6 L6 -6 L6 6 L0 2 L-6 6 Z" fill="#a855f7" stroke="#581c87" strokeWidth="1.2" />
         </g>
       ))}

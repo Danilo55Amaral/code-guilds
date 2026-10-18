@@ -179,7 +179,7 @@ function LadderArt() {
     <Art viewBox="0 0 560 170" label="A escada do DNA: os pares A com T e C com G se abrem como um zíper, um depois do outro">
       {bases.map((b, i) => {
         const x = 40 + i * 42;
-        const open = { dur: "6s", begin: `${i * 0.18}s`, repeatCount: "indefinite" };
+        const open = { dur: "6s", begin: `${i * 0.18 - 6}s`, repeatCount: "indefinite" };
         return (
           <g key={i}>
             <g>

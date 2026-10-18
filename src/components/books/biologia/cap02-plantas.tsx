@@ -63,8 +63,8 @@ function SproutArt() {
         <path d="M330 52 C330 34 352 26 364 38 C372 22 400 24 404 44 C420 44 424 66 408 70 L336 70 C322 70 320 56 330 52 Z" fill="#e0f2fe" stroke="#7dd3fc" strokeWidth="2" />
         {[346, 366, 386, 400].map((x, i) => (
           <path key={x} d={`M${x} 80 q-4 8 0 10 q4 -2 0 -10 Z`} fill="#38bdf8">
-            <animateTransform attributeName="transform" type="translate" values="0 0;0 120" dur="1.6s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
-            <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.8;1" dur="1.6s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+            <animateTransform attributeName="transform" type="translate" values="0 0;0 120" dur="1.6s" begin={`${i * 0.4 - 1.6}s`} repeatCount="indefinite" />
+            <animate attributeName="opacity" values="1;1;0" keyTimes="0;0.8;1" dur="1.6s" begin={`${i * 0.4 - 1.6}s`} repeatCount="indefinite" />
           </path>
         ))}
       </g>
@@ -163,12 +163,12 @@ function PlantPartsArt() {
       {/* seiva bruta (água e sais, azul) subindo e seiva elaborada (açúcar, laranja) descendo */}
       {[0, 1, 2, 3].map((i) => (
         <circle key={`x${i}`} r="4" fill="#38bdf8" stroke="#0369a1" strokeWidth="1">
-          <animateMotion dur="4s" begin={`${i}s`} repeatCount="indefinite" path={XYLEM} />
+          <animateMotion dur="4s" begin={`${i - 4}s`} repeatCount="indefinite" path={XYLEM} />
         </circle>
       ))}
       {[0, 1, 2].map((i) => (
         <rect key={`p${i}`} x="-3.5" y="-3.5" width="7" height="7" rx="1.5" fill="#fb923c" stroke="#9a3412" strokeWidth="1">
-          <animateMotion dur="5s" begin={`${i * 1.66}s`} repeatCount="indefinite" path={PHLOEM} />
+          <animateMotion dur="5s" begin={`${i * 1.66 - 5}s`} repeatCount="indefinite" path={PHLOEM} />
         </rect>
       ))}
       <Label x={212} y={84} tx={330} ty={40}>
@@ -276,21 +276,21 @@ function PhotosynthesisArt() {
       {/* água subindo pelo cabinho */}
       {[0, 1, 2].map((i) => (
         <path key={i} d="M0 -6 q-5 8 0 11 q5 -3 0 -11 Z" fill="#38bdf8" stroke="#0369a1" strokeWidth="1">
-          <animateMotion dur="3s" begin={`${i}s`} repeatCount="indefinite" path="M150 300 C156 260 170 220 196 186" />
+          <animateMotion dur="3s" begin={`${i - 3}s`} repeatCount="indefinite" path="M150 300 C156 260 170 220 196 186" />
         </path>
       ))}
       {/* gás carbônico entrando e oxigênio saindo */}
       {[0, 1, 2].map((i) => (
         <g key={`c${i}`}>
-          <animateMotion dur="4.5s" begin={`${i * 1.5}s`} repeatCount="indefinite" path="M20 250 C80 230 160 220 250 176" />
-          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="4.5s" begin={`${i * 1.5}s`} repeatCount="indefinite" />
+          <animateMotion dur="4.5s" begin={`${i * 1.5 - 4.5}s`} repeatCount="indefinite" path="M20 250 C80 230 160 220 250 176" />
+          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.85;1" dur="4.5s" begin={`${i * 1.5 - 4.5}s`} repeatCount="indefinite" />
           <Co2 />
         </g>
       ))}
       {[0, 1, 2].map((i) => (
         <g key={`o${i}`}>
-          <animateMotion dur="4s" begin={`${i * 1.33}s`} repeatCount="indefinite" path="M400 120 C430 90 460 60 520 30" />
-          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1" dur="4s" begin={`${i * 1.33}s`} repeatCount="indefinite" />
+          <animateMotion dur="4s" begin={`${i * 1.33 - 4}s`} repeatCount="indefinite" path="M400 120 C430 90 460 60 520 30" />
+          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1" dur="4s" begin={`${i * 1.33 - 4}s`} repeatCount="indefinite" />
           <O2 />
         </g>
       ))}

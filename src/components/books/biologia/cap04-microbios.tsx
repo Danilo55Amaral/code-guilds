@@ -246,7 +246,7 @@ function MosquitoArt() {
         <ellipse cx="0" cy="2" rx="50" ry="14" fill="#7dd3fc" opacity="0.85" />
         {[-24, -6, 14, 30].map((x, i) => (
           <path key={x} d={`M${x} 0 q3 4 0 8`} stroke="#1c1917" strokeWidth="2.5" fill="none" strokeLinecap="round">
-            <animateTransform attributeName="transform" type="rotate" values={`-20 ${x} 4;20 ${x} 4;-20 ${x} 4`} dur="0.8s" begin={`${i * 0.2}s`} repeatCount="indefinite" />
+            <animateTransform attributeName="transform" type="rotate" values={`-20 ${x} 4;20 ${x} 4;-20 ${x} 4`} dur="0.8s" begin={`${i * 0.2 - 0.8}s`} repeatCount="indefinite" />
           </path>
         ))}
       </g>
@@ -298,8 +298,8 @@ function DefenseArt() {
       <rect x="0" y="0" width="520" height="210" rx="16" fill="#fff1f2" />
       {/* vírus cercados de anticorpos */}
       {[
-        [90, 70],
-        [170, 140],
+        [88, 66],
+        [186, 122],
       ].map(([x, y], i) => (
         <g key={i} transform={`translate(${x} ${y})`}>
           <g className="cg-anim-spin-slow" style={{ animationDuration: "18s" }}>
@@ -308,7 +308,7 @@ function DefenseArt() {
           {[0, 72, 144, 216, 288].map((a, k) => (
             <g key={a} transform={`rotate(${a + i * 20})`}>
               <g transform="translate(0 -40) rotate(180)">
-                <animateTransform attributeName="transform" type="translate" values="0 22;0 0;0 0" keyTimes="0;0.4;1" dur="3s" begin={`${k * 0.3}s`} repeatCount="indefinite" additive="sum" />
+                <animateTransform attributeName="transform" type="translate" values="0 22;0 0;0 0" keyTimes="0;0.4;1" dur="3s" begin={`${k * 0.3 - 3}s`} repeatCount="indefinite" additive="sum" />
                 <Antibody />
               </g>
             </g>

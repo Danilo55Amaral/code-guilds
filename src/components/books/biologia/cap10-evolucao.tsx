@@ -299,15 +299,18 @@ function GiraffesArt() {
       <text x="137" y="26" textAnchor="middle" fontSize="14" fontWeight="900" fill="#991b1b" fontFamily="Georgia, serif">
         Lamarck (errado)
       </text>
-      <g transform="translate(120 170)">
+      <g transform="translate(120 158)">
         <g>
           <animateTransform attributeName="transform" type="translate" values="0 0;0 -4;0 0" dur="2s" repeatCount="indefinite" />
           <Giraffe neck={70} />
         </g>
       </g>
       <path d="M180 60 C200 50 220 60 230 80" stroke="#16a34a" strokeWidth="14" strokeLinecap="round" fill="none" />
-      <text x="137" y="206" textAnchor="middle" fontSize="11.5" fill="#7f1d1d" fontFamily="Georgia, serif">
-        &ldquo;esticou o pescoço e os filhos herdaram&rdquo; ✗
+      <text x="137" y="207" textAnchor="middle" fontSize="12" fill="#7f1d1d" fontFamily="Georgia, serif">
+        &ldquo;esticou o pescoço e
+        <tspan x="137" dy="15">
+          os filhos herdaram&rdquo; ✗
+        </tspan>
       </text>
       {/* Darwin */}
       <rect x="290" y="4" width="266" height="222" rx="14" fill="#dcfce7" stroke="#86efac" strokeWidth="2" />
@@ -320,12 +323,15 @@ function GiraffesArt() {
         [400, 52, false],
         [470, 78, false],
       ].map(([x, neck, faded], i) => (
-        <g key={i} transform={`translate(${x as number} 170)`}>
+        <g key={i} transform={`translate(${x as number} 158)`}>
           <Giraffe neck={neck as number} faded={faded as boolean} />
         </g>
       ))}
-      <text x="423" y="206" textAnchor="middle" fontSize="11.5" fill="#14532d" fontFamily="Georgia, serif">
-        já nascem diferentes; as que alcançam a comida sobrevivem ✓
+      <text x="423" y="207" textAnchor="middle" fontSize="12" fill="#14532d" fontFamily="Georgia, serif">
+        já nascem diferentes; as que
+        <tspan x="423" dy="15">
+          alcançam a comida sobrevivem ✓
+        </tspan>
       </text>
     </Art>
   );
@@ -376,7 +382,7 @@ function FossilsArt() {
         ].map(([d, name, x], i) => (
           <g key={name as string}>
             <path d={d as string} stroke="#16a34a" strokeWidth="4" fill="none" strokeDasharray="220" strokeDashoffset="220">
-              <animate attributeName="stroke-dashoffset" values="220;0;0" keyTimes="0;0.3;1" dur="6s" begin={`${i * 0.4}s`} repeatCount="indefinite" />
+              <animate attributeName="stroke-dashoffset" values="220;0;0" keyTimes="0;0.3;1" dur="6s" begin={`${i * 0.4 - 6}s`} repeatCount="indefinite" />
             </path>
             <text x={x as number} y="38" fill="#14532d">
               {name}

@@ -92,8 +92,8 @@ function Sheet({ page, index, side, info }: { page: BookPage | undefined; index:
         <div>{page.content}</div>
       </div>
       {more && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-[1.8em] flex justify-center">
-          <span className="cg-anim-float rounded-full bg-[#3b2a14]/80 px-3 py-0.5 text-[0.7em] font-bold text-amber-50 shadow">▼ role para ver mais</span>
+        <div className={`pointer-events-none absolute bottom-[0.35em] ${side === "left" ? "left-[5%]" : "right-[5%]"}`}>
+          <span className="cg-anim-float block rounded-full bg-[#3b2a14]/75 px-2.5 py-0.5 text-[0.62em] font-bold text-amber-50 shadow">▼ role para ver mais</span>
         </div>
       )}
       {!page.bare && (

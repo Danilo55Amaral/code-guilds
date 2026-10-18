@@ -85,28 +85,28 @@ function DigestiveArt() {
       <circle r="7" fill="#78350f" stroke="#451a03" strokeWidth="1.5">
         <animateMotion dur="10s" repeatCount="indefinite" path={FOOD_PATH} />
       </circle>
-      <Label x={158} y={66} tx={300} ty={60} size={12.5}>
+      <Label x={158} y={66} tx={300} ty={60} size={17}>
         Boca
       </Label>
-      <Label x={154} y={130} tx={300} ty={120} size={12.5}>
+      <Label x={154} y={130} tx={300} ty={120} size={17}>
         Esôfago
       </Label>
-      <Label x={110} y={196} tx={300} ty={168} size={12.5}>
+      <Label x={110} y={196} tx={300} ty={168} size={17}>
         Fígado
       </Label>
-      <Label x={206} y={214} tx={300} ty={208} size={12.5}>
+      <Label x={206} y={214} tx={300} ty={208} size={17}>
         Estômago
       </Label>
-      <Label x={214} y={246} tx={300} ty={248} size={12.5}>
+      <Label x={214} y={246} tx={300} ty={248} size={17}>
         Pâncreas
       </Label>
-      <Label x={176} y={306} tx={300} ty={300} size={12.5}>
+      <Label x={176} y={306} tx={300} ty={300} size={17}>
         Intestino delgado
       </Label>
-      <Label x={206} y={330} tx={300} ty={342} size={12.5}>
+      <Label x={206} y={330} tx={300} ty={342} size={17}>
         Intestino grosso
       </Label>
-      <Label x={161} y={384} tx={300} ty={386} size={12.5}>
+      <Label x={161} y={384} tx={300} ty={386} size={17}>
         Reto e ânus
       </Label>
     </Art>
@@ -156,14 +156,14 @@ function LungsArt() {
       {/* o ar entrando (azul) e saindo (cinza) */}
       {[0, 0.3, 0.6].map((d) => (
         <circle key={`in${d}`} r="4" fill="#38bdf8">
-          <animateMotion path="M170 0 L170 104 L140 170" keyPoints="0;1;1" keyTimes="0;0.5;1" calcMode="linear" dur="5s" begin={`${d}s`} repeatCount="indefinite" />
-          <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.45;0.5;1" dur="5s" begin={`${d}s`} repeatCount="indefinite" />
+          <animateMotion path="M170 0 L170 104 L140 170" keyPoints="0;1;1" keyTimes="0;0.5;1" calcMode="linear" dur="5s" begin={`${d - 5}s`} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="1;1;0;0" keyTimes="0;0.45;0.5;1" dur="5s" begin={`${d - 5}s`} repeatCount="indefinite" />
         </circle>
       ))}
       {[0, 0.3, 0.6].map((d) => (
         <circle key={`out${d}`} r="4" fill="#64748b">
-          <animateMotion path="M200 170 L170 104 L170 0" keyPoints="0;0;1" keyTimes="0;0.5;1" calcMode="linear" dur="5s" begin={`${d}s`} repeatCount="indefinite" />
-          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.5;0.55;1" dur="5s" begin={`${d}s`} repeatCount="indefinite" />
+          <animateMotion path="M200 170 L170 104 L170 0" keyPoints="0;0;1" keyTimes="0;0.5;1" calcMode="linear" dur="5s" begin={`${d - 5}s`} repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0;0;1;1" keyTimes="0;0.5;0.55;1" dur="5s" begin={`${d - 5}s`} repeatCount="indefinite" />
         </circle>
       ))}
       <g fontFamily="Georgia, serif" fontSize="13" fontWeight="900" textAnchor="middle">
@@ -184,7 +184,7 @@ function LungsArt() {
       <path d="M340 196 C360 197 380 199 400 199" stroke="#2563eb" strokeWidth="14" fill="none" strokeLinecap="round" opacity="0.85" />
       {[0, 1].map((k) => (
         <g key={`o${k}`}>
-          <animateMotion path="M410 120 L420 192" dur="2.4s" begin={`${k * 1.2}s`} repeatCount="indefinite" />
+          <animateMotion path="M410 120 L420 192" dur="2.4s" begin={`${k * 1.2 - 2.4}s`} repeatCount="indefinite" />
           <text textAnchor="middle" fontSize="11" fontWeight="900" fill="#b91c1c" fontFamily="Georgia, serif">
             O₂
           </text>
@@ -192,7 +192,7 @@ function LungsArt() {
       ))}
       {[0, 1].map((k) => (
         <g key={`c${k}`}>
-          <animateMotion path="M444 192 L440 120" dur="2.4s" begin={`${0.6 + k * 1.2}s`} repeatCount="indefinite" />
+          <animateMotion path="M444 192 L440 120" dur="2.4s" begin={`${0.6 + k * 1.2 - 2.4}s`} repeatCount="indefinite" />
           <text textAnchor="middle" fontSize="11" fontWeight="900" fill="#334155" fontFamily="Georgia, serif">
             CO₂
           </text>
@@ -241,7 +241,7 @@ function CirculationArt() {
           <path d={c.path} stroke={c.color} strokeWidth="8" fill="none" opacity="0.35" strokeLinecap="round" />
           {[0, 1, 2].map((k) => (
             <circle key={k} r="5" fill={c.color} stroke="#fff" strokeWidth="1">
-              <animateMotion dur={`${c.dur}s`} begin={`${(k * c.dur) / 3}s`} repeatCount="indefinite" path={c.path} />
+              <animateMotion dur={`${c.dur}s`} begin={`${(k * c.dur) / 3 - c.dur}s`} repeatCount="indefinite" path={c.path} />
             </circle>
           ))}
         </g>
@@ -330,7 +330,7 @@ function NeuronArt() {
       <Label x={490} y={88} tx={430} ty={30} anchor="end" size={12}>
         Terminações
       </Label>
-      <text x="290" y="40" textAnchor="middle" fontSize="12" fill="#a16207" fontWeight="700" fontFamily="Georgia, serif">
+      <text x="400" y="182" textAnchor="middle" fontSize="12" fill="#a16207" fontWeight="700" fontFamily="Georgia, serif">
         ⚡ o impulso nervoso → até 120 metros por segundo!
       </text>
     </Art>
@@ -364,7 +364,7 @@ export const chapter5: BookPage[] = [
         Digerir é <T>quebrar o alimento</T> em pedacinhos tão pequenos (os nutrientes) que conseguem passar para o sangue. A digestão começa na <T>boca</T>: os dentes trituram e
         a saliva já começa a quebrar o amido. Pelo <T>esôfago</T>, o alimento chega ao <T>estômago</T>, onde o suco gástrico, bem ácido, digere as proteínas.
       </P>
-      <Fig n="5.1" caption="Siga o bolinho de comida: da boca ao intestino grosso, ele percorre cerca de 9 metros!" h={32}>
+      <Fig n="5.1" caption="Siga o bolinho de comida: da boca ao intestino grosso, ele percorre cerca de 9 metros!" h={36}>
         <DigestiveArt />
       </Fig>
       <P>

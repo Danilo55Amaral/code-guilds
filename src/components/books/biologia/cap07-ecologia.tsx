@@ -177,11 +177,19 @@ function FoodChainArt() {
           <path d={`M${xs[i + 1] - 44} 118 L${xs[i + 1] - 34} 126 L${xs[i + 1] - 44} 134`} stroke="#b45309" strokeWidth="4" fill="none" strokeLinecap="round" />
         </g>
       ))}
-      {roles.map((r, i) => (
-        <text key={r} x={xs[i]} y="178" textAnchor="middle" fontSize="12" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
-          {r}
-        </text>
-      ))}
+      {roles.map((r, i) => {
+        const [first, ...rest] = r.split(" ");
+        return (
+          <text key={r} x={xs[i]} y="172" textAnchor="middle" fontSize="12.5" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
+            {first}
+            {rest.length > 0 && (
+              <tspan x={xs[i]} dy="14">
+                {rest.join(" ")}
+              </tspan>
+            )}
+          </text>
+        );
+      })}
       {/* os decompositores embaixo, recebendo de todos */}
       <rect x="120" y="200" width="300" height="40" rx="12" fill="#f5e6c8" stroke="#a16207" strokeWidth="2" />
       <g transform="translate(150 222)">
@@ -191,7 +199,7 @@ function FoodChainArt() {
         Decompositores (fungos e bactérias)
       </text>
       {xs.map((x) => (
-        <path key={x} d={`M${x} 186 L${Math.min(Math.max(x, 140), 400)} 200`} stroke="#a16207" strokeWidth="1.5" strokeDasharray="4 3" />
+        <path key={x} d={`M${x} 190 L${Math.min(Math.max(x, 140), 400)} 200`} stroke="#a16207" strokeWidth="1.5" strokeDasharray="4 3" />
       ))}
     </Art>
   );

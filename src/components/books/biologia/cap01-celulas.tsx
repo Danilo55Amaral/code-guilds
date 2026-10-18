@@ -279,8 +279,8 @@ export function AnimalCell() {
           <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.85;1" dur="4s" repeatCount="indefinite" />
         </circle>
         <circle r="5" fill="#fbbf24" stroke="#b45309" strokeWidth="1">
-          <animateMotion dur="4s" begin="2s" repeatCount="indefinite" path="M494 240 C508 246 520 254 532 262" />
-          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1" dur="4s" begin="2s" repeatCount="indefinite" />
+          <animateMotion dur="4s" begin="-2.0s" repeatCount="indefinite" path="M494 240 C508 246 520 254 532 262" />
+          <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.15;0.8;1" dur="4s" begin="-2.0s" repeatCount="indefinite" />
         </circle>
 
         {/* mitocôndrias */}
@@ -321,7 +321,7 @@ export function AnimalCell() {
         {/* os nomes */}
         <g className="pointer-events-none">
           <Label x={205} y={82} tx={128} ty={64} anchor="end" size={12.5}>
-            Membrana plasmática
+            Membrana
           </Label>
           <Label x={196} y={172} tx={128} ty={120} anchor="end" size={12.5}>
             Centríolos
