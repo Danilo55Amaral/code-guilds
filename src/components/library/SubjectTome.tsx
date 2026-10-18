@@ -40,6 +40,13 @@ export const TOME_STYLE: Record<TomeId, TomeStyle> = {
   portugues: { kind: "grimorio", color: "#be123c", dark: "#4c0519", glow: "#fb7185" },
   historia: { kind: "papiro", color: "#92400e", dark: "#451a03", glow: "#fbbf24" },
   ingles: { kind: "pergaminho", color: "#dc2626", dark: "#1e3a8a", glow: "#60a5fa" },
+  geografia: { kind: "papiro", color: "#0e7490", dark: "#164e63", glow: "#22d3ee" },
+  "historia-brasil": { kind: "pergaminho", color: "#15803d", dark: "#14532d", glow: "#facc15" },
+  "cultura-geek": { kind: "grimorio", color: "#c026d3", dark: "#4a044e", glow: "#f0abfc" },
+  filosofia: { kind: "papiro", color: "#57534e", dark: "#292524", glow: "#e7e5e4" },
+  sociologia: { kind: "pergaminho", color: "#db2777", dark: "#831843", glow: "#f9a8d4" },
+  economia: { kind: "grimorio", color: "#1e3a8a", dark: "#172554", glow: "#fcd34d" },
+  matematica: { kind: "papiro", color: "#7c3aed", dark: "#3b0764", glow: "#c4b5fd" },
   outras: { kind: "grimorio", color: "#92400e", dark: "#431407", glow: "#fbbf24" },
 };
 
@@ -245,6 +252,98 @@ function Emblem({ id }: { id: TomeId }) {
             Hi!
           </text>
           <path d="M-8 4.5 L8 4.5" stroke="#1e3a8a" strokeWidth="1.2" strokeLinecap="round" />
+        </g>
+      );
+    case "geografia":
+      // o globo com os continentes e os meridianos
+      return (
+        <g>
+          <circle r="17" fill="#0e7490" stroke="#a5f3fc" strokeWidth="1.5" />
+          <path d="M-11 -8 C-7 -12 -2 -11 -1 -7 C0 -3 -5 -2 -6 2 C-7 6 -10 4 -12 0 C-13 -3 -13 -6 -11 -8 Z" fill="#4ade80" />
+          <path d="M3 -13 C8 -13 12 -9 11 -5 C10 -2 6 -3 5 0 C4 3 7 6 5 10 C3 13 0 10 1 6 C2 2 -1 -1 1 -5 C2 -8 0 -12 3 -13 Z" fill="#86efac" />
+          <ellipse rx="7" ry="17" fill="none" stroke="#cffafe" strokeWidth="0.8" opacity="0.7" />
+          <path d="M-17 0 L17 0 M-15 -8 L15 -8 M-15 8 L15 8" stroke="#cffafe" strokeWidth="0.8" opacity="0.7" />
+        </g>
+      );
+    case "historia-brasil":
+      // a caravela, com a cruz nas velas
+      return (
+        <g>
+          <circle r="17" fill="#14532d" stroke="#fde047" strokeWidth="1.5" />
+          <path d="M-13 5 L13 5 L9 12 L-9 12 Z" fill="#92400e" stroke="#451a03" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M0 -14 L0 5 M-7 -9 L-7 5" stroke="#78350f" strokeWidth="1.3" />
+          <path d="M1 -12 C8 -10 8 0 1 2 Z" fill="#fef9c3" stroke="#a16207" strokeWidth="0.8" />
+          <path d="M-6 -7 C-1 -6 -1 1 -6 2 Z" fill="#fef9c3" stroke="#a16207" strokeWidth="0.8" />
+          <path d="M4 -7 L4 -2 M2 -4.5 L6 -4.5" stroke="#dc2626" strokeWidth="1.4" />
+          <path d="M-15 13 Q-10 10 -5 13 Q0 16 5 13 Q10 10 15 13" stroke="#38bdf8" strokeWidth="1.4" fill="none" />
+        </g>
+      );
+    case "cultura-geek":
+      // o controle de videogame
+      return (
+        <g>
+          <path d="M-15 -4 Q-15 -9 -10 -9 L10 -9 Q15 -9 15 -4 L16 7 Q16 12 11 11 L6 6 L-6 6 L-11 11 Q-16 12 -16 7 Z" fill="#4a044e" stroke="#f0abfc" strokeWidth="1.4" strokeLinejoin="round" />
+          <path d="M-10 -3 L-10 3 M-13 0 L-7 0" stroke="#f5d0fe" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="8" cy="-3" r="1.8" fill="#22d3ee" />
+          <circle cx="11.5" cy="0" r="1.8" fill="#facc15" />
+          <circle cx="4.5" cy="0" r="1.8" fill="#4ade80" />
+          <circle cx="8" cy="3" r="1.8" fill="#f87171" />
+        </g>
+      );
+    case "filosofia":
+      // a coruja da sabedoria
+      return (
+        <g>
+          <circle r="17" fill="#292524" stroke="#d6d3d1" strokeWidth="1.5" />
+          <path d="M-10 -9 L-6 -14 L-3 -9 M10 -9 L6 -14 L3 -9" fill="#a8a29e" stroke="#a8a29e" strokeWidth="1" strokeLinejoin="round" />
+          <path d="M-11 -7 Q0 -12 11 -7 L11 6 Q0 15 -11 6 Z" fill="#a8a29e" />
+          <circle cx="-5" cy="-3" r="4.6" fill="#fef3c7" />
+          <circle cx="5" cy="-3" r="4.6" fill="#fef3c7" />
+          <circle cx="-5" cy="-3" r="2" fill="#1c1917" />
+          <circle cx="5" cy="-3" r="2" fill="#1c1917" />
+          <path d="M-1.5 1.5 L1.5 1.5 L0 4.5 Z" fill="#f59e0b" />
+          <path d="M-6 8 Q0 11 6 8" stroke="#78716c" strokeWidth="1" fill="none" />
+        </g>
+      );
+    case "sociologia":
+      // as três pessoas juntas
+      return (
+        <g>
+          <circle r="17" fill="#831843" stroke="#f9a8d4" strokeWidth="1.5" />
+          {[
+            [-8, 1, "#fbcfe8"],
+            [8, 1, "#fbcfe8"],
+            [0, -1, "#fdf2f8"],
+          ].map(([x, y, fill]) => (
+            <g key={`${x}`}>
+              <circle cx={Number(x)} cy={Number(y) - 7} r="3.6" fill={String(fill)} />
+              <path d={`M${Number(x) - 6} ${Number(y) + 9} Q${x} ${Number(y) - 4} ${Number(x) + 6} ${Number(y) + 9} Z`} fill={String(fill)} />
+            </g>
+          ))}
+        </g>
+      );
+    case "economia":
+      // a moeda de ouro com o gráfico subindo
+      return (
+        <g>
+          <circle r="17" fill="#172554" stroke="#fcd34d" strokeWidth="1.5" />
+          <circle cx="-4" cy="2" r="9" fill="#fbbf24" stroke="#a16207" strokeWidth="1.2" />
+          <text x="-4" y="6" textAnchor="middle" fontSize="10" fontWeight="900" fontFamily="Georgia, serif" fill="#78350f">
+            R$
+          </text>
+          <path d="M3 9 L7 3 L10 6 L14 -4" stroke="#4ade80" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M11 -4 L14 -4 L14 -1" stroke="#4ade80" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        </g>
+      );
+    case "matematica":
+      // o pi e os sinais das contas
+      return (
+        <g>
+          <circle r="17" fill="#3b0764" stroke="#c4b5fd" strokeWidth="1.5" />
+          <text y="7" textAnchor="middle" fontSize="20" fontWeight="900" fontFamily="Georgia, serif" fill="#ede9fe">
+            π
+          </text>
+          <path d="M-12 -9 L-8 -9 M-10 -11 L-10 -7 M8 -9 L12 -9 M8 9 L12 9 M10 7 L10 7.1 M10 11 L10 11.1" stroke="#fcd34d" strokeWidth="1.4" strokeLinecap="round" />
         </g>
       );
     case "outras":

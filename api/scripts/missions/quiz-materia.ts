@@ -1,14 +1,17 @@
 import { Difficulty, MissionContent, Rarity } from "../../../src/engine/missions";
 import { SubjectId } from "../../../src/engine/subjects";
 
-// Ajudante das missões das matérias da escola (scripts/missions/astronomia.ts,
-// biologia.ts, fisica.ts, quimica.ts, lingua-portuguesa.ts, historia.ts e
-// ingles.ts): monta a missão a partir da lista curta de perguntas
+// Ajudante das missões das matérias da escola (os arquivos de cada matéria em
+// scripts/missions/, como astronomia.ts, geografia.ts e biologia-parte-2.ts):
+// monta a missão a partir da lista curta de perguntas
 // [enunciado, [a, b, c, d], índice da certa (0 a 3), explicação]. A certa é
 // trocada de lugar pra seguir o padrão de ANSWER_SLOTS (a ordem escrita no
 // arquivo não é a que o aluno vê).
 // O nível mínimo (1, 5, 10, 15 ou 20) decide a dificuldade e a recompensa
-// padrão; o professor ajusta XP, moedas e o item depois, no painel.
+// padrão (Nv1: 120 XP e 50 moedas; Nv5: 150 e 80; Nv10: 300 e 120; Nv15: 400
+// e 200; Nv20: 500 e 200). `xp` e `coins` trocam a recompensa de uma missão
+// só (ex.: as de Física e Química da parte 2). O professor ajusta XP, moedas e
+// o item depois, no painel, se quiser.
 // Este arquivo não é de missões: não passe ele pro missions:import.
 
 export type Question = [string, [string, string, string, string], 0 | 1 | 2 | 3, string];
@@ -17,10 +20,10 @@ export type MissionLevel = 1 | 5 | 10 | 15 | 20;
 
 const LEVELS: Record<MissionLevel, { difficulty: Difficulty; xp: number; coins: number; rarity: Rarity; value: number; itemXp: number }> = {
     1: { difficulty: 'iniciante', xp: 120, coins: 50, rarity: 'comum', value: 15, itemXp: 40 },
-    5: { difficulty: 'iniciante', xp: 150, coins: 60, rarity: 'comum', value: 20, itemXp: 50 },
-    10: { difficulty: 'medio', xp: 180, coins: 75, rarity: 'raro', value: 30, itemXp: 70 },
-    15: { difficulty: 'avancado', xp: 220, coins: 90, rarity: 'raro', value: 40, itemXp: 90 },
-    20: { difficulty: 'epico', xp: 260, coins: 110, rarity: 'epico', value: 55, itemXp: 120 },
+    5: { difficulty: 'iniciante', xp: 150, coins: 80, rarity: 'comum', value: 20, itemXp: 50 },
+    10: { difficulty: 'medio', xp: 300, coins: 120, rarity: 'raro', value: 30, itemXp: 70 },
+    15: { difficulty: 'avancado', xp: 400, coins: 200, rarity: 'raro', value: 40, itemXp: 90 },
+    20: { difficulty: 'epico', xp: 500, coins: 200, rarity: 'epico', value: 55, itemXp: 120 },
 }
 
 const OPTION_IDS = ['a', 'b', 'c', 'd'] as const
@@ -46,6 +49,9 @@ export function quizMission(mission: {
     description: string
     item: { name: string; icon: string; description: string }
     questions: Question[]
+    /** XP e moedas desta missão, no lugar do padrão do nível */
+    xp?: number
+    coins?: number
 }): MissionContent {
     const level = LEVELS[mission.level]
 
@@ -56,8 +62,8 @@ export function quizMission(mission: {
         difficulty: level.difficulty,
         minLevel: mission.level,
         description: mission.description,
-        rewardXp: level.xp,
-        rewardCoins: level.coins,
+        rewardXp: mission.xp ?? level.xp,
+        rewardCoins: mission.coins ?? level.coins,
         rewardItem: { ...mission.item, rarity: level.rarity, value: level.value, xp: level.itemXp },
         kind: 'quiz',
         questions: mission.questions.map(([prompt, options, correct, explanation], i) => {
