@@ -1583,3 +1583,56 @@ export function playRadioStatic(): () => void {
   });
   return closeScene(ctx);
 }
+
+/**
+ * O livro da Biblioteca Virtual: o "frrr" do papel quando a página vira
+ * (~0.4s, ruído passando por um filtro que sobe e desce, como a folha raspando
+ * na outra) e, ao abrir o livro, o baque macio da capa com um "plim" mágico.
+ */
+export function playPageTurn(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.5);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.01;
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuffer(ctx, 0.45);
+  const band = ctx.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 0.8;
+  band.frequency.setValueAtTime(900, t);
+  band.frequency.exponentialRampToValueAtTime(4200, t + 0.16);
+  band.frequency.exponentialRampToValueAtTime(1400, t + 0.4);
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.35, t + 0.05);
+  gain.gain.exponentialRampToValueAtTime(0.12, t + 0.2);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.42);
+  src.connect(band).connect(gain).connect(out);
+  src.start(t);
+  src.stop(t + 0.45);
+  return autoClose(ctx, 900);
+}
+
+export function playBookOpen(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.02;
+  // o baque da capa
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.setValueAtTime(140, t);
+  osc.frequency.exponentialRampToValueAtTime(55, t + 0.25);
+  const thud = ctx.createGain();
+  thud.gain.setValueAtTime(0.0001, t);
+  thud.gain.exponentialRampToValueAtTime(0.5, t + 0.015);
+  thud.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+  osc.connect(thud).connect(out);
+  osc.start(t);
+  osc.stop(t + 0.32);
+  // o "plim" da magia saindo das páginas
+  [79, 84, 88, 91].forEach((m, i) => playChime(ctx, out, m, t + 0.18 + i * 0.07, 1, 0.05));
+  return autoClose(ctx, 2200);
+}
