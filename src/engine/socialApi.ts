@@ -20,6 +20,8 @@ import {
   markConversationReadInCache,
   rememberChatMessage,
   rememberFriendLink,
+  saveChatMessages,
+  saveFriendLinks,
 } from "./friends";
 import { deleteTradesBetween } from "./trades";
 
@@ -93,5 +95,26 @@ export async function removeFriendLink(link: FriendLink): Promise<SocialResult> 
     return { ok: true };
   } catch (error) {
     return { ok: false, error: describeError(error) };
+  }
+}
+
+/**
+ * Atualização leve só dos amigos e da conversa (sem recarregar o resto do
+ * jogo): os avisos de pedido de amizade e de mensagem nova (SocialAlerts)
+ * chamam de tempos em tempos, pra o aluno saber na hora, sem trocar de página.
+ */
+export async function refreshSocial(): Promise<boolean> {
+  try {
+    const [{ friendships }, { messages }] = await Promise.all([
+      api.get<{ friendships: FriendLink[] }>("/friends"),
+      api.get<{ messages: ChatMessage[] }>("/chats"),
+    ]);
+    saveFriendLinks(friendships);
+    saveChatMessages(messages);
+    emitChange();
+    return true;
+  } catch {
+    // sem internet ou sessão encerrada: tenta de novo na próxima vez
+    return false;
   }
 }
