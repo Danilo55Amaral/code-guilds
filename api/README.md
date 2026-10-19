@@ -30,6 +30,7 @@
 - [Status online dos alunos](#status-online-dos-alunos)
 - [Dashboard do aluno](#dashboard-do-aluno)
 - [Recompensa diária](#recompensa-diária)
+- [Roleta da Sorte](#roleta-da-sorte)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -1149,6 +1150,8 @@ Resumo:
 | POST | `/presence` | Alunos (sinal de vida; devolve quem está online) |
 | GET | `/presence` | Logados (quem está online) |
 | POST | `/daily-reward` | Alunos (a recompensa do primeiro acesso do dia, ver [Recompensa diária](#recompensa-diária)) |
+| GET | `/lucky-wheel` | Alunos (se o giro grátis de hoje está disponível e o preço do giro, ver [Roleta da Sorte](#roleta-da-sorte)) |
+| POST | `/lucky-wheel/spin` | Alunos (gira a roleta: cobra, sorteia e entrega o prêmio) |
 
 As rotas do jogo (inventário, missões, Loja, presentes, amigos, Mercado, trocas e eventos)
 estão em [As rotas da fase 3](#as-rotas-da-fase-3).
@@ -2644,6 +2647,82 @@ Pra ver de novo no mesmo dia, apague a linha de hoje **no banco local**:
 
 ```sql
 delete from daily_rewards where student_id = '<id do aluno>' and day = (now() at time zone 'America/Sao_Paulo')::date;
+```
+
+## Roleta da Sorte
+
+A roleta fica no topo da Loja. Todo dia o aluno tem **1 giro grátis** (o dia do horário de
+Brasília); depois dele, cada giro custa **50 moedas** (`WHEEL_SPIN_PRICE`). A roleta tem
+**20 prêmios**: 50, 100, 1000 e 5000 moedas; 300, 500 e 1000 XP; a Chave do Multiverso; e 12
+visuais da Loja (Aura da Lua Sangrenta, Fantasia de Abóbora, Orelhas de Lobisomem, Tiara de
+Morcego, Aura de Fogo, Óculos Neon, Óculos Teia de Aranha, Morceguinho Noturno, Revoada de
+Morcegos, Gorro de Astrônomo, Coroa de Saturno e Cometinha).
+
+Os prêmios, as chances e a regra de entregar o prêmio ficam em `src/engine/luckyWheel.ts`, a
+mesma regra no site e na API. Cada prêmio tem um peso (os pesos somam 1000, então peso 10 = 1%
+de chance): prêmio pequeno sai muito (50 moedas 23%, 300 XP 26,3%) e prêmio grande é raro
+(5000 moedas 0,1%, 1000 moedas 0,3%, Chave do Multiverso 0,8%, os visuais lendários 0,6%).
+Somando as moedas e o valor de revenda dos itens, um giro pago rende em média cerca de 49
+moedas (e uns 164 de XP): menos que as 50 que custa, pra roleta não virar uma fábrica de
+moedas. Os dados de cada visual (nome, ícone, descrição, raridade e valor de revenda) vêm das
+listas da Loja em `src/engine/shop.ts`. Visual repetido entra como outra cópia (dá pra vender) e
+item que não cabe no inventário fica esperando espaço, como as recompensas de missão.
+
+### A tabela lucky_wheel_spins
+
+```
+lucky_wheel_spins
+├── id           uuid        → o giro
+├── student_id   uuid        → o aluno (excluir o aluno apaga as linhas dele)
+├── day          date        → o dia, no horário de Brasília
+├── cost         integer     → quanto custou (0 = o giro grátis do dia)
+├── prize_key    varchar(60) → o prêmio que saiu (a key em WHEEL_PRIZES)
+└── created_at   timestamptz → quando girou
+    índice único parcial: (student_id, day) where cost = 0
+```
+
+A migration `20261019120000_create-table-lucky-wheel-spins` só **cria a tabela** (e os
+índices): não mexe em nenhuma coluna de `students` nem em nada que os alunos já têm. O índice
+único parcial garante **um giro grátis só por aluno por dia**. A tabela também serve de
+histórico (quantas vezes cada um girou e o que ganhou).
+
+### As rotas (src/routes/luckyWheel.ts)
+
+- `GET /lucky-wheel`: `{ freeSpinAvailable, price }`, pro botão da Loja mostrar "Giro grátis!".
+- `POST /lucky-wheel/spin`: tudo numa transação:
+  1. trava a linha do aluno (`lockStudents`): dois giros do mesmo aluno ao mesmo tempo esperam
+     um ao outro;
+  2. confere se já existe o giro grátis de hoje (`cost = 0` no dia de `TODAY_IN_BRAZIL`); se
+     não existe, este giro é o grátis; se existe, custa `WHEEL_SPIN_PRICE` (sem moedas
+     suficientes, responde 400 e nada muda);
+  3. sorteia no servidor (`crypto.randomInt` de 0 a 999, e `prizeIndexForRoll` acha a fatia);
+  4. aplica `applyWheelSpin` (cobra, dá as moedas, o XP com estouro de nível ou o item), salva
+     e grava o giro em `lucky_wheel_spins`.
+
+  A resposta é `{ prizeIndex, prizeKey, cost, leveledUp, fromLevel, newLevel, itemWaiting,
+  freeSpinAvailable, price, student }`. Quem sorteia é sempre o servidor: o site só gira a
+  roleta até a fatia `prizeIndex`.
+
+### No site
+
+O botão **Roleta da Sorte** é o primeiro da Loja (`src/app/academia/loja/page.tsx`), com uma
+roletinha girando e o selo "Giro grátis!" quando o grátis de hoje está disponível. Ele abre
+`src/components/LuckyWheel.tsx`, em tela cheia: a roleta com as 20 fatias, o aro de luzes
+piscando, o ponteiro, o botão de girar (grátis ou por 50 moedas) e a lista dos prêmios com a
+chance de cada um. A roleta gira 6 voltas e freia até a fatia sorteada, com o "tic" de cada
+fatia passando pelo ponteiro (`playWheelTicks`); quando para, aparece o prêmio (o aluno vestindo
+o visual, ou o ícone), com os sininhos (`playWheelPrize`). O aluno atualizado só vai pro cache
+quando a roleta para, pra o saldo não contar o prêmio antes da hora. Se o XP fez o aluno subir
+de nível, a cena de subir de nível vem depois.
+
+### Testando
+
+Com a API e o banco local: entre como aluno, abra a Loja e gire. O primeiro giro do dia é
+grátis; os seguintes custam 50 moedas. Pra ganhar o giro grátis de novo no mesmo dia, apague o
+de hoje **no banco local**:
+
+```sql
+delete from lucky_wheel_spins where student_id = '<id do aluno>' and cost = 0 and day = (now() at time zone 'America/Sao_Paulo')::date;
 ```
 
 ## Build da aplicação

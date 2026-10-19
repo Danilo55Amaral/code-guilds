@@ -8,6 +8,7 @@ import { ValidationError } from "./validation/validations";
 import { authRoutes } from "./routes/auth";
 import { chatsRoutes } from "./routes/chats";
 import { dailyRewardRoutes } from "./routes/dailyReward";
+import { luckyWheelRoutes } from "./routes/luckyWheel";
 import { eventsRoutes } from "./routes/events";
 import { friendsRoutes } from "./routes/friends";
 import { giftsRoutes } from "./routes/gifts";
@@ -173,4 +174,8 @@ app.register(presenceRoutes, {
 
 app.register(dailyRewardRoutes, {
     prefix: 'daily-reward',
+})
+
+app.register(luckyWheelRoutes, {
+    prefix: 'lucky-wheel',
 })
