@@ -1,6 +1,6 @@
 "use client";
 
-import { Art, Box, Cards, ChapterOpener, Fig, Glossary, H, List, P, Quiz, Summary, T } from "../BookParts";
+import { Art, Box, Cards, ChapterOpener, Fig, Glossary, H, List, P, Quiz, Summary, T, useUid } from "../BookParts";
 import type { BookPage } from "../types";
 import { Earth, Planet, Stars, Sun } from "./art";
 
@@ -125,14 +125,22 @@ function TransitArt() {
 // ---------------------------------------------------------------------------
 
 function HabitableZoneArt() {
+  const u = useUid("zona");
   return (
     <Art viewBox="0 0 600 230" label="A zona habitável de uma estrela: perto demais a água ferve, longe demais congela; na faixa verde, ela pode ficar líquida">
+      <defs>
+        <clipPath id={u}>
+          <rect width="600" height="230" rx="14" />
+        </clipPath>
+      </defs>
       <rect width="600" height="230" rx="14" fill="#020617" />
-      <g transform="translate(70 115)">
-        <circle r="300" fill="#38bdf8" opacity="0.18" />
-        <circle r="210" fill="#22c55e" opacity="0.3" />
-        <circle r="130" fill="#ef4444" opacity="0.3" />
-        <Sun r={36} />
+      <g clipPath={`url(#${u})`}>
+        <g transform="translate(70 115)">
+          <circle r="300" fill="#38bdf8" opacity="0.18" />
+          <circle r="210" fill="#22c55e" opacity="0.3" />
+          <circle r="130" fill="#ef4444" opacity="0.3" />
+          <Sun r={36} />
+        </g>
       </g>
       <Planet x={170} y={130} r={12} color="#fca5a5" dark="#991b1b" />
       <Earth x={240} y={90} r={14} />

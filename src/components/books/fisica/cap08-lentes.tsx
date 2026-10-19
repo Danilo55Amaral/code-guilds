@@ -190,11 +190,11 @@ function MirrorsCameraArt() {
         <path d="M30 196 L160 110 L260 30" stroke="#f59e0b" strokeWidth="2" strokeDasharray="6 4" className="cg-anim-dash" />
         <rect x="160" y="20" width="110" height="180" fill="#1e293b" />
         <circle cx="160" cy="110" r="3" fill="#fde047" />
-        <g transform="translate(250 60) scale(0.6 -0.6)">
+        <g transform="translate(250 92) scale(0.9)">
           <path d="M0 -40 L0 0 M0 0 L-20 -20 M0 0 L20 -20" stroke="#4ade80" strokeWidth="8" strokeLinecap="round" />
           <path d="M0 -40 L0 -66" stroke="#a16207" strokeWidth="10" />
         </g>
-        <text x="190" y="216" textAnchor="middle" fontSize="12" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
+        <text x="276" y="216" textAnchor="end" fontSize="12" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
           câmara escura: imagem invertida
         </text>
       </g>

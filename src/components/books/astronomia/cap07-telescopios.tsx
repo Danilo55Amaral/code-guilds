@@ -109,7 +109,7 @@ function SpectrumArt() {
             ) : (
               <rect x={x} y="110" width="76" height="40" fill={color} />
             )}
-            <text x={x + 38} y="170" textAnchor="middle" fontSize="11.5" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
+            <text x={x + 38} y={i % 2 ? 182 : 166} textAnchor="middle" fontSize="11.5" fontWeight="900" fill="#3b2a14" fontFamily="Georgia, serif">
               {name}
             </text>
           </g>

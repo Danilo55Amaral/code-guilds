@@ -108,7 +108,7 @@ export function CircuitSim() {
   const seriesPath = "M60 150 L60 40 L460 40 L460 150 L60 150";
   return (
     <div className="rounded-xl border border-[#d9c79d] bg-[#fffaf0] p-[0.6em]">
-      <svg viewBox="0 0 520 180" className="block w-full" aria-label={parallel ? "Circuito em paralelo" : "Circuito em série"}>
+      <svg viewBox="0 -24 520 204" className="block w-full" aria-label={parallel ? "Circuito em paralelo" : "Circuito em série"}>
         {parallel ? (
           <g stroke="#b45309" strokeWidth="4" fill="none">
             <path d="M60 150 L60 40 L460 40 M60 150 L460 150 L460 40" />

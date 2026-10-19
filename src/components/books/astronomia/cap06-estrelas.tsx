@@ -203,8 +203,8 @@ function LifecycleArt() {
     </g>
   );
   return (
-    <Art viewBox="0 0 600 250" label="A vida das estrelas: nascem na nebulosa; as como o Sol viram gigantes vermelhas e depois anãs brancas; as muito grandes explodem como supernovas e viram estrelas de nêutrons ou buracos negros">
-      <rect width="600" height="250" rx="14" fill="#020617" />
+    <Art viewBox="0 0 600 270" label="A vida das estrelas: nascem na nebulosa; as como o Sol viram gigantes vermelhas e depois anãs brancas; as muito grandes explodem como supernovas e viram estrelas de nêutrons ou buracos negros">
+      <rect width="600" height="270" rx="14" fill="#020617" />
       {step(
         60,
         125,
@@ -225,9 +225,9 @@ function LifecycleArt() {
       {/* o caminho das estrelas gigantes */}
       <path d="M200 140 L270 180" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 4" />
       {step(310, 188, "supergigante", <circle r="34" fill="#ef4444" opacity="0.85" />, 1.2)}
-      <path d="M350 188 L400 188" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 4" />
+      <path d="M350 188 L382 188" stroke="#94a3b8" strokeWidth="2" strokeDasharray="5 4" />
       {step(
-        440,
+        420,
         188,
         "supernova",
         <g>
@@ -241,8 +241,8 @@ function LifecycleArt() {
         1.5,
       )}
       {step(
-        540,
-        150,
+        525,
+        140,
         "estrela de nêutrons",
         <g>
           <circle r="5" fill="#bfdbfe" />
@@ -253,8 +253,8 @@ function LifecycleArt() {
         1.8,
       )}
       {step(
-        540,
-        220,
+        525,
+        222,
         "buraco negro",
         <g>
           <ellipse rx="22" ry="7" fill="#f97316" opacity="0.8" />
@@ -263,8 +263,8 @@ function LifecycleArt() {
         2.1,
       )}
       <g fontFamily="Georgia, serif" fontSize="11" fontWeight="900">
-        <text x="230" y="40" fill="#fde68a">estrelas como o Sol</text>
-        <text x="200" y="236" fill="#fca5a5">estrelas gigantes</text>
+        <text x="100" y="66" fill="#fde68a">estrelas como o Sol</text>
+        <text x="100" y="192" fill="#fca5a5">estrelas gigantes</text>
       </g>
     </Art>
   );
