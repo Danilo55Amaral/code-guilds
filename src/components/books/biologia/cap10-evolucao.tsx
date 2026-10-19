@@ -694,23 +694,3 @@ export const TIMELINE = [
   ["2003", "Os cientistas terminam de ler o genoma humano."],
   ["2020", "Nobel para a tesoura genética CRISPR."],
 ] as const;
-
-export function TimelinePage() {
-  return (
-    <div>
-      <H icon="⏳">A linha do tempo da Biologia</H>
-      <P>Algumas das descobertas que você conheceu neste livro, em ordem:</P>
-      <ol className="relative ml-[0.6em] border-l-[3px] pl-[1.1em]" style={{ borderColor: "var(--bk-accent)" }}>
-        {TIMELINE.map(([year, text], i) => (
-          <li key={year} className="cg-anim-rise relative mb-[0.45em]" style={{ animationDelay: `${i * 0.08}s` }}>
-            <span className="absolute -left-[1.62em] top-[0.2em] h-[0.9em] w-[0.9em] rounded-full border-2 border-white" style={{ background: "var(--bk-accent)" }} />
-            <span className="cg-book-title mr-[0.4em] font-black" style={{ color: "var(--bk-dark)" }}>
-              {year}
-            </span>
-            <span className="text-[0.92em]">{text}</span>
-          </li>
-        ))}
-      </ol>
-    </div>
-  );
-}
