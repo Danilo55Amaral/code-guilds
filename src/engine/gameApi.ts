@@ -115,6 +115,53 @@ export function claimDailyReward() {
 }
 
 // ---------------------------------------------------------------------------
+// Roleta da Sorte (Loja)
+// ---------------------------------------------------------------------------
+
+/** Se o giro grátis de hoje ainda está disponível e quanto custa cada giro depois dele. */
+export interface WheelStatus {
+  freeSpinAvailable: boolean;
+  price: number;
+}
+
+/** O que a API contou sobre o giro (o prêmio já está no aluno). */
+export interface WheelSpinOutcome extends WheelStatus {
+  prizeIndex: number; // a fatia que saiu, na ordem de WHEEL_PRIZES (engine/luckyWheel.ts)
+  prizeKey: string;
+  cost: number; // 0 = foi o giro grátis do dia
+  leveledUp: boolean;
+  fromLevel: number;
+  newLevel: number;
+  itemWaiting: boolean; // o item não coube no inventário e ficou esperando espaço
+}
+
+export async function fetchWheelStatus(): Promise<GameResult<WheelStatus>> {
+  try {
+    return { ok: true, ...(await api.get<WheelStatus>("/lucky-wheel")) };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
+}
+
+/**
+ * Gira a roleta: a API cobra (se não for o grátis do dia), sorteia e entrega o prêmio.
+ * O aluno atualizado só vai pro cache quando a tela chamar reveal() (quando a roleta
+ * para), pra o saldo não contar o prêmio antes da hora.
+ */
+export async function spinWheel(): Promise<GameResult<WheelSpinOutcome & { reveal: () => void }>> {
+  try {
+    const { student, ...outcome } = await api.post<{ student: StudentAccount } & WheelSpinOutcome>("/lucky-wheel/spin");
+    const reveal = () => {
+      saveStudentAccounts([student]);
+      emitChange();
+    };
+    return { ok: true, ...outcome, reveal };
+  } catch (error) {
+    return { ok: false, error: describeError(error) };
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Eventos
 // ---------------------------------------------------------------------------
 

@@ -821,6 +821,11 @@
   from { transform: translateX(-60px); }
   to { transform: translateX(580px); }
 }
+/* Roleta da Sorte: o brilho pulsando no botão do giro grátis */
+@keyframes cg-wheel-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6); }
+  50% { box-shadow: 0 0 0 14px rgba(52, 211, 153, 0); }
+}
 
 .cg-book-title { font-family: var(--cg-font-book-title), Georgia, serif; }
 .cg-book-scene { perspective: 2400px; }
@@ -850,6 +855,8 @@
   .cg-anim-pop { animation: cg-pop-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
   .cg-anim-rise { animation: cg-rise 0.5s ease-out both; }
   .cg-anim-fade { animation: cg-fade 0.6s ease-out both; }
+  .cg-anim-wheel-glow { animation: cg-wheel-glow 1.6s ease-out infinite; }
+  .cg-anim-wheel-spin { animation: cg-spin 7s linear infinite; }
   .cg-anim-spin-slow { animation: cg-spin 14s linear infinite; }
   .cg-anim-float { animation: cg-float 3s ease-in-out infinite; }
   .cg-anim-confetti { animation: cg-confetti-fall var(--cg-duration) cubic-bezier(0.25, 0.6, 0.4, 1) var(--cg-delay) both; }

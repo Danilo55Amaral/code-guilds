@@ -1660,3 +1660,46 @@ export function playTone(freq: number, volume = 0.2, seconds = 0.8): () => void 
   osc.stop(t + seconds + 0.05);
   return autoClose(ctx, (seconds + 1.5) * 1000);
 }
+
+/**
+ * A Roleta da Sorte girando: um "tic" seco a cada fatia que passa pelo
+ * ponteiro, rápido no começo e cada vez mais espaçado até parar. Os tiques
+ * seguem a mesma curva de freio da roleta na tela (easeOutCubic): a fatia k
+ * de `ticks` passa em duration × (1 − (1 − k/ticks)^(1/3)).
+ */
+export function playWheelTicks(ticks: number, durationMs: number): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.4);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t0 = ctx.currentTime + 0.03;
+  const seconds = durationMs / 1000;
+  for (let k = 1; k <= ticks; k++) {
+    const at = t0 + seconds * (1 - Math.cbrt(1 - k / ticks));
+    const osc = ctx.createOscillator();
+    osc.type = "square";
+    osc.frequency.setValueAtTime(1900, at);
+    osc.frequency.exponentialRampToValueAtTime(700, at + 0.025);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.18, at + 0.003);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.04);
+    osc.connect(gain).connect(out);
+    osc.start(at);
+    osc.stop(at + 0.05);
+  }
+  return autoClose(ctx, durationMs + 1200);
+}
+
+/** O prêmio da roleta: um arpejo de sininhos subindo (mais longo e brilhante nos prêmios raros). */
+export function playWheelPrize(big: boolean): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(0.45);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.02;
+  const notes = big ? [72, 76, 79, 84, 88, 91, 96] : [76, 79, 84, 88];
+  notes.forEach((m, i) => playChime(ctx, out, m, t + i * 0.09, big ? 1.4 : 1, 0.08));
+  if (big) [84, 88, 91].forEach((m) => playChime(ctx, out, m, t + notes.length * 0.09 + 0.1, 1.8, 0.05));
+  return autoClose(ctx, 3500);
+}

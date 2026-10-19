@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useStudents, useShop, useGameActions } from "@/engine/store";
 import { ShopItem, collectionsNewestFirst, maxPurchaseQuantity } from "@/engine/shop";
@@ -11,6 +11,9 @@ import { Student, freeSlots, inventoryCapacity, ownsCosmetic, wornAvatar } from 
 import { getHouse } from "@/engine/houses";
 import Avatar from "@/components/Avatar";
 import { CoinIcon, RarityBadge } from "@/components/GameUI";
+import LuckyWheel, { MiniWheel } from "@/components/LuckyWheel";
+import { WheelStatus, fetchWheelStatus } from "@/engine/gameApi";
+import { WHEEL_SPIN_PRICE } from "@/engine/luckyWheel";
 
 type Tab = "todos" | "visuais" | "itens";
 type Sort = "destaques" | "menor" | "maior" | "populares";
@@ -133,6 +136,18 @@ export default function LojaPage() {
   const [quantity, setQuantity] = useState(1);
   const [bought, setBought] = useState<{ shopItem: ShopItem; inventoryId: string; quantity: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Roleta da Sorte: aberta ou não, e se o giro grátis de hoje ainda está disponível
+  const [wheelOpen, setWheelOpen] = useState(false);
+  const [wheelStatus, setWheelStatus] = useState<WheelStatus | null>(null);
+
+  const loadWheelStatus = useCallback(async () => {
+    const result = await fetchWheelStatus();
+    if (result.ok) setWheelStatus({ freeSpinAvailable: result.freeSpinAvailable, price: result.price });
+  }, []);
+
+  useEffect(() => {
+    void loadWheelStatus();
+  }, [loadWheelStatus]);
 
   if (!activeStudent || !ready) return null;
   const me = activeStudent;
@@ -274,6 +289,48 @@ export default function LojaPage() {
 
   return (
     <div>
+      {/* ===== ROLETA DA SORTE ===== o primeiro botão da Loja, sempre escuro */}
+      <button
+        onClick={() => {
+          setWheelOpen(true);
+          void loadWheelStatus();
+        }}
+        className="cg-dark-scope group relative mb-5 flex w-full items-center gap-4 overflow-hidden rounded-3xl border-2 border-amber-400/70 p-4 text-left shadow-xl shadow-amber-500/20 transition-transform hover:-translate-y-0.5 hover:scale-[1.01] sm:p-5"
+        style={{
+          background:
+            "radial-gradient(40% 120% at 12% 50%, rgba(251,191,36,0.45), transparent 70%), radial-gradient(50% 120% at 90% 50%, rgba(236,72,153,0.4), transparent 70%), linear-gradient(110deg, #3b0764 0%, #6d28d9 50%, #9d174d 100%)",
+        }}
+      >
+        {SPARKLES.slice(0, 5).map((s, i) => (
+          <span
+            key={i}
+            aria-hidden="true"
+            className="cg-anim-float pointer-events-none absolute text-amber-200"
+            style={{ left: `${(s.left + 20) % 100}%`, top: `${s.top}%`, fontSize: s.size, animationDelay: `${s.delay}s`, opacity: 0.7 }}
+          >
+            ✦
+          </span>
+        ))}
+        <MiniWheel size={84} />
+        <div className="relative min-w-0 flex-1">
+          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-200">🎰 Tente a sorte</p>
+          <p className="cg-anim-shimmer text-2xl font-black uppercase tracking-wide sm:text-3xl">Roleta da Sorte</p>
+          <p className="mt-0.5 text-xs text-violet-100/85 sm:text-sm">
+            20 prêmios: moedas, XP, a Chave do Multiverso e visuais da Loja. 1 giro grátis por dia!
+          </p>
+        </div>
+        <span
+          className={`relative shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide text-cg-onaccent shadow-lg sm:text-sm ${
+            wheelStatus?.freeSpinAvailable
+              ? "cg-anim-wheel-glow bg-gradient-to-r from-emerald-400 to-teal-500"
+              : "bg-gradient-to-r from-amber-400 to-orange-500"
+          }`}
+        >
+          {wheelStatus?.freeSpinAvailable ? "🎁 Giro grátis!" : `🎡 Girar · ${wheelStatus?.price ?? WHEEL_SPIN_PRICE} moedas`}
+        </span>
+      </button>
+      {wheelOpen && <LuckyWheel me={me} status={wheelStatus} onStatus={setWheelStatus} onClose={() => setWheelOpen(false)} />}
+
       {/* ===== BANNER ===== sempre escuro, nos dois temas */}
       <div
         className="cg-dark-scope relative mb-6 overflow-hidden rounded-3xl border border-violet-500/30 p-6 sm:p-8"

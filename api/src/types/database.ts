@@ -59,6 +59,15 @@ export interface Friendships {
   toId: string;
 }
 
+export interface LuckyWheelSpins {
+  cost: number;
+  createdAt: Generated<Timestamp>;
+  day: Timestamp;
+  id: Generated<string>;
+  prizeKey: string;
+  studentId: string;
+}
+
 export interface Messages {
   audience: Json | null;
   body: string;
@@ -237,6 +246,7 @@ export interface DB {
   dailyRewards: DailyRewards;
   eventRuns: EventRuns;
   friendships: Friendships;
+  luckyWheelSpins: LuckyWheelSpins;
   messages: Messages;
   missions: Missions;
   offers: Offers;
