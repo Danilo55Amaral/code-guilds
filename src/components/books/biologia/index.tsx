@@ -1,4 +1,4 @@
-import { BackPage, EndPage, LetterPage, TitlePage, TocPage } from "../FrontMatter";
+import { BackPage, EndPage, LetterPage, TimelinePage, TitlePage, TocPage } from "../FrontMatter";
 import type { BookContent, BookPage } from "../types";
 import { BIOLOGIA_INFO } from "./meta";
 import { chapter1 } from "./cap01-celulas";
@@ -10,7 +10,7 @@ import { chapter6 } from "./cap06-hormonios";
 import { chapter7 } from "./cap07-ecologia";
 import { chapter8 } from "./cap08-genetica";
 import { chapter9 } from "./cap09-divisao";
-import { chapter10, TimelinePage } from "./cap10-evolucao";
+import { chapter10, TIMELINE } from "./cap10-evolucao";
 
 // ============================================================================
 // O LIVRO DE BIOLOGIA — a folha de rosto, a carta do Mago Danilo, o sumário,
@@ -41,7 +41,7 @@ const front: BookPage[] = [
 ];
 
 const end: BookPage[] = [
-  { content: <TimelinePage /> },
+  { content: <TimelinePage subject="Biologia" items={TIMELINE} /> },
   { bare: true, content: <EndPage subject="biologia" name="Biologia" /> },
   { bare: true, content: <BackPage subject="biologia" /> },
 ];

@@ -5,13 +5,13 @@ import type { ReactNode } from "react";
 import { Emblem, TOME_STYLE } from "@/components/library/SubjectTome";
 import WizardDanilo from "@/components/WizardDanilo";
 import type { SubjectId } from "@/engine/subjects";
-import { TableOfContents } from "./BookParts";
+import { H, P, TableOfContents } from "./BookParts";
 
 // ============================================================================
 // AS PÁGINAS DE ABERTURA E DE FECHAMENTO DE TODO LIVRO — a folha de rosto (o
 // emblema da matéria girando no medalhão), a carta do Mago Danilo, o "como
 // usar este livro", o sumário e, no fim, os parabéns com o caminho pras
-// missões da matéria e a contracapa.
+// missões da matéria, a linha do tempo e a contracapa.
 // ============================================================================
 
 function Medallion({ subject, size = "7em" }: { subject: SubjectId; size?: string }) {
@@ -105,6 +105,27 @@ export function TocPage({ from, to, first }: { from: number; to: number; first?:
       </h2>
       {first && <p className="mb-[0.6em] text-center text-[0.82em] italic text-[#6b5a3a]">Toque num capítulo para ir direto até ele.</p>}
       <TableOfContents from={from} to={to} />
+    </div>
+  );
+}
+
+/** A linha do tempo da matéria: as grandes descobertas do livro, em ordem (antes dos parabéns). */
+export function TimelinePage({ subject, items }: { subject: string; items: readonly (readonly [string, string])[] }) {
+  return (
+    <div>
+      <H icon="⏳">A linha do tempo da {subject}</H>
+      <P>Algumas das descobertas que você conheceu neste livro, em ordem:</P>
+      <ol className="relative ml-[0.6em] border-l-[3px] pl-[1.1em]" style={{ borderColor: "var(--bk-accent)" }}>
+        {items.map(([year, text], i) => (
+          <li key={year + text} className="cg-anim-rise relative mb-[0.45em]" style={{ animationDelay: `${i * 0.08}s` }}>
+            <span className="absolute -left-[1.62em] top-[0.2em] h-[0.9em] w-[0.9em] rounded-full border-2 border-white" style={{ background: "var(--bk-accent)" }} />
+            <span className="cg-book-title mr-[0.4em] font-black" style={{ color: "var(--bk-dark)" }}>
+              {year}
+            </span>
+            <span className="text-[0.92em]">{text}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }

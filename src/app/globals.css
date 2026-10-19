@@ -816,6 +816,12 @@
   100% { transform: translate(540px, -30px); }
 }
 
+/* o carrinho da calculadora de velocidade atravessando a estrada (livro de Física) */
+@keyframes cg-drive-across {
+  from { transform: translateX(-60px); }
+  to { transform: translateX(580px); }
+}
+
 .cg-book-title { font-family: var(--cg-font-book-title), Georgia, serif; }
 .cg-book-scene { perspective: 2400px; }
 .cg-book-leaf { position: absolute; top: 0; bottom: 0; z-index: 20; transform-style: preserve-3d; will-change: transform; }
@@ -832,7 +838,8 @@
 /* nos desenhos dos livros, o que surge, pula ou balança usa o próprio desenho como caixa (e não o canto do SVG) */
 .cg-book-art .cg-anim-pop,
 .cg-book-art .cg-anim-rise,
-.cg-book-art .cg-anim-hover { transform-box: fill-box; transform-origin: center; }
+.cg-book-art .cg-anim-hover,
+.cg-book-art .cg-anim-aurora { transform-box: fill-box; transform-origin: center; }
 .cg-book-art .cg-anim-hop { transform-box: fill-box; transform-origin: 50% 100%; }
 .cg-book-scroll { scrollbar-width: thin; scrollbar-color: #c9b483 transparent; }
 .cg-book-scroll::-webkit-scrollbar { width: 5px; }

@@ -1636,3 +1636,27 @@ export function playBookOpen(): () => void {
   [79, 84, 88, 91].forEach((m, i) => playChime(ctx, out, m, t + 0.18 + i * 0.07, 1, 0.05));
   return autoClose(ctx, 2200);
 }
+
+/**
+ * Um tom puro (onda senoidal) de `freq` hertz, pro livro de Física: o aluno
+ * ouve a diferença entre o som agudo e o grave, e entre o forte e o fraco.
+ */
+export function playTone(freq: number, volume = 0.2, seconds = 0.8): () => void {
+  if (typeof window === "undefined") return () => {};
+  const scene = openSceneContext(1);
+  if (!scene) return () => {};
+  const { ctx, out } = scene;
+  const t = ctx.currentTime + 0.01;
+  const osc = ctx.createOscillator();
+  osc.type = "sine";
+  osc.frequency.value = freq;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(volume, t + 0.04);
+  gain.gain.setValueAtTime(volume, t + seconds - 0.12);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + seconds);
+  osc.connect(gain).connect(out);
+  osc.start(t);
+  osc.stop(t + seconds + 0.05);
+  return autoClose(ctx, (seconds + 1.5) * 1000);
+}
