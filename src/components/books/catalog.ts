@@ -4,6 +4,9 @@ import { BIOLOGIA_INFO } from "./biologia/meta";
 import { QUIMICA_INFO } from "./quimica/meta";
 import { FISICA_INFO } from "./fisica/meta";
 import { ASTRONOMIA_INFO } from "./astronomia/meta";
+import { ODS_INFO } from "./ods/meta";
+import { PORTUGUES_INFO } from "./portugues/meta";
+import { HISTORIA_INFO } from "./historia/meta";
 
 // ============================================================================
 // O CATÁLOGO DA BIBLIOTECA VIRTUAL — os livros que já estão prontos. A ficha
@@ -17,6 +20,9 @@ export const BOOK_INFO: Partial<Record<SubjectId, BookInfo>> = {
   quimica: QUIMICA_INFO,
   fisica: FISICA_INFO,
   astronomia: ASTRONOMIA_INFO,
+  ods: ODS_INFO,
+  portugues: PORTUGUES_INFO,
+  historia: HISTORIA_INFO,
 };
 
 export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>> = {
@@ -24,4 +30,7 @@ export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>
   quimica: () => import("./quimica").then((m) => m.default),
   fisica: () => import("./fisica").then((m) => m.default),
   astronomia: () => import("./astronomia").then((m) => m.default),
+  ods: () => import("./ods").then((m) => m.default),
+  portugues: () => import("./portugues").then((m) => m.default),
+  historia: () => import("./historia").then((m) => m.default),
 };
