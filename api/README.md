@@ -2652,7 +2652,7 @@ delete from daily_rewards where student_id = '<id do aluno>' and day = (now() at
 ## Roleta da Sorte
 
 A roleta fica no topo da Loja. Todo dia o aluno tem **1 giro grátis** (o dia do horário de
-Brasília); depois dele, cada giro custa **50 moedas** (`WHEEL_SPIN_PRICE`). A roleta tem
+Brasília); depois dele, cada giro custa **100 moedas** (`WHEEL_SPIN_PRICE`). A roleta tem
 **20 prêmios**: 50, 100, 1000 e 5000 moedas; 300, 500 e 1000 XP; a Chave do Multiverso; e 12
 visuais da Loja (Aura da Lua Sangrenta, Fantasia de Abóbora, Orelhas de Lobisomem, Tiara de
 Morcego, Aura de Fogo, Óculos Neon, Óculos Teia de Aranha, Morceguinho Noturno, Revoada de
@@ -2660,10 +2660,11 @@ Morcegos, Gorro de Astrônomo, Coroa de Saturno e Cometinha).
 
 Os prêmios, as chances e a regra de entregar o prêmio ficam em `src/engine/luckyWheel.ts`, a
 mesma regra no site e na API. Cada prêmio tem um peso (os pesos somam 1000, então peso 10 = 1%
-de chance): prêmio pequeno sai muito (50 moedas 23%, 300 XP 26,3%) e prêmio grande é raro
-(5000 moedas 0,1%, 1000 moedas 0,3%, Chave do Multiverso 0,8%, os visuais lendários 0,6%).
-Somando as moedas e o valor de revenda dos itens, um giro pago rende em média cerca de 49
-moedas (e uns 164 de XP): menos que as 50 que custa, pra roleta não virar uma fábrica de
+de chance): prêmio pequeno sai muito (50 moedas 33,8%, 100 moedas 8,8%, 300 XP 5%, 500 XP 3%) e
+prêmio grande é raro (5000 moedas 0,2%, 1000 moedas 0,4%, Chave do Multiverso 1,2%, os visuais
+lendários 0,9%).
+Somando as moedas e o valor de revenda dos itens, um giro pago rende em média cerca de 75
+moedas (e uns 74 de XP): menos que as 100 que custa, pra roleta não virar uma fábrica de
 moedas. Os dados de cada visual (nome, ícone, descrição, raridade e valor de revenda) vêm das
 listas da Loja em `src/engine/shop.ts`. Visual repetido entra como outra cópia (dá pra vender) e
 item que não cabe no inventário fica esperando espaço, como as recompensas de missão.
@@ -2708,7 +2709,7 @@ histórico (quantas vezes cada um girou e o que ganhou).
 O botão **Roleta da Sorte** é o primeiro da Loja (`src/app/academia/loja/page.tsx`), com uma
 roletinha girando e o selo "Giro grátis!" quando o grátis de hoje está disponível. Ele abre
 `src/components/LuckyWheel.tsx`, em tela cheia: a roleta com as 20 fatias, o aro de luzes
-piscando, o ponteiro, o botão de girar (grátis ou por 50 moedas) e a lista dos prêmios com a
+piscando, o ponteiro, o botão de girar (grátis ou por 100 moedas) e a lista dos prêmios com a
 chance de cada um. A roleta gira 6 voltas e freia até a fatia sorteada, com o "tic" de cada
 fatia passando pelo ponteiro (`playWheelTicks`); quando para, aparece o prêmio (o aluno vestindo
 o visual, ou o ícone), com os sininhos (`playWheelPrize`). O aluno atualizado só vai pro cache
@@ -2718,7 +2719,7 @@ de nível, a cena de subir de nível vem depois.
 ### Testando
 
 Com a API e o banco local: entre como aluno, abra a Loja e gire. O primeiro giro do dia é
-grátis; os seguintes custam 50 moedas. Pra ganhar o giro grátis de novo no mesmo dia, apague o
+grátis; os seguintes custam 100 moedas. Pra ganhar o giro grátis de novo no mesmo dia, apague o
 de hoje **no banco local**:
 
 ```sql
