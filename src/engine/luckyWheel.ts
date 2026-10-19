@@ -11,8 +11,8 @@
 //
 // As chances seguem a raridade: prêmio pequeno sai muito, prêmio grande é
 // raro. Somando moedas e o valor de revenda dos itens, um giro pago rende em
-// média um pouco menos que as 50 moedas que custa, pra roleta não virar uma
-// fábrica de moedas. Visual repetido entra como outra cópia (dá pra vender).
+// média cerca de 75 moedas, menos que as 100 que custa, pra roleta não
+// virar uma fábrica de moedas. Visual repetido entra como outra cópia (dá pra vender).
 // ============================================================================
 
 import { Rarity } from "./missions";
@@ -22,7 +22,7 @@ import { MULTIVERSE_KEY_ITEM } from "./multiverse";
 import { Student, addXp, grantItem } from "./students";
 
 /** Quanto custa cada giro depois do grátis do dia. */
-export const WHEEL_SPIN_PRICE = 50;
+export const WHEEL_SPIN_PRICE = 100;
 
 /** O item que o prêmio dá (no formato do grantItem). */
 export interface WheelPrizeItem {
@@ -66,34 +66,34 @@ function cosmeticPrize(key: string, short: string, cosmetic: Cosmetic, weight: n
  * Pesos somam 1000: weight 10 = 1% de chance.
  */
 export const WHEEL_PRIZES: WheelPrize[] = [
-  { key: "moedas-50", label: "50 moedas", short: "50", icon: "💰", rarity: "comum", weight: 230, coins: 50 },
-  cosmeticPrize("gorro-astronomo", "Gorro", { slot: "hat", value: "gorro-astronomo" }, 45),
-  { key: "xp-300", label: "300 XP", short: "300 XP", icon: "✨", rarity: "comum", weight: 263, xp: 300 },
-  cosmeticPrize("aura-lua-sangrenta", "Lua Sangrenta", { slot: "aura", value: "lua-sangrenta" }, 6),
-  { key: "moedas-100", label: "100 moedas", short: "100", icon: "💰", rarity: "comum", weight: 60, coins: 100 },
-  cosmeticPrize("oculos-neon", "Óculos Neon", { slot: "eyewear", value: "neon" }, 40),
-  { key: "xp-500", label: "500 XP", short: "500 XP", icon: "✨", rarity: "raro", weight: 110, xp: 500 },
-  cosmeticPrize("tiara-morcego", "Tiara", { slot: "hat", value: "morcego" }, 35),
+  { key: "moedas-50", label: "50 moedas", short: "50", icon: "💰", rarity: "comum", weight: 338, coins: 50 },
+  cosmeticPrize("gorro-astronomo", "Gorro", { slot: "hat", value: "gorro-astronomo" }, 66),
+  { key: "xp-300", label: "300 XP", short: "300 XP", icon: "✨", rarity: "comum", weight: 50, xp: 300 },
+  cosmeticPrize("aura-lua-sangrenta", "Lua Sangrenta", { slot: "aura", value: "lua-sangrenta" }, 9),
+  { key: "moedas-100", label: "100 moedas", short: "100", icon: "💰", rarity: "comum", weight: 88, coins: 100 },
+  cosmeticPrize("oculos-neon", "Óculos Neon", { slot: "eyewear", value: "neon" }, 59),
+  { key: "xp-500", label: "500 XP", short: "500 XP", icon: "✨", rarity: "raro", weight: 30, xp: 500 },
+  cosmeticPrize("tiara-morcego", "Tiara", { slot: "hat", value: "morcego" }, 51),
   {
     key: "chave-multiverso",
     label: MULTIVERSE_KEY_ITEM.name,
     short: "Chave",
     icon: MULTIVERSE_KEY_ITEM.icon,
     rarity: "lendario",
-    weight: 8,
+    weight: 12,
     item: { ...MULTIVERSE_KEY_ITEM },
   },
-  cosmeticPrize("fantasia-abobora", "Fantasia", { slot: "outfit", value: "abobora" }, 14),
-  { key: "moedas-1000", label: "1000 moedas", short: "1000", icon: "💰", rarity: "epico", weight: 3, coins: 1000 },
-  cosmeticPrize("oculos-teia", "Óculos Teia", { slot: "eyewear", value: "teia" }, 35),
-  cosmeticPrize("aura-fogo", "Aura de Fogo", { slot: "aura", value: "fogo" }, 18),
-  { key: "xp-1000", label: "1000 XP", short: "1000 XP", icon: "🌟", rarity: "epico", weight: 30, xp: 1000 },
-  cosmeticPrize("orelhas-lobisomem", "Orelhas", { slot: "hat", value: "orelhas-lobo" }, 30),
-  cosmeticPrize("revoada-morcegos", "Revoada", { slot: "aura", value: "morcegos" }, 18),
-  { key: "moedas-5000", label: "5000 moedas", short: "5000", icon: "💎", rarity: "lendario", weight: 1, coins: 5000 },
-  cosmeticPrize("morceguinho-noturno", "Morceguinho", { slot: "pet", value: "morcego" }, 30),
-  cosmeticPrize("coroa-saturno", "Coroa", { slot: "hat", value: "coroa-saturno" }, 18),
-  cosmeticPrize("cometinha", "Cometinha", { slot: "pet", value: "cometinha" }, 6),
+  cosmeticPrize("fantasia-abobora", "Fantasia", { slot: "outfit", value: "abobora" }, 21),
+  { key: "moedas-1000", label: "1000 moedas", short: "1000", icon: "💰", rarity: "epico", weight: 4, coins: 1000 },
+  cosmeticPrize("oculos-teia", "Óculos Teia", { slot: "eyewear", value: "teia" }, 51),
+  cosmeticPrize("aura-fogo", "Aura de Fogo", { slot: "aura", value: "fogo" }, 26),
+  { key: "xp-1000", label: "1000 XP", short: "1000 XP", icon: "🌟", rarity: "epico", weight: 44, xp: 1000 },
+  cosmeticPrize("orelhas-lobisomem", "Orelhas", { slot: "hat", value: "orelhas-lobo" }, 44),
+  cosmeticPrize("revoada-morcegos", "Revoada", { slot: "aura", value: "morcegos" }, 26),
+  { key: "moedas-5000", label: "5000 moedas", short: "5000", icon: "💎", rarity: "lendario", weight: 2, coins: 5000 },
+  cosmeticPrize("morceguinho-noturno", "Morceguinho", { slot: "pet", value: "morcego" }, 44),
+  cosmeticPrize("coroa-saturno", "Coroa", { slot: "hat", value: "coroa-saturno" }, 26),
+  cosmeticPrize("cometinha", "Cometinha", { slot: "pet", value: "cometinha" }, 9),
 ];
 
 export const WHEEL_TOTAL_WEIGHT = WHEEL_PRIZES.reduce((sum, p) => sum + p.weight, 0);
