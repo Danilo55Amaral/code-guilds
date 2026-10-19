@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useStudents, useShop, useGameActions } from "@/engine/store";
 import { ShopItem, collectionsNewestFirst, maxPurchaseQuantity } from "@/engine/shop";
 import { RARITY_GLOW } from "@/engine/missions";
-import { COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
+import { AvatarConfig, COSMETIC_SLOT_LABELS, CosmeticCollection, applyCosmetic } from "@/engine/avatar";
 import { COLLECTION_THEME } from "@/components/collections";
-import { Student, freeSlots, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
+import { freeSlots, inventoryCapacity, ownsCosmetic, wornAvatar } from "@/engine/students";
 import { getHouse } from "@/engine/houses";
 import Avatar from "@/components/Avatar";
 import { CoinIcon, RarityBadge } from "@/components/GameUI";
@@ -45,8 +45,13 @@ const FALLING = Array.from({ length: 22 }, (_, i) => ({
   drift: ((i % 3) - 1) * 30,
 }));
 
-/** Prévia do item: o próprio aluno vestindo o visual, ou o ícone flutuando. */
-function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: number }) {
+/**
+ * Prévia do item: o próprio aluno vestindo o visual, ou o ícone flutuando. `base` é o visual que o
+ * aluno está usando. Nos cards, `still` deixa a aura e o pet parados (animam com o mouse em cima):
+ * com dezenas de cards, as auras animadas juntas deixavam a Loja lenta. O memo evita redesenhar
+ * todos os avatares quando só muda a aba, a ordem, a prova ou a quantidade.
+ */
+const ItemPreview = memo(function ItemPreview({ item, base, size, still = false }: { item: ShopItem; base: AvatarConfig; size: number; still?: boolean }) {
   const glow = RARITY_GLOW[item.rarity];
   return (
     <div
@@ -55,7 +60,7 @@ function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: nu
     >
       {item.cosmetic ? (
         <div className="transition-transform duration-300 group-hover:scale-105">
-          <Avatar config={applyCosmetic(wornAvatar(me), item.cosmetic)} size={size} ringColor={glow} />
+          <Avatar config={applyCosmetic(base, item.cosmetic)} size={size} ringColor={glow} still={still} />
         </div>
       ) : (
         <div
@@ -67,7 +72,7 @@ function ItemPreview({ item, me, size }: { item: ShopItem; me: Student; size: nu
       )}
     </div>
   );
-}
+});
 
 /** Quantas unidades comprar: − e +, o número digitado e os atalhos (1, 5, 10 e o máximo). */
 function QuantityPicker({ value, max, onChange }: { value: number; max: number; onChange: (n: number) => void }) {
@@ -139,6 +144,8 @@ export default function LojaPage() {
   // Roleta da Sorte: aberta ou não, e se o giro grátis de hoje ainda está disponível
   const [wheelOpen, setWheelOpen] = useState(false);
   const [wheelStatus, setWheelStatus] = useState<WheelStatus | null>(null);
+  // o visual que o aluno está usando (base das prévias); só muda quando o aluno muda
+  const worn = useMemo(() => (activeStudent ? wornAvatar(activeStudent) : null), [activeStudent]);
 
   const loadWheelStatus = useCallback(async () => {
     const result = await fetchWheelStatus();
@@ -149,7 +156,9 @@ export default function LojaPage() {
     void loadWheelStatus();
   }, [loadWheelStatus]);
 
-  if (!activeStudent || !ready) return null;
+  if (!activeStudent || !ready || !worn) return null;
+  // já conferido acima (as funções de dentro da página não enxergam essa conferência)
+  const base: AvatarConfig = worn;
   const me = activeStudent;
   const house = me.houseId ? getHouse(me.houseId) : null;
 
@@ -168,7 +177,7 @@ export default function LojaPage() {
     });
 
   const owned = (i: ShopItem) => !!i.cosmetic && ownsCosmetic(me, i.cosmetic);
-  const heroAvatar = tryOn?.cosmetic ? applyCosmetic(wornAvatar(me), tryOn.cosmetic) : wornAvatar(me);
+  const heroAvatar = tryOn?.cosmetic ? applyCosmetic(base, tryOn.cosmetic) : base;
 
   function provar(item: ShopItem) {
     setTryOn(item);
@@ -228,7 +237,7 @@ export default function LojaPage() {
             </span>
           )
         )}
-        <ItemPreview item={item} me={me} size={92} />
+        <ItemPreview item={item} base={base} size={92} still />
         <div className="px-4 pb-4">
           <p className="font-semibold text-white">{item.name}</p>
           <p className="mt-1 line-clamp-2 min-h-[2rem] text-xs text-slate-400">{item.description}</p>
@@ -295,7 +304,7 @@ export default function LojaPage() {
           setWheelOpen(true);
           void loadWheelStatus();
         }}
-        className="cg-dark-scope group relative mb-5 flex w-full items-center gap-4 overflow-hidden rounded-3xl border-2 border-amber-400/70 p-4 text-left shadow-xl shadow-amber-500/20 transition-transform hover:-translate-y-0.5 hover:scale-[1.01] sm:p-5"
+        className="cg-dark-scope group relative mb-5 flex w-full flex-wrap items-center gap-3 overflow-hidden rounded-3xl border-2 border-amber-400/70 p-4 text-left shadow-xl shadow-amber-500/20 transition-transform hover:-translate-y-0.5 hover:scale-[1.01] sm:flex-nowrap sm:gap-4 sm:p-5"
         style={{
           background:
             "radial-gradient(40% 120% at 12% 50%, rgba(251,191,36,0.45), transparent 70%), radial-gradient(50% 120% at 90% 50%, rgba(236,72,153,0.4), transparent 70%), linear-gradient(110deg, #3b0764 0%, #6d28d9 50%, #9d174d 100%)",
@@ -311,16 +320,17 @@ export default function LojaPage() {
             ✦
           </span>
         ))}
-        <MiniWheel size={84} />
+        {/* no celular a roletinha é menor e o "Girar" desce pra uma linha só dele */}
+        <MiniWheel size={84} className="!h-16 !w-16 sm:!h-[84px] sm:!w-[84px]" />
         <div className="relative min-w-0 flex-1">
           <p className="text-[11px] font-black uppercase tracking-[0.25em] text-amber-200">🎰 Tente a sorte</p>
-          <p className="cg-anim-shimmer text-2xl font-black uppercase tracking-wide sm:text-3xl">Roleta da Sorte</p>
+          <p className="cg-anim-shimmer text-xl font-black uppercase tracking-wide sm:text-3xl">Roleta da Sorte</p>
           <p className="mt-0.5 text-xs text-violet-100/85 sm:text-sm">
             20 prêmios: moedas, XP, a Chave do Multiverso e visuais da Loja. 1 giro grátis por dia!
           </p>
         </div>
         <span
-          className={`relative shrink-0 rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide text-cg-onaccent shadow-lg sm:text-sm ${
+          className={`relative w-full shrink-0 rounded-full px-4 py-2 text-center text-xs font-black uppercase tracking-wide text-cg-onaccent shadow-lg sm:w-auto sm:text-sm ${
             wheelStatus?.freeSpinAvailable
               ? "cg-anim-wheel-glow bg-gradient-to-r from-emerald-400 to-teal-500"
               : "bg-gradient-to-r from-amber-400 to-orange-500"
@@ -366,9 +376,10 @@ export default function LojaPage() {
 
           <div className="flex flex-col items-center gap-2">
             <div className="cg-anim-float relative">
+              {/* o brilho em volta: degradê em vez de blur (o blur era recalculado a cada quadro da aura) */}
               <div
-                className="absolute inset-0 rounded-full blur-2xl"
-                style={{ background: tryOn ? RARITY_GLOW[tryOn.rarity] : (house?.hex ?? "#8b5cf6"), opacity: 0.55 }}
+                className="absolute -inset-6 rounded-full"
+                style={{ background: `radial-gradient(closest-side, ${tryOn ? RARITY_GLOW[tryOn.rarity] : (house?.hex ?? "#8b5cf6")}8c, transparent)` }}
               />
               <Avatar config={heroAvatar} ringColor={tryOn ? RARITY_GLOW[tryOn.rarity] : house?.hex} size={150} />
             </div>
@@ -467,7 +478,7 @@ export default function LojaPage() {
                         <span className="absolute left-3 top-3 z-10 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-cg-onaccent">
                           ⭐ Destaque
                         </span>
-                        <ItemPreview item={item} me={me} size={112} />
+                        <ItemPreview item={item} base={base} size={112} still />
                         <div className="px-4 pb-4">
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="font-bold text-white">{item.name}</p>
@@ -531,7 +542,7 @@ export default function LojaPage() {
       {confirming && (
         <div className="fixed inset-0 z-50 flex overflow-y-auto bg-black/80 p-4" onClick={() => setConfirming(null)}>
           <div className="cg-card cg-anim-pop m-auto w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <ItemPreview item={confirming} me={me} size={130} />
+            <ItemPreview item={confirming} base={base} size={130} />
             <div className="px-6 pb-6 text-center">
               <p className="text-[11px] uppercase tracking-wider text-slate-500">Confirmar compra</p>
               <h2 className="mt-1 text-xl font-bold text-white">{confirming.name}</h2>
@@ -627,7 +638,7 @@ export default function LojaPage() {
               <div className="flex justify-center">
                 {bought.shopItem.cosmetic ? (
                   <Avatar
-                    config={applyCosmetic(wornAvatar(me), bought.shopItem.cosmetic)}
+                    config={applyCosmetic(base, bought.shopItem.cosmetic)}
                     ringColor={RARITY_GLOW[bought.shopItem.rarity]}
                     size={130}
                   />

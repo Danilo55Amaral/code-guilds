@@ -44,7 +44,12 @@ const LOGO_SPARKLES: [number, number, number, number][] = [
   [40, 196, 8, 2.8],
 ];
 
-/** O nome CodeGuilds em ouro, com a aura dourada, o rastro de varinha e as faíscas. */
+/**
+ * O nome CodeGuilds em ouro, com a aura dourada, o rastro de varinha e as faíscas. São duas camadas no
+ * mesmo viewBox: embaixo, o metal (parado, com o desfoque da aura e a sombra, que são caros de desenhar);
+ * por cima, numa camada própria, só o que anima (o brilho passando, a estrela e as faíscas). Assim a
+ * animação não obriga a redesenhar o desfoque a cada quadro.
+ */
 export function TitleLogo({ fontFamily, animate = true, className = "" }: { fontFamily: string; animate?: boolean; className?: string }) {
   const id = `lg${useId().replace(/:/g, "")}`;
   const word = (extra: React.SVGProps<SVGTextElement>) => (
@@ -64,53 +69,76 @@ export function TitleLogo({ fontFamily, animate = true, className = "" }: { font
   );
 
   return (
-    <svg viewBox="0 0 900 330" className={`overflow-visible ${className}`} role="img" aria-label="CodeGuilds">
-      <defs>
-        <linearGradient id={`${id}-gold`} x1="0" y1="90" x2="0" y2="230" gradientUnits="userSpaceOnUse">
-          <GoldStops />
-        </linearGradient>
-        <linearGradient id={`${id}-shine`} gradientUnits="userSpaceOnUse" x1="-320" y1="0" x2="-120" y2="60">
-          <stop offset="0" stopColor="#fff" stopOpacity="0" />
-          <stop offset="0.5" stopColor="#fff" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#fff" stopOpacity="0" />
-          {animate && (
-            <>
-              <animate attributeName="x1" values="-320;1100;1100" keyTimes="0;0.45;1" dur="5s" repeatCount="indefinite" />
-              <animate attributeName="x2" values="-120;1300;1300" keyTimes="0;0.45;1" dur="5s" repeatCount="indefinite" />
-            </>
-          )}
-        </linearGradient>
-        <linearGradient id={`${id}-trail`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#fde68a" stopOpacity="0" />
-          <stop offset="0.6" stopColor="#fde68a" stopOpacity="0.9" />
-          <stop offset="1" stopColor="#fff7d6" />
-        </linearGradient>
-        <filter id={`${id}-blur`} x="-20%" y="-50%" width="140%" height="200%">
-          <feGaussianBlur stdDeviation="9" />
-        </filter>
-      </defs>
+    <div className={`relative ${className}`} role="img" aria-label="CodeGuilds">
+      {/* o metal, parado (a sombra embaixo dele também fica só nesta camada) */}
+      <svg viewBox="0 0 900 330" className="block w-full overflow-visible" style={{ filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.7))" }} aria-hidden="true">
+        <defs>
+          <linearGradient id={`${id}-gold`} x1="0" y1="90" x2="0" y2="230" gradientUnits="userSpaceOnUse">
+            <GoldStops />
+          </linearGradient>
+          <linearGradient id={`${id}-trail`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#fde68a" stopOpacity="0" />
+            <stop offset="0.6" stopColor="#fde68a" stopOpacity="0.9" />
+            <stop offset="1" stopColor="#fff7d6" />
+          </linearGradient>
+          <filter id={`${id}-blur`} x="-20%" y="-50%" width="140%" height="200%">
+            <feGaussianBlur stdDeviation="9" />
+          </filter>
+        </defs>
 
-      {/* aura dourada, a "espessura" do metal (a sombra em baixo) e o contorno escuro */}
-      {word({ fill: "none", stroke: "#f59e0b", strokeWidth: 26, opacity: 0.55, filter: `url(#${id}-blur)` })}
-      {word({ y: 222, fill: "#5b2a07", stroke: "#1c0a02", strokeWidth: 14, strokeLinejoin: "round" })}
-      {word({ fill: `url(#${id}-gold)`, stroke: "#2a1205", strokeWidth: 8, strokeLinejoin: "round", paintOrder: "stroke" })}
-      {/* o fio de luz por dentro das letras e o brilho passando */}
-      {word({ fill: "none", stroke: "#fff7d6", strokeWidth: 1.4, opacity: 0.65 })}
-      {word({ fill: `url(#${id}-shine)`, opacity: 0.85 })}
+        {/* aura dourada, a "espessura" do metal (a sombra em baixo) e o contorno escuro */}
+        {word({ fill: "none", stroke: "#f59e0b", strokeWidth: 26, opacity: 0.55, filter: `url(#${id}-blur)` })}
+        {word({ y: 222, fill: "#5b2a07", stroke: "#1c0a02", strokeWidth: 14, strokeLinejoin: "round" })}
+        {word({ fill: `url(#${id}-gold)`, stroke: "#2a1205", strokeWidth: 8, strokeLinejoin: "round", paintOrder: "stroke" })}
+        {/* o fio de luz por dentro das letras */}
+        {word({ fill: "none", stroke: "#fff7d6", strokeWidth: 1.4, opacity: 0.65 })}
 
-      {/* o rastro da varinha embaixo do nome, terminando numa estrela */}
-      <path d="M150 268 C330 304 560 302 748 250" fill="none" stroke={`url(#${id}-trail)`} strokeWidth="5" strokeLinecap="round" />
-      <path d="M180 282 C360 312 560 310 720 270" fill="none" stroke="#fbbf24" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
-      <g className="cg-anim-glow" style={{ "--cg-dur": "1.8s" } as React.CSSProperties}>
-        <circle cx="752" cy="248" r="16" fill="#fde68a" opacity="0.35" />
-        <path d={sparklePath(752, 248, 20)} fill="#fff7d6" />
-      </g>
+        {/* o rastro da varinha embaixo do nome */}
+        <path d="M150 268 C330 304 560 302 748 250" fill="none" stroke={`url(#${id}-trail)`} strokeWidth="5" strokeLinecap="round" />
+        <path d="M180 282 C360 312 560 310 720 270" fill="none" stroke="#fbbf24" strokeOpacity="0.4" strokeWidth="2" strokeLinecap="round" />
+      </svg>
 
-      {/* faíscas piscando em volta */}
-      {LOGO_SPARKLES.map(([x, y, r, delay]) => (
-        <path key={`${x}-${y}`} d={sparklePath(x, y, r)} fill="#fde68a" className="cg-anim-twinkle" style={{ animationDelay: `${delay}s`, filter: "drop-shadow(0 0 6px #fbbf24)" }} />
-      ))}
-    </svg>
+      {/* o que anima, numa camada só dela (will-change), por cima do metal */}
+      <svg viewBox="0 0 900 330" className="absolute inset-0 h-full w-full overflow-visible" style={{ willChange: "transform" }} aria-hidden="true">
+        <defs>
+          <linearGradient id={`${id}-shine`} gradientUnits="userSpaceOnUse" x1="-320" y1="0" x2="-120" y2="60">
+            <stop offset="0" stopColor="#fff" stopOpacity="0" />
+            <stop offset="0.5" stopColor="#fff" stopOpacity="0.95" />
+            <stop offset="1" stopColor="#fff" stopOpacity="0" />
+            {animate && (
+              <>
+                <animate attributeName="x1" values="-320;1100;1100" keyTimes="0;0.45;1" dur="5s" repeatCount="indefinite" />
+                <animate attributeName="x2" values="-120;1300;1300" keyTimes="0;0.45;1" dur="5s" repeatCount="indefinite" />
+              </>
+            )}
+          </linearGradient>
+        </defs>
+        {/* o brilho passando pelas letras */}
+        {word({ fill: `url(#${id}-shine)`, opacity: 0.85 })}
+
+        {/* a estrela na ponta do rastro */}
+        <g className="cg-anim-glow" style={{ "--cg-dur": "1.8s" } as React.CSSProperties}>
+          <circle cx="752" cy="248" r="16" fill="#fde68a" opacity="0.35" />
+          <path d={sparklePath(752, 248, 20)} fill="#fff7d6" />
+        </g>
+
+        {/* faíscas piscando em volta (o brilho delas é um contorno largo e claro, não um filtro) */}
+        {LOGO_SPARKLES.map(([x, y, r, delay]) => (
+          <path
+            key={`${x}-${y}`}
+            d={sparklePath(x, y, r)}
+            fill="#fde68a"
+            stroke="#fbbf24"
+            strokeOpacity="0.45"
+            strokeWidth="4"
+            strokeLinejoin="round"
+            paintOrder="stroke"
+            className="cg-anim-twinkle"
+            style={{ animationDelay: `${delay}s` }}
+          />
+        ))}
+      </svg>
+    </div>
   );
 }
 
@@ -200,14 +228,11 @@ export function DragonBreath({ className = "", style }: { className?: string; st
           <stop offset="0.5" stopColor="#fb923c" />
           <stop offset="1" stopColor="#dc2626" stopOpacity="0" />
         </radialGradient>
-        <filter id={`${id}-blur`} x="-10%" y="-40%" width="120%" height="180%">
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
       </defs>
       <g className="cg-anim-fire-stream">
         <g className="cg-anim-fire-flicker">
-          {/* o clarão em volta, a chama e o miolo branco-amarelo */}
-          <path d="M0 60 C60 36 170 4 400 -8 L400 128 C170 116 60 84 0 60 Z" fill={`url(#${id}-outer)`} filter={`url(#${id}-blur)`} opacity="0.8" />
+          {/* o clarão em volta (transparente e sem desfoque: a chama treme rápido demais pra refazer um filtro a cada quadro), a chama e o miolo */}
+          <path d="M0 60 C60 36 170 4 400 -8 L400 128 C170 116 60 84 0 60 Z" fill={`url(#${id}-outer)`} opacity="0.4" />
           <path d="M0 60 C80 44 200 24 380 18 L380 102 C200 96 80 76 0 60 Z" fill={`url(#${id}-outer)`} />
           <path d="M0 60 C70 52 170 44 290 42 L290 78 C170 76 70 68 0 60 Z" fill={`url(#${id}-core)`} />
         </g>
@@ -223,7 +248,7 @@ export function DragonBreath({ className = "", style }: { className?: string; st
           />
         ))}
         {FIRE_EMBERS.map(([x, y, delay]) => (
-          <circle key={delay} cx={x} cy={y} r="3" fill="#fde047" className="cg-anim-twinkle" style={{ animationDelay: `${delay}s`, filter: "drop-shadow(0 0 4px #f97316)" }} />
+          <circle key={delay} cx={x} cy={y} r="3" fill="#fde047" stroke="#f97316" strokeOpacity="0.5" strokeWidth="3" paintOrder="stroke" className="cg-anim-twinkle" style={{ animationDelay: `${delay}s` }} />
         ))}
       </g>
     </svg>
@@ -322,13 +347,22 @@ export function PlayButtonArt({ label, fontFamily, fast = false }: { label: stri
           <stop offset="0.6" stopColor="#fff7d6" />
           <stop offset="1" stopColor="#fcd34d" />
         </linearGradient>
+        {/* os brilhos são degradês (blur e drop-shadow eram refeitos a cada quadro, com o portal girando) */}
+        <radialGradient id={`${id}-halo`}>
+          <stop offset="0.35" stopColor="#8b5cf6" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
+        </radialGradient>
+        <radialGradient id={`${id}-play-glow`}>
+          <stop offset="0" stopColor="#ecfeff" stopOpacity="0.6" />
+          <stop offset="1" stopColor="#22d3ee" stopOpacity="0" />
+        </radialGradient>
         <clipPath id={`${id}-portal`}>
           <circle cx={PORTAL.x} cy={PORTAL.y} r="88" />
         </clipPath>
       </defs>
 
       {/* a luz do portal vazando em volta */}
-      <circle cx={PORTAL.x} cy={PORTAL.y} r="150" fill="#8b5cf6" opacity="0.4" className="cg-anim-glow" style={{ filter: "blur(22px)" }} />
+      <circle cx={PORTAL.x} cy={PORTAL.y} r="168" fill={`url(#${id}-halo)`} className="cg-anim-glow" />
 
       {/* as pontas de lança nos quatro lados e as menores entre elas */}
       {[-90, 0, 180].map((a) => (
@@ -362,18 +396,12 @@ export function PlayButtonArt({ label, fontFamily, fast = false }: { label: stri
           {Array.from({ length: 16 }, (_, i) => {
             const angle = i * 22.5;
             const [x, y] = around(angle, 101.5);
+            // a runa e, embaixo, o mesmo traço largo e transparente fazendo o brilho
             return (
-              <path
-                key={angle}
-                d={RUNES[i % RUNES.length]}
-                transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${angle + 90}) scale(1.35)`}
-                fill="none"
-                stroke="#fde68a"
-                strokeWidth="1.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{ filter: "drop-shadow(0 0 3px rgba(253,224,71,0.9))" }}
-              />
+              <g key={angle} transform={`translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${angle + 90}) scale(1.35)`} fill="none" strokeLinecap="round" strokeLinejoin="round">
+                <path d={RUNES[i % RUNES.length]} stroke="#fde047" strokeOpacity="0.35" strokeWidth="3.6" />
+                <path d={RUNES[i % RUNES.length]} stroke="#fde68a" strokeWidth="1.4" />
+              </g>
             );
           })}
         </g>
@@ -407,14 +435,21 @@ export function PlayButtonArt({ label, fontFamily, fast = false }: { label: stri
 
       {/* o ▶ no meio do portal, pulsando */}
       <g className="cg-anim-glow" style={{ "--cg-dur": "1.8s" } as React.CSSProperties}>
-        <circle cx={PORTAL.x} cy={PORTAL.y} r="34" fill="#ecfeff" opacity="0.35" style={{ filter: "blur(6px)" }} />
+        <circle cx={PORTAL.x} cy={PORTAL.y} r="44" fill={`url(#${id}-play-glow)`} />
+        <path
+          d="M150 124 Q146 122 146 127 L146 173 Q146 178 150 176 L188 154 Q192 150 188 146 Z"
+          fill="none"
+          stroke="#22d3ee"
+          strokeOpacity="0.45"
+          strokeWidth="12"
+          strokeLinejoin="round"
+        />
         <path
           d="M150 124 Q146 122 146 127 L146 173 Q146 178 150 176 L188 154 Q192 150 188 146 Z"
           fill="#ffffff"
           stroke="#4c1d95"
           strokeWidth="4"
           strokeLinejoin="round"
-          style={{ filter: "drop-shadow(0 0 8px rgba(34,211,238,0.9))" }}
         />
       </g>
 
@@ -424,6 +459,10 @@ export function PlayButtonArt({ label, fontFamily, fast = false }: { label: stri
       <path d="M44 294 L64 304 L64 294 Z M276 294 L256 304 L256 294 Z" fill="#450a0a" />
       <path d="M44 252 Q160 240 276 252 L276 294 Q160 282 44 294 Z" fill={`url(#${id}-ribbon)`} stroke={gold} strokeWidth="3" strokeLinejoin="round" />
       <path d="M52 259 Q160 248 268 259 M52 287 Q160 276 268 287" fill="none" stroke="#fbbf24" strokeOpacity="0.5" strokeWidth="1" />
+      {/* a sombra do texto: uma cópia escura logo embaixo (sem filtro) */}
+      <text x="160" y="286" textAnchor="middle" fontSize="34" fontWeight="900" letterSpacing="6" fill="#000" fillOpacity="0.45" style={{ fontFamily }} aria-hidden="true">
+        {label}
+      </text>
       <text
         x="160"
         y="284"
@@ -436,7 +475,7 @@ export function PlayButtonArt({ label, fontFamily, fast = false }: { label: stri
         strokeWidth="5"
         strokeLinejoin="round"
         paintOrder="stroke"
-        style={{ fontFamily, filter: "drop-shadow(0 2px 0 rgba(0,0,0,0.45))" }}
+        style={{ fontFamily }}
       >
         {label}
       </text>

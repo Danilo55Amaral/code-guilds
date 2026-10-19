@@ -47,104 +47,117 @@ function prizeText(prize: WheelPrize) {
   return prize.label;
 }
 
-/** A roleta desenhada (as fatias giram; o ponteiro e o aro de luzes ficam parados). */
+/**
+ * A roleta desenhada, em três camadas no mesmo viewBox: o aro (embaixo), as fatias e, por cima, as luzes,
+ * o miolo e o ponteiro. Só a camada das fatias gira, e ela é um elemento HTML: assim quem gira é a placa
+ * de vídeo, sem redesenhar o SVG a cada quadro (girar um <g> dentro do SVG travava nos celulares).
+ */
 function WheelArt({ rotation, spinning }: { rotation: number; spinning: boolean }) {
   return (
-    <svg viewBox="0 0 440 440" className="block h-full w-full" role="img" aria-label="A Roleta da Sorte com 20 prêmios">
-      <defs>
-        <radialGradient id="roleta-hub" cx="50%" cy="40%" r="60%">
-          <stop offset="0" stopColor="#fde68a" />
-          <stop offset="1" stopColor="#b45309" />
-        </radialGradient>
-        <radialGradient id="roleta-brilho" cx="50%" cy="50%" r="50%">
-          <stop offset="0.7" stopColor="#000" stopOpacity="0" />
-          <stop offset="1" stopColor="#000" stopOpacity="0.35" />
-        </radialGradient>
-      </defs>
-
+    <div className="relative h-full w-full" role="img" aria-label="A Roleta da Sorte com 20 prêmios">
       {/* o aro dourado */}
-      <circle cx={C} cy={C} r={216} fill="#78350f" />
-      <circle cx={C} cy={C} r={210} fill="#f59e0b" />
-      <circle cx={C} cy={C} r={202} fill="#451a03" />
+      <svg viewBox="0 0 440 440" className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <circle cx={C} cy={C} r={216} fill="#78350f" />
+        <circle cx={C} cy={C} r={210} fill="#f59e0b" />
+        <circle cx={C} cy={C} r={202} fill="#451a03" />
+      </svg>
 
       {/* as fatias girando */}
-      <g
+      <div
+        className="absolute inset-0"
         style={{
           transform: `rotate(${rotation}deg)`,
-          transformOrigin: `${C}px ${C}px`,
           transition: spinning ? `transform ${SPIN_MS}ms cubic-bezier(0.33, 1, 0.68, 1)` : "none",
+          willChange: "transform",
         }}
       >
-        {WHEEL_PRIZES.map((prize, i) => {
-          const icon = polar(i * SLICE, R * 0.82);
-          const text = polar(i * SLICE, R * 0.56);
+        <svg viewBox="0 0 440 440" className="block h-full w-full" aria-hidden="true">
+          <defs>
+            <radialGradient id="roleta-brilho" cx="50%" cy="50%" r="50%">
+              <stop offset="0.7" stopColor="#000" stopOpacity="0" />
+              <stop offset="1" stopColor="#000" stopOpacity="0.35" />
+            </radialGradient>
+          </defs>
+          {WHEEL_PRIZES.map((prize, i) => {
+            const icon = polar(i * SLICE, R * 0.82);
+            const text = polar(i * SLICE, R * 0.56);
+            return (
+              <g key={prize.key}>
+                <path
+                  d={slicePath(i)}
+                  fill={SLICE_COLORS[i % SLICE_COLORS.length]}
+                  stroke={prize.rarity === "lendario" ? "#fde047" : "#1e1b4b"}
+                  strokeWidth={prize.rarity === "lendario" ? 3 : 1.5}
+                />
+                <text
+                  x={icon.x}
+                  y={icon.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="22"
+                  transform={`rotate(${i * SLICE} ${icon.x} ${icon.y})`}
+                >
+                  {prize.icon}
+                </text>
+                <text
+                  x={text.x}
+                  y={text.y}
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="12.5"
+                  fontWeight="900"
+                  fill="#fff"
+                  stroke="#1e1b4b"
+                  strokeWidth="2.5"
+                  paintOrder="stroke"
+                  // na metade esquerda o texto vira 180° pra não ficar de cabeça pra baixo
+                  transform={`rotate(${i * SLICE - 90 + (i * SLICE > 180 ? 180 : 0)} ${text.x} ${text.y})`}
+                >
+                  {prize.short}
+                </text>
+              </g>
+            );
+          })}
+          <circle cx={C} cy={C} r={R} fill="url(#roleta-brilho)" />
+        </svg>
+      </div>
+
+      <svg viewBox="0 0 440 440" className="absolute inset-0 h-full w-full" aria-hidden="true">
+        <defs>
+          <radialGradient id="roleta-hub" cx="50%" cy="40%" r="60%">
+            <stop offset="0" stopColor="#fde68a" />
+            <stop offset="1" stopColor="#b45309" />
+          </radialGradient>
+        </defs>
+
+        {/* as luzes do aro, piscando alternadas */}
+        {WHEEL_PRIZES.map((_, i) => {
+          const p = polar(i * SLICE + SLICE / 2, 206);
           return (
-            <g key={prize.key}>
-              <path
-                d={slicePath(i)}
-                fill={SLICE_COLORS[i % SLICE_COLORS.length]}
-                stroke={prize.rarity === "lendario" ? "#fde047" : "#1e1b4b"}
-                strokeWidth={prize.rarity === "lendario" ? 3 : 1.5}
+            <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="#fef9c3">
+              <animate
+                attributeName="fill"
+                values="#fef9c3;#f59e0b;#fef9c3"
+                dur={spinning ? "0.35s" : "1.4s"}
+                begin={`${-(i % 2) * (spinning ? 0.175 : 0.7)}s`}
+                repeatCount="indefinite"
               />
-              <text
-                x={icon.x}
-                y={icon.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize="22"
-                transform={`rotate(${i * SLICE} ${icon.x} ${icon.y})`}
-              >
-                {prize.icon}
-              </text>
-              <text
-                x={text.x}
-                y={text.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize="12.5"
-                fontWeight="900"
-                fill="#fff"
-                stroke="#1e1b4b"
-                strokeWidth="2.5"
-                paintOrder="stroke"
-                // na metade esquerda o texto vira 180° pra não ficar de cabeça pra baixo
-                transform={`rotate(${i * SLICE - 90 + (i * SLICE > 180 ? 180 : 0)} ${text.x} ${text.y})`}
-              >
-                {prize.short}
-              </text>
-            </g>
+            </circle>
           );
         })}
-        <circle cx={C} cy={C} r={R} fill="url(#roleta-brilho)" />
-      </g>
 
-      {/* as luzes do aro, piscando alternadas */}
-      {WHEEL_PRIZES.map((_, i) => {
-        const p = polar(i * SLICE + SLICE / 2, 206);
-        return (
-          <circle key={i} cx={p.x} cy={p.y} r="4.5" fill="#fef9c3">
-            <animate
-              attributeName="fill"
-              values="#fef9c3;#f59e0b;#fef9c3"
-              dur={spinning ? "0.35s" : "1.4s"}
-              begin={`${-(i % 2) * (spinning ? 0.175 : 0.7)}s`}
-              repeatCount="indefinite"
-            />
-          </circle>
-        );
-      })}
+        {/* o miolo */}
+        <circle cx={C} cy={C} r={34} fill="#78350f" />
+        <circle cx={C} cy={C} r={29} fill="url(#roleta-hub)" />
+        <text x={C} y={C + 1} textAnchor="middle" dominantBaseline="central" fontSize="24">
+          ⭐
+        </text>
 
-      {/* o miolo */}
-      <circle cx={C} cy={C} r={34} fill="#78350f" />
-      <circle cx={C} cy={C} r={29} fill="url(#roleta-hub)" />
-      <text x={C} y={C + 1} textAnchor="middle" dominantBaseline="central" fontSize="24">
-        ⭐
-      </text>
-
-      {/* o ponteiro, no topo */}
-      <path d={`M${C - 18} 2 L${C + 18} 2 L${C} 44 Z`} fill="#ef4444" stroke="#7f1d1d" strokeWidth="3" strokeLinejoin="round" />
-      <circle cx={C} cy={12} r="6" fill="#fecaca" />
-    </svg>
+        {/* o ponteiro, no topo */}
+        <path d={`M${C - 18} 2 L${C + 18} 2 L${C} 44 Z`} fill="#ef4444" stroke="#7f1d1d" strokeWidth="3" strokeLinejoin="round" />
+        <circle cx={C} cy={12} r="6" fill="#fecaca" />
+      </svg>
+    </div>
   );
 }
 
@@ -344,7 +357,7 @@ export default function LuckyWheel({
 
         <div className="mt-2 text-center">
           <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-amber-200/80">🛍️ Mercado Arcano</p>
-          <h2 className="cg-anim-shimmer text-4xl font-black uppercase tracking-wide sm:text-5xl">Roleta da Sorte</h2>
+          <h2 className="cg-anim-shimmer text-3xl font-black uppercase tracking-wide sm:text-5xl">Roleta da Sorte</h2>
           <p className="mt-1 text-sm text-violet-100/80">
             Todo dia você tem <strong className="text-amber-200">1 giro grátis</strong>. Depois dele, cada giro custa{" "}
             <strong className="text-amber-200">{price} moedas</strong>.
@@ -355,8 +368,15 @@ export default function LuckyWheel({
           {/* a roleta */}
           <div className="flex flex-col items-center">
             <div className="relative aspect-square w-[min(88vw,30rem)]">
-              <div className="absolute inset-[6%] rounded-full blur-3xl" style={{ background: "rgba(251,191,36,0.35)" }} aria-hidden="true" />
-              <div className="relative h-full w-full drop-shadow-[0_18px_30px_rgba(0,0,0,0.55)]">
+              {/* o brilho dourado e a sombra embaixo: degradê e sombra fixos, fora da parte que gira
+                  (filtro por cima da roleta girando era refeito a cada quadro) */}
+              <div
+                className="absolute -inset-[6%] rounded-full"
+                style={{ background: "radial-gradient(closest-side, rgba(251,191,36,0.35), transparent)" }}
+                aria-hidden="true"
+              />
+              <div className="absolute inset-[2%] translate-y-[3%] rounded-full shadow-[0_18px_30px_rgba(0,0,0,0.55)]" aria-hidden="true" />
+              <div className="relative h-full w-full">
                 <WheelArt rotation={rotation} spinning={spinning} />
               </div>
             </div>
@@ -427,25 +447,34 @@ export default function LuckyWheel({
   );
 }
 
-/** A roletinha girando do botão da Loja (só enfeite: as cores das fatias, sem os prêmios). */
-export function MiniWheel({ size = 72 }: { size?: number }) {
+/**
+ * A roletinha girando do botão da Loja (só enfeite: as cores das fatias, sem os prêmios). Como na roleta
+ * grande, quem gira é a camada HTML das fatias, e a sombra é do círculo de fundo (não um filtro por cima).
+ */
+export function MiniWheel({ size = 72, className = "" }: { size?: number; className?: string }) {
   return (
-    <svg viewBox="0 0 440 440" width={size} height={size} aria-hidden="true" className="shrink-0 drop-shadow-[0_6px_14px_rgba(0,0,0,0.5)]">
-      <circle cx={C} cy={C} r={216} fill="#78350f" />
-      <circle cx={C} cy={C} r={208} fill="#f59e0b" />
-      <g className="cg-anim-wheel-spin" style={{ transformOrigin: `${C}px ${C}px` }}>
-        {WHEEL_PRIZES.map((prize, i) => (
-          <path key={prize.key} d={slicePath(i)} fill={SLICE_COLORS[i % SLICE_COLORS.length]} stroke="#1e1b4b" strokeWidth="3" />
-        ))}
-      </g>
-      <circle cx={C} cy={C} r={46} fill="url(#roleta-mini-hub)" stroke="#78350f" strokeWidth="8" />
-      <defs>
-        <radialGradient id="roleta-mini-hub" cx="50%" cy="40%" r="60%">
-          <stop offset="0" stopColor="#fde68a" />
-          <stop offset="1" stopColor="#b45309" />
-        </radialGradient>
-      </defs>
-      <path d={`M${C - 26} 0 L${C + 26} 0 L${C} 60 Z`} fill="#ef4444" stroke="#7f1d1d" strokeWidth="6" strokeLinejoin="round" />
-    </svg>
+    <div className={`relative shrink-0 rounded-full shadow-[0_6px_14px_rgba(0,0,0,0.5)] ${className}`} style={{ width: size, height: size }} aria-hidden="true">
+      <svg viewBox="0 0 440 440" className="absolute inset-0 h-full w-full">
+        <circle cx={C} cy={C} r={216} fill="#78350f" />
+        <circle cx={C} cy={C} r={208} fill="#f59e0b" />
+      </svg>
+      <div className="cg-anim-wheel-spin absolute inset-0">
+        <svg viewBox="0 0 440 440" className="block h-full w-full">
+          {WHEEL_PRIZES.map((prize, i) => (
+            <path key={prize.key} d={slicePath(i)} fill={SLICE_COLORS[i % SLICE_COLORS.length]} stroke="#1e1b4b" strokeWidth="3" />
+          ))}
+        </svg>
+      </div>
+      <svg viewBox="0 0 440 440" className="absolute inset-0 h-full w-full overflow-visible">
+        <defs>
+          <radialGradient id="roleta-mini-hub" cx="50%" cy="40%" r="60%">
+            <stop offset="0" stopColor="#fde68a" />
+            <stop offset="1" stopColor="#b45309" />
+          </radialGradient>
+        </defs>
+        <circle cx={C} cy={C} r={46} fill="url(#roleta-mini-hub)" stroke="#78350f" strokeWidth="8" />
+        <path d={`M${C - 26} 0 L${C + 26} 0 L${C} 60 Z`} fill="#ef4444" stroke="#7f1d1d" strokeWidth="6" strokeLinejoin="round" />
+      </svg>
+    </div>
   );
 }
