@@ -83,8 +83,8 @@ function WaveArt() {
   return (
     <Art viewBox="0 0 560 200" label="Uma onda andando numa corda, com a crista, o vale, o comprimento de onda e a amplitude">
       <line x1="20" y1="100" x2="540" y2="100" stroke="#cbd5e1" strokeDasharray="5 5" />
-      <path d={wavePath(20, 540, 100, 44, 160, 0)} stroke="#4f46e5" strokeWidth="5" fill="none" strokeLinecap="round">
-        <animate attributeName="d" values={waveFrames(20, 540, 100, 44, 160)} dur="2s" repeatCount="indefinite" />
+      <path d={wavePath(20, 440, 100, 44, 160, 0)} stroke="#4f46e5" strokeWidth="5" fill="none" strokeLinecap="round">
+        <animate attributeName="d" values={waveFrames(20, 440, 100, 44, 160)} dur="2s" repeatCount="indefinite" />
       </path>
       {/* as medidas (paradas) */}
       <path d="M60 30 L220 30" stroke="#dc2626" strokeWidth="2" />

@@ -197,7 +197,7 @@ function FissionArt() {
       ))}
       <g fontFamily="Georgia, serif" fontSize="12" fontWeight="900">
         <text x="20" y="96" fill="#475569">nêutron</text>
-        <text x="420" y="210" fill="#15803d">outros núcleos: reação em cadeia</text>
+        <text x="552" y="210" textAnchor="end" fill="#15803d">outros núcleos: reação em cadeia</text>
       </g>
     </Art>
   );

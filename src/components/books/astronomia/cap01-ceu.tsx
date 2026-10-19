@@ -1,6 +1,6 @@
 "use client";
 
-import { Art, Box, Cards, ChapterOpener, Fig, Glossary, H, List, P, Quiz, Summary, T } from "../BookParts";
+import { Art, Box, Cards, ChapterOpener, Fig, Glossary, H, List, P, Quiz, Summary, T, useUid } from "../BookParts";
 import type { BookPage } from "../types";
 import { Moon, Stars, Sun } from "./art";
 
@@ -130,14 +130,34 @@ function ScatteringArt() {
 // ---------------------------------------------------------------------------
 
 function AuroraArt() {
-  const curtain = (d: string, color: string, delay: number) => <path d={d} fill={color} opacity="0.55" className="cg-anim-aurora" style={{ animationDelay: `${delay}s` }} />;
+  const u = useUid("aurora");
+  // cada cortina é um degradê (some em cima e embaixo) e usa fill-opacity, porque a animação mexe na opacity;
+  // as cortinas passam das bordas e são recortadas pelo céu, pra o balanço não mostrar as pontas
+  const curtain = (d: string, k: number, delay: number) => (
+    <path d={d} fill={`url(#${u}-${k})`} fillOpacity="0.75" className="cg-anim-aurora" style={{ animationDelay: `${delay}s` }} />
+  );
+  const colors = ["#22c55e", "#a855f7", "#f472b6"];
   return (
     <Art viewBox="0 0 560 220" label="A aurora austral: cortinas de luz verde e rosa dançando no céu perto do polo, sobre montanhas com neve">
+      <defs>
+        {colors.map((c, k) => (
+          <linearGradient key={c} id={`${u}-${k}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={c} stopOpacity="0" />
+            <stop offset="0.45" stopColor={c} stopOpacity="0.9" />
+            <stop offset="1" stopColor={c} stopOpacity="0.15" />
+          </linearGradient>
+        ))}
+        <clipPath id={`${u}-ceu`}>
+          <rect width="560" height="220" />
+        </clipPath>
+      </defs>
       <rect width="560" height="220" fill="#020617" />
       <Stars w={560} h={160} n={40} seed={5} />
-      {curtain("M0 120 C80 40 160 140 240 60 S400 120 560 50 L560 160 C400 140 240 150 0 170 Z", "#22c55e", 0)}
-      {curtain("M0 90 C100 30 180 110 280 40 S440 90 560 30 L560 120 C420 110 260 130 0 130 Z", "#a855f7", 1.5)}
-      {curtain("M40 140 C120 90 220 150 320 100 S480 140 560 110 L560 170 C400 160 220 175 40 180 Z", "#f472b6", 3)}
+      <g clipPath={`url(#${u}-ceu)`}>
+        {curtain("M-80 120 C0 40 120 140 240 60 S400 120 640 50 L640 160 C400 140 240 150 -80 170 Z", 0, 0)}
+        {curtain("M-80 90 C40 30 180 110 280 40 S440 90 640 30 L640 120 C420 110 260 130 -80 130 Z", 1, -2.5)}
+        {curtain("M-80 140 C80 90 220 150 320 100 S480 140 640 110 L640 170 C400 160 220 175 -80 180 Z", 2, -5)}
+      </g>
       <path d="M0 220 L80 160 L140 190 L220 140 L300 196 L380 150 L460 190 L560 160 L560 220 Z" fill="#334155" />
       <path d="M80 160 L96 172 L70 170 Z M220 140 L238 156 L206 154 Z M380 150 L396 162 L366 162 Z" fill="#f8fafc" />
     </Art>

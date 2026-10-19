@@ -234,7 +234,10 @@ function FridgeEngineArt() {
         </text>
         <Arrow x1={100} y1={46} x2={100} y2={64} color="#dc2626" />
         <Arrow x1={100} y1={136} x2={100} y2={154} color="#2563eb" />
-        <Arrow x1={136} y1={100} x2={186} y2={100} color="#16a34a" label="trabalho" />
+        <Arrow x1={136} y1={100} x2={184} y2={100} color="#16a34a" />
+        <text x="162" y="122" textAnchor="middle" fontSize="13" fontWeight="900" fill="#16a34a" fontFamily="Georgia, serif">
+          trabalho
+        </text>
       </g>
     </Art>
   );

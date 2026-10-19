@@ -192,9 +192,11 @@ function DrakeCalc() {
       <svg viewBox="0 0 560 140" className="block w-full rounded-lg" aria-label={`A galáxia com ${lit} pontos verdes acesos`}>
         <rect width="560" height="140" rx="10" fill="#020617" />
         <ellipse cx="280" cy="70" rx="24" ry="12" fill="#fde68a" opacity="0.8" />
-        {GALAXY_DOTS.map((d, i) => (
-          <circle key={i} cx={d.x} cy={d.y} r={i < lit ? 3.4 : 1.6} fill={i < lit ? "#4ade80" : "#cbd5e1"} opacity={i < lit ? 1 : 0.6} className={i < lit ? "cg-anim-twinkle" : undefined} />
-        ))}
+        {GALAXY_DOTS.map((d, i) => {
+          // (i × 37) mod 60 embaralha a ordem: as civilizações acendem espalhadas pelos braços, não só no centro
+          const on = (i * 37) % 60 < lit;
+          return <circle key={i} cx={d.x} cy={d.y} r={on ? 3.4 : 1.6} fill={on ? "#4ade80" : "#cbd5e1"} opacity={on ? 1 : 0.6} className={on ? "cg-anim-twinkle" : undefined} />;
+        })}
       </svg>
       <div className="mt-[0.4em] grid grid-cols-2 gap-x-[0.8em] gap-y-[0.2em] text-[0.82em]">
         {sliders.map((s) => (

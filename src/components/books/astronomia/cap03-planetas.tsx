@@ -188,9 +188,10 @@ function FamousArt() {
         <path d="M-12 -108 L12 -108 L8 -100 L-8 -100 Z" fill="#7c2d12" />
         <path d="M40 0 L58 -40 L76 0 Z" fill="#94a3b8" />
         <path d="M52 -28 L58 -40 L64 -28 Z" fill="#f8fafc" />
-        <text y="22" textAnchor="middle" fontSize="12" fontWeight="900" fill="#fdba74" fontFamily="Georgia, serif">
-          Monte Olimpo (22 km) × Everest (9 km)
-        </text>
+        <g textAnchor="middle" fontSize="12" fontWeight="900" fill="#fdba74" fontFamily="Georgia, serif">
+          <text y="17">Monte Olimpo (22 km)</text>
+          <text y="31">× Everest (9 km)</text>
+        </g>
       </g>
       {/* Urano deitado */}
       <g transform="translate(505 100)">
