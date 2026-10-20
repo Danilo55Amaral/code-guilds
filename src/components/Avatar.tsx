@@ -4092,12 +4092,19 @@ export default function Avatar({
   ringColor,
   size = 96,
   framing = "full",
+  still = false,
 }: {
   config: AvatarConfig;
   ringColor?: string;
   size?: number;
   /** "face" dá zoom no rosto — usado nas miniaturas de óculos/expressão do editor. */
   framing?: "full" | "face";
+  /**
+   * Aura e pet parados (a pose de cada parte fica onde a animação começa). Pra listas com muitos
+   * avatares, como os cards da Loja: cada aura animada redesenha o SVG inteiro a cada quadro, e
+   * dezenas delas juntas deixam a tela lenta. Dentro de um `.group`, volta a animar com o mouse em cima.
+   */
+  still?: boolean;
 }) {
   // ids únicos por avatar (vários na mesma tela); useId gera ":r1:", que não funciona dentro de url(#...)
   const uid = useId().replace(/:/g, "");
@@ -4110,7 +4117,7 @@ export default function Avatar({
 
   return (
     <div
-      className="relative shrink-0 overflow-hidden rounded-full"
+      className={`relative shrink-0 overflow-hidden rounded-full ${still ? "cg-avatar-still" : ""}`}
       style={{
         width: size,
         height: size,

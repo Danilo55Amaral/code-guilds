@@ -1055,6 +1055,20 @@
   .cg-anim-fire-puff { animation: cg-fire-puff 0.8s ease-out var(--cg-delay, 0s) infinite both; transform-box: fill-box; transform-origin: center; }
 }
 
+/*
+ * Avatar parado (prop `still` do components/Avatar.tsx): a aura e o pet ficam pausados na pose em que
+ * começam, sem redesenhar o SVG a cada quadro. Nos cards da Loja, o avatar volta a animar com o mouse
+ * em cima (só onde existe mouse).
+ */
+.cg-avatar-still * {
+  animation-play-state: paused !important;
+}
+@media (hover: hover) {
+  .group:hover .cg-avatar-still * {
+    animation-play-state: running !important;
+  }
+}
+
 /* Quem pediu menos movimento no sistema vê direto o estado final das cenas. */
 @media (prefers-reduced-motion: reduce) {
   [class*="cg-anim-"] {

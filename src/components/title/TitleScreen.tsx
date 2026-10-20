@@ -27,6 +27,12 @@ import { DragonBreath, PlayButtonArt, TitleLogo, TitleRibbon } from "./TitleArt"
 // (o mesmo da entrada da Sala do Multiverso), com o som do salto (se o som
 // estiver ligado), e no fim o aluno chega no login.
 // No celular ficam o mago e o Conde, um de cada lado, e o dragão atrás do nome.
+//
+// Desempenho: o brilho de cada personagem é um degradê fixo atrás dele, e não um
+// drop-shadow por cima. Filtro em cima de desenho animado é refeito a cada
+// quadro, e com vários personagens grandes animando isso travava a tela na
+// maioria dos celulares e computadores simples. O mesmo vale pro zoom do Play
+// (só transform e opacity) e pros brilhos do logo e do portal (ver TitleArt).
 // ============================================================================
 
 const decorative = Cinzel_Decorative({ subsets: ["latin"], weight: ["700", "900"], display: "swap" });
@@ -41,6 +47,11 @@ const BREATH_EVERY_MS = 7000;
 const BREATH_MS = 2600;
 const MOUTH = dragonMouth("pe");
 
+/** O brilho atrás de um personagem: um degradê fixo, que não é refeito a cada quadro. */
+function Glow({ color, className = "-inset-[6%]" }: { color: string; className?: string }) {
+  return <div className={`absolute rounded-[50%] ${className}`} style={{ background: `radial-gradient(closest-side, ${color}, transparent)` }} />;
+}
+
 /**
  * O lugar do Dragão Ancestral no lado dos vilões (no alto, espelhado pra olhar pros heróis),
  * no sistema de coordenadas do desenho dele. Serve pro dragão, atrás do nome, e pro fogo,
@@ -48,10 +59,8 @@ const MOUTH = dragonMouth("pe");
  */
 function DragonSpot({ children, glow = false }: { children: React.ReactNode; glow?: boolean }) {
   return (
-    <div
-      className="absolute right-[-6%] top-[6%] h-[24%] sm:h-[36%] md:h-[48%]"
-      style={glow ? { filter: "drop-shadow(0 0 30px rgba(239,68,68,0.45))" } : undefined}
-    >
+    <div className="absolute right-[-6%] top-[6%] h-[24%] sm:h-[36%] md:h-[48%]">
+      {glow && <Glow color="rgba(239,68,68,0.3)" />}
       <div className="relative h-full -scale-x-100" style={{ aspectRatio: `${DRAGON_VIEW.w} / ${DRAGON_VIEW.h}` }}>
         {children}
       </div>
@@ -128,14 +137,18 @@ export default function TitleScreen() {
         className="absolute inset-0"
         style={{
           transformOrigin: zoomOrigin,
-          transition: "transform 1.1s cubic-bezier(0.55, 0, 0.9, 0.4), opacity 0.8s ease-in 0.3s, filter 1.1s ease-in",
-          ...(leaving && { transform: "scale(3.2)", opacity: 0, filter: "brightness(1.6)" }),
+          // só transform e opacity: a placa de vídeo faz o zoom sem redesenhar a cena
+          transition: "transform 1.1s cubic-bezier(0.55, 0, 0.9, 0.4), opacity 0.8s ease-in 0.3s",
+          ...(leaving && { transform: "scale(3.2)", opacity: 0, willChange: "transform, opacity" }),
         }}
       >
         {/* ---- o céu ---- */}
         <div className="pointer-events-none absolute inset-0" aria-hidden="true">
           <Stars />
-          <Rays color="rgba(253,230,138,0.35)" />
+          {/* os raios são uma camada enorme girando: no celular ficam de fora */}
+          <div className="hidden sm:block">
+            <Rays color="rgba(253,230,138,0.35)" />
+          </div>
           {/* o buraco negro no céu dos vilões */}
           <div className="absolute right-[22%] top-[1%] w-[clamp(64px,9vw,150px)] opacity-90 sm:right-[30%]">
             <Ton618 className="w-full" />
@@ -150,11 +163,13 @@ export default function TitleScreen() {
 
         {/* ---- os heróis, na luz dourada ---- */}
         <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2" aria-hidden="true">
-          <div className="absolute bottom-[2%] left-[42%] hidden h-[46%] md:block lg:left-[46%]" style={{ filter: "drop-shadow(0 0 22px rgba(251,191,36,0.35))" }}>
-            <Catarina pose="comemora" className="h-full w-auto" />
+          <div className="absolute bottom-[2%] left-[42%] hidden h-[46%] md:block lg:left-[46%]">
+            <Glow color="rgba(251,191,36,0.22)" />
+            <Catarina pose="comemora" className="relative h-full w-auto" />
           </div>
-          <div className="absolute bottom-0 left-[-14%] h-[46%] sm:left-[-6%] sm:h-[62%] md:h-[80%] lg:left-[0%]" style={{ filter: "drop-shadow(0 0 26px rgba(251,191,36,0.45))" }}>
-            <div className="cg-anim-float h-full">
+          <div className="absolute bottom-0 left-[-14%] h-[46%] sm:left-[-6%] sm:h-[62%] md:h-[80%] lg:left-[0%]">
+            <Glow color="rgba(251,191,36,0.28)" />
+            <div className="cg-anim-float relative h-full">
               <WizardDanilo mouthOpen={false} burstKey={0} className="h-full w-auto" />
             </div>
           </div>
@@ -164,19 +179,23 @@ export default function TitleScreen() {
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1/2" aria-hidden="true">
           {/* o Dragão Ancestral no alto, virado pros heróis; o fogo dele fica na camada da frente, depois do nome */}
           <DragonSpot glow>
-            <ElderDragon pose="pe" mouthOpen={breathing} runes={1} aura className="h-full w-auto" />
+            <ElderDragon pose="pe" mouthOpen={breathing} runes={1} aura className="relative h-full w-auto" />
           </DragonSpot>
-          <div className="absolute bottom-[10%] right-[40%] hidden h-[44%] md:block" style={{ filter: "drop-shadow(0 0 20px rgba(56,189,248,0.35))" }}>
-            <LordGlacius className="h-full w-auto" />
+          <div className="absolute bottom-[10%] right-[40%] hidden h-[44%] md:block">
+            <Glow color="rgba(56,189,248,0.22)" />
+            <LordGlacius className="relative h-full w-auto" />
           </div>
-          <div className="absolute bottom-[1%] right-[50%] hidden h-[33%] md:block" style={{ filter: "drop-shadow(0 0 18px rgba(163,230,53,0.35))" }}>
-            <DrNecrose className="h-full w-auto" />
+          <div className="absolute bottom-[1%] right-[50%] hidden h-[33%] md:block">
+            <Glow color="rgba(163,230,53,0.22)" />
+            <DrNecrose className="relative h-full w-auto" />
           </div>
-          <div className="absolute bottom-0 right-[68%] hidden h-[22%] lg:block" style={{ filter: "drop-shadow(0 0 16px rgba(249,115,22,0.45))" }}>
-            <PumpkinKing className="h-full w-auto" />
+          <div className="absolute bottom-0 right-[68%] hidden h-[22%] lg:block">
+            <Glow color="rgba(249,115,22,0.28)" />
+            <PumpkinKing className="relative h-full w-auto" />
           </div>
-          <div className="absolute bottom-0 right-[-18%] h-[46%] sm:right-[-14%] sm:h-[58%] md:h-[72%] lg:right-[-8%]" style={{ filter: "drop-shadow(0 0 28px rgba(220,38,38,0.55))" }}>
-            <CountDracoding magic className="h-full w-auto" />
+          <div className="absolute bottom-0 right-[-18%] h-[46%] sm:right-[-14%] sm:h-[58%] md:h-[72%] lg:right-[-8%]">
+            <Glow color="rgba(220,38,38,0.32)" />
+            <CountDracoding magic className="relative h-full w-auto" />
           </div>
         </div>
 
@@ -188,7 +207,7 @@ export default function TitleScreen() {
         {/* ---- o nome e o Play ---- */}
         <div className="relative z-10 flex h-full flex-col items-center px-4 pt-[9vh] sm:justify-center sm:pt-0 sm:pb-[10vh]">
           <h1 className="sr-only">CodeGuilds</h1>
-          <div className="cg-anim-pop w-[min(94vw,980px,92vh)]" style={{ filter: "drop-shadow(0 10px 24px rgba(0,0,0,0.7))" }}>
+          <div className="cg-anim-pop w-[min(94vw,980px,92vh)]">
             <TitleLogo fontFamily={decorative.style.fontFamily} animate={!reducedMotion} className="w-full" />
           </div>
           <div className="cg-anim-rise -mt-[2%] w-[min(82vw,640px,62vh)]" style={{ animationDelay: "0.35s" }}>
@@ -224,7 +243,6 @@ export default function TitleScreen() {
                   top: `${(MOUTH.y / DRAGON_VIEW.h) * 100}%`,
                   transform: `translateY(-50%) rotate(${MOUTH.angle - 24}deg)`,
                   transformOrigin: "0 50%",
-                  filter: "drop-shadow(0 0 18px rgba(249,115,22,0.8))",
                 }}
               />
             </DragonSpot>
