@@ -7,6 +7,9 @@ import { ASTRONOMIA_INFO } from "./astronomia/meta";
 import { ODS_INFO } from "./ods/meta";
 import { PORTUGUES_INFO } from "./portugues/meta";
 import { HISTORIA_INFO } from "./historia/meta";
+import { MATEMATICA_INFO } from "./matematica/meta";
+import { INGLES_INFO } from "./ingles/meta";
+import { SCRATCH_INFO } from "./scratch/meta";
 
 // ============================================================================
 // O CATÁLOGO DA BIBLIOTECA VIRTUAL — os livros que já estão prontos. A ficha
@@ -23,6 +26,9 @@ export const BOOK_INFO: Partial<Record<SubjectId, BookInfo>> = {
   ods: ODS_INFO,
   portugues: PORTUGUES_INFO,
   historia: HISTORIA_INFO,
+  matematica: MATEMATICA_INFO,
+  ingles: INGLES_INFO,
+  scratch: SCRATCH_INFO,
 };
 
 export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>> = {
@@ -33,4 +39,7 @@ export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>
   ods: () => import("./ods").then((m) => m.default),
   portugues: () => import("./portugues").then((m) => m.default),
   historia: () => import("./historia").then((m) => m.default),
+  matematica: () => import("./matematica").then((m) => m.default),
+  ingles: () => import("./ingles").then((m) => m.default),
+  scratch: () => import("./scratch").then((m) => m.default),
 };
