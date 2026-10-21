@@ -206,8 +206,8 @@ export function Table({ head, rows }: { head: string[]; rows: ReactNode[][] }) {
       <table className="w-full border-collapse text-left text-[0.86em] leading-snug">
         <thead>
           <tr style={{ background: "var(--bk-accent)" }}>
-            {head.map((h) => (
-              <th key={h} className="cg-book-title px-[0.6em] py-[0.4em] font-bold text-white">
+            {head.map((h, i) => (
+              <th key={`${i}-${h}`} className="cg-book-title px-[0.6em] py-[0.4em] font-bold text-white">
                 {h}
               </th>
             ))}
