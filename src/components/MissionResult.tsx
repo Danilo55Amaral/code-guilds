@@ -5,6 +5,7 @@ import { Mission, RARITY_META, PASS_THRESHOLD_PERCENT } from "@/engine/missions"
 import { playDeathSound, playVictoryFanfare } from "@/engine/sfx";
 import { useStudents } from "@/engine/store";
 import { rewardMultipliers } from "@/engine/buffs";
+import { serverNow } from "@/services/api";
 import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
 import { SoundToggleButton, useSceneSound } from "./SceneSound";
 
@@ -163,7 +164,7 @@ export function VictoryScreen({
   // os Bufs ligados agora multiplicam o XP e as moedas (quem decide de verdade é a API, ao coletar)
   const { activeStudent } = useStudents();
   // (o aluno do cache chega logo depois da primeira renderização)
-  const multipliers = activeStudent ? rewardMultipliers(activeStudent) : { xp: 1, coins: 1 };
+  const multipliers = activeStudent ? rewardMultipliers(activeStudent, serverNow()) : { xp: 1, coins: 1 };
   const xp = useCountUp(mission.rewardXp * multipliers.xp, 1700);
   const coins = useCountUp(mission.rewardCoins * multipliers.coins, 1850);
   const rarity = RARITY_META[mission.rewardItem.rarity];

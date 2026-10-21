@@ -5,6 +5,7 @@ import { AvatarConfig } from "@/engine/avatar";
 import { EventReward } from "@/engine/specialEvents";
 import { useStudents } from "@/engine/store";
 import { rewardMultipliers } from "@/engine/buffs";
+import { serverNow } from "@/services/api";
 import Avatar from "../Avatar";
 import { CoinIcon } from "../GameUI";
 
@@ -210,7 +211,7 @@ export function RewardShowcase({ reward, avatar, ringColor = "#fbbf24" }: { rewa
   // os Bufs ligados agora multiplicam o XP e as moedas (quem decide de verdade é a API, ao fechar a cena)
   const { activeStudent } = useStudents();
   // (o aluno do cache chega logo depois da primeira renderização)
-  const multipliers = activeStudent ? rewardMultipliers(activeStudent) : { xp: 1, coins: 1 };
+  const multipliers = activeStudent ? rewardMultipliers(activeStudent, serverNow()) : { xp: 1, coins: 1 };
   return (
     <Stage className="!justify-start !items-center flex-col gap-4 pt-[2%]">
       <div className="flex flex-wrap justify-center gap-2 px-4">
