@@ -14,6 +14,7 @@ import { Json } from "../types/database";
 import { Mission, SUBMISSION_FILE_KINDS, hasPassed } from "../../../src/engine/missions";
 import { SUBJECT_IDS } from "../../../src/engine/subjects";
 import { applyMissionReward } from "../../../src/engine/students";
+import { buffRewardNote } from "../../../src/engine/buffs";
 import { PENDING_ITEM_NOTE, missionRewardMessage } from "../../../src/engine/messages";
 
 // ============================================================================
@@ -329,6 +330,7 @@ export async function missionsRoutes(app: FastifyInstance) {
                 return { student, correctCount, total, passed, rewarded: false }
             }
 
+            // os Bufs ligados agora multiplicam o XP e as moedas
             const reward = applyMissionReward(student, mission)
 
             return {
@@ -340,6 +342,9 @@ export async function missionsRoutes(app: FastifyInstance) {
                 leveledUp: reward.leveledUp,
                 fromLevel: student.level,
                 newLevel: reward.newLevel,
+                xpGained: reward.xpGained,
+                coinsGained: reward.coinsGained,
+                multipliers: reward.multipliers,
                 // o item não coube no inventário e ficou esperando espaço
                 itemWaiting: reward.student.pendingItems.length > student.pendingItems.length,
             }
@@ -352,12 +357,13 @@ export async function missionsRoutes(app: FastifyInstance) {
                 .execute()
 
             // a mensagem 🏆 da recompensa, na mesma transação
-            if (!result.rewarded) return
+            if (!result.rewarded || !result.multipliers) return
 
             await sendMessages(trx, [{
                 studentId: user.id,
                 kind: 'missao',
-                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
+                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: result.xpGained ?? mission.rewardXp, coins: result.coinsGained ?? mission.rewardCoins }) +
+                    buffRewardNote(result.multipliers) +
                     ('itemWaiting' in result && result.itemWaiting ? PENDING_ITEM_NOTE : ''),
             }])
         })

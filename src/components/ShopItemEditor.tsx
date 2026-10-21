@@ -5,6 +5,7 @@ import { MAX_SPACE_SLOTS, ShopItem, ShopItemData } from "@/engine/shop";
 import { getEventItem } from "@/engine/eventItems";
 import { getEvent } from "@/engine/specialEvents";
 import { BASE_INVENTORY_SLOTS } from "@/engine/students";
+import { BUFF_KINDS, BUFF_LABELS, BUFF_MINUTES, BUFF_MULTIPLIERS, BUFF_SHOP_PRICE, BuffEffect } from "@/engine/buffs";
 import { Rarity, RARITY_META, RARITY_DEFAULT_VALUE, ITEM_DESCRIPTION_MAX_LENGTH } from "@/engine/missions";
 import { COSMETIC_CATALOG, COSMETIC_SLOT_LABELS, CosmeticOption, CosmeticSlot, DEFAULT_AVATAR, applyCosmetic, sameCosmetic } from "@/engine/avatar";
 import Avatar from "./Avatar";
@@ -12,7 +13,7 @@ import { COLLECTION_THEME } from "./collections";
 import EmojiPicker from "./EmojiPicker";
 import ItemEconomyFields from "./ItemEconomyFields";
 
-type Kind = "visual" | "item" | "espaco";
+type Kind = "visual" | "item" | "espaco" | "buf";
 
 const DEFAULT_SPACE_SLOTS = 10;
 
@@ -26,7 +27,8 @@ const SLOTS = Object.keys(COSMETIC_SLOT_LABELS) as CosmeticSlot[];
  * Cadastro/edição de item da Loja pelo ADM: um item comum (com XP ao usar, se
  * quiser), um visual do avatar escolhido no catálogo, com prévia no avatar, ou
  * um item de espaço (usar aumenta o inventário do aluno em N espaços — só o ADM
- * cria esse tipo). Qualquer item pode ficar fora da vitrine ("só presente"):
+ * cria esse tipo) ou um Buf (usar liga 2x ou 3x o XP ou as moedas das missões
+ * e eventos por 5 ou 10 minutos, engine/buffs.ts). Qualquer item pode ficar fora da vitrine ("só presente"):
  * aí o ADM só dá de presente ou usa como recompensa de missão.
  */
 export default function ShopItemEditor({
@@ -47,8 +49,9 @@ export default function ShopItemEditor({
   onClose: () => void;
 }) {
   const firstFree = COSMETIC_CATALOG.find((o) => !taken.some((t) => sameCosmetic(t, o))) ?? COSMETIC_CATALOG[0];
-  const [kind, setKind] = useState<Kind>(existing ? (existing.slots ? "espaco" : existing.cosmetic ? "visual" : "item") : "visual");
+  const [kind, setKind] = useState<Kind>(existing ? (existing.buff ? "buf" : existing.slots ? "espaco" : existing.cosmetic ? "visual" : "item") : "visual");
   const [slots, setSlots] = useState(existing?.slots ?? DEFAULT_SPACE_SLOTS);
+  const [buff, setBuff] = useState<BuffEffect>(existing?.buff ?? { kind: "xp", multiplier: 2, minutes: 5 });
   const [forSale, setForSale] = useState(!existing?.hidden);
   // Visual exclusivo de evento (ex.: a renazinha Cometa) não está no catálogo da Loja: fica o do próprio item.
   const exclusiveCosmetic = !!existing?.cosmetic && !COSMETIC_CATALOG.some((o) => sameCosmetic(o, existing.cosmetic));
@@ -83,6 +86,13 @@ export default function ShopItemEditor({
       setName("Mochila Encantada");
       setIcon("🎒");
     }
+    // Buf novo: nome, ícone e preço sugeridos
+    if (!existing && k === "buf") {
+      setName(`Buf de ${BUFF_LABELS[buff.kind]} ${buff.multiplier}x (${buff.minutes} min)`);
+      setIcon(buff.kind === "xp" ? "⚡" : "💰");
+      setPrice(BUFF_SHOP_PRICE);
+      setValue(BUFF_SHOP_PRICE / 2);
+    }
     setKind(k);
   }
 
@@ -109,6 +119,7 @@ export default function ShopItemEditor({
       featured,
       ...(kind === "visual" && { cosmetic: { slot: cosmetic.slot, value: cosmetic.value } }),
       ...(kind === "espaco" && { slots: Math.round(slots) }),
+      ...(kind === "buf" && { buff }),
       ...(!forSale && { hidden: true }),
       // visual de coleção entra na coleção; item comum mantém a que já tinha (ex.: Doce ou Travessura)
       ...((kind === "visual" ? cosmetic.collection : kind === "item" ? existing?.collection : undefined) && {
@@ -138,12 +149,13 @@ export default function ShopItemEditor({
               recompensa do evento e pras missões prontas adicionadas depois.
             </p>
           )}
-          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
             {(
               [
                 ["visual", "👕 Visual do avatar", "Chapéu, óculos, cor da roupa, aura ou mascote exclusivos"],
                 ["item", "🧪 Item comum", "Vai pro inventário; pode dar XP ao usar"],
                 ["espaco", "📦 Espaço no inventário", "Usar aumenta o inventário do aluno em mais espaços"],
+                ["buf", "⚡ Buf", "Usar liga 2x ou 3x o XP ou as moedas por alguns minutos"],
               ] as const
             ).map(([k, label, hint]) => (
               <button
@@ -186,6 +198,38 @@ export default function ShopItemEditor({
               <p className="mt-2 text-[11px] text-slate-400">
                 Todo aluno começa com {BASE_INVENTORY_SLOTS} espaços. Cada vez que ele usar este item no Inventário, ganha +{slots} espaços pra sempre (e o item some). Dá pra criar vários
                 itens de espaço, cada um com um tamanho e um preço.
+              </p>
+            </div>
+          )}
+
+          {kind === "buf" && (
+            <div className="mb-5 flex flex-col gap-3 rounded-2xl border border-violet-500/40 bg-violet-500/5 p-4">
+              {(
+                [
+                  ["Bônus de", BUFF_KINDS.map((k) => [k, k === "xp" ? "✦ XP" : "💰 Moedas"]), "kind"],
+                  ["Multiplica por", BUFF_MULTIPLIERS.map((m) => [m, `${m}x`]), "multiplier"],
+                  ["Dura", BUFF_MINUTES.map((m) => [m, `${m} minutos`]), "minutes"],
+                ] as const
+              ).map(([label, options, field]) => (
+                <div key={field}>
+                  <Label>{label}</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {options.map(([v, text]) => (
+                      <button
+                        key={String(v)}
+                        type="button"
+                        onClick={() => setBuff((b) => ({ ...b, [field]: v }))}
+                        className={`rounded-full border px-3 py-1 text-xs font-semibold transition-colors ${buff[field] === v ? "border-violet-300 bg-violet-500/20 text-violet-100" : "border-slate-700 text-slate-300 hover:border-slate-500"}`}
+                      >
+                        {text}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <p className="text-[11px] text-slate-400">
+                O aluno liga o Buf no Inventário e, por {buff.minutes} minutos, {buff.kind === "xp" ? "todo XP" : "todas as moedas"} das missões e dos eventos {buff.kind === "xp" ? "vem" : "vêm"}{" "}
+                {buff.multiplier}x. Um cronômetro fica na tela dele o tempo todo. Um Buf de XP e um de Moedas valem juntos; dois do mesmo tipo, não.
               </p>
             </div>
           )}
@@ -261,6 +305,13 @@ export default function ShopItemEditor({
               <Label>Prévia</Label>
               {kind === "visual" ? (
                 <Avatar config={applyCosmetic(DEFAULT_AVATAR, cosmetic)} size={120} ringColor="#8b5cf6" />
+              ) : kind === "buf" ? (
+                <div className="relative flex h-[120px] w-[120px] items-center justify-center rounded-2xl bg-cg-tile text-6xl">
+                  {icon}
+                  <span className="absolute -bottom-2 -right-2 rounded-full bg-gradient-to-r from-violet-500 to-amber-500 px-2 py-0.5 text-xs font-black text-cg-onaccent">
+                    {buff.multiplier}x
+                  </span>
+                </div>
               ) : kind === "espaco" ? (
                 <div className="relative flex h-[120px] w-[120px] items-center justify-center rounded-2xl bg-cg-tile text-6xl">
                   {icon}

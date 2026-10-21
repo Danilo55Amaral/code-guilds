@@ -4,6 +4,7 @@
 // ============================================================================
 
 import type { Cosmetic } from "./avatar";
+import type { BuffEffect } from "./buffs";
 import type { SubjectId } from "./subjects";
 
 export type Rarity = "comum" | "raro" | "epico" | "lendario";
@@ -39,6 +40,7 @@ export interface RewardItem {
   cosmetic?: Cosmetic; // item da Loja que é visual do avatar (o ADM pode usar como recompensa)
   slots?: number; // item de espaço da Loja (o ADM pode usar como recompensa): usar aumenta o inventário em tantos espaços
   multiverse?: boolean; // Chave do Multiverso: usar abre a Sala do Multiverso uma vez (engine/multiverse.ts)
+  buff?: BuffEffect; // Buf da Loja (o ADM pode usar como recompensa): usar liga o bônus de XP ou de moedas
 }
 
 /** Ícone sugerido pra um item novo (o professor troca no seletor de emojis). */

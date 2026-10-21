@@ -140,6 +140,7 @@ export interface ShopItems {
   id: string;
   name: string;
   price: number;
+  buff: Json | null;
   rarity: string;
   slots: number | null;
   sold: Generated<number>;
@@ -161,6 +162,7 @@ export interface StudentPresence {
 export interface Students {
   avatar: Generated<Json>;
   bonusSlots: Generated<number>;
+  buffs: Generated<Json>;
   coins: Generated<number>;
   completedMissionIds: Generated<Json>;
   createdAt: Generated<Timestamp>;

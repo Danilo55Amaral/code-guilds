@@ -18,7 +18,7 @@ import { GiftItem } from "../../../src/engine/gifts";
 
 export async function giftsRoutes(app: FastifyInstance) {
     // Dando um item pra uma lista de alunos.
-    // O professor só presenteia os alunos dele; itens de espaço, só o ADM dá.
+    // O professor só presenteia os alunos dele; itens de espaço e Bufs, só o ADM dá.
     // Cada aluno recebe a mensagem 🎁 Presente. A resposta diz, pra cada aluno,
     // se o item entrou no inventário ou ficou esperando espaço.
     app.post('/', { preHandler: ensureTeacher }, async (request, reply) => {
@@ -33,6 +33,10 @@ export async function giftsRoutes(app: FastifyInstance) {
 
         if (item.slots && !isAdmin) {
             return reply.status(403).send({ message: 'Apenas o ADM pode dar itens de espaço.' })
+        }
+
+        if (item.buff && !isAdmin) {
+            return reply.status(403).send({ message: 'Apenas o ADM pode dar Bufs.' })
         }
 
         const ids = Array.from(new Set(studentIds))

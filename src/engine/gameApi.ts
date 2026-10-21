@@ -17,6 +17,7 @@ import { Trade, forgetTrade, rememberTrade } from "./trades";
 import { GiftItem } from "./gifts";
 import { RewardItem } from "./missions";
 import type { EventId } from "./specialEvents";
+import type { ActiveBuff } from "./buffs";
 import { refreshFromApi } from "./accounts";
 import { scheduleInboxRefresh } from "./messagesApi";
 
@@ -44,9 +45,10 @@ async function run<T extends object = object>(request: Promise<unknown>): Promis
 export type ItemEffect =
   | { kind: "xp"; xpGained: number; leveledUp: boolean; fromLevel: number; newLevel: number }
   | { kind: "espaco"; slotsGained: number; claimed: number }
-  | { kind: "multiverso" };
+  | { kind: "multiverso" }
+  | { kind: "buf"; buff: ActiveBuff };
 
-/** Usa um item: consumível (dá XP), de espaço (aumenta o inventário) ou a Chave do Multiverso. */
+/** Usa um item: consumível (dá XP), de espaço (aumenta o inventário), a Chave do Multiverso ou um Buf (liga o bônus). */
 export function activateItem(itemId: string) {
   return run<{ effect: ItemEffect }>(api.post(`/inventory/${itemId}/use`));
 }
@@ -93,6 +95,9 @@ export interface AttemptOutcome {
   fromLevel?: number;
   newLevel?: number;
   itemWaiting?: boolean; // o item da recompensa não coube e ficou esperando espaço
+  xpGained?: number; // o XP que entrou, já com o Buf de XP (se estava ligado)
+  coinsGained?: number; // as moedas que entraram, já com o Buf de Moedas
+  multipliers?: { xp: number; coins: number };
 }
 
 /** Manda as respostas do quiz ({ idDaPergunta: idDaOpção }); a API corrige e dá a recompensa. */
@@ -177,8 +182,9 @@ export interface PhaseOutcome {
   newLevel: number;
   itemWaiting: boolean; // o item não coube e ficou esperando espaço
   item: RewardItem; // o item da recompensa, com as alterações que o ADM fez na Loja
-  xp: number;
-  coins: number;
+  xp: number; // já com o Buf de XP (se estava ligado)
+  coins: number; // já com o Buf de Moedas
+  multipliers: { xp: number; coins: number };
 }
 
 /** Conclui a fase (ou o evento de uma fase só): a API confere as missões e dá a recompensa. */

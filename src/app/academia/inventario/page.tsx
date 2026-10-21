@@ -9,6 +9,7 @@ import type { Offer } from "@/engine/market";
 import type { Trade } from "@/engine/trades";
 import { COSMETIC_SLOT_LABELS } from "@/engine/avatar";
 import { getHouse } from "@/engine/houses";
+import { BUFF_LABELS } from "@/engine/buffs";
 import { CoinIcon, ItemStats, LevelPill, RarityBadge, XPBar } from "@/components/GameUI";
 import Avatar from "@/components/Avatar";
 import CharacterSheet from "@/components/CharacterSheet";
@@ -107,6 +108,14 @@ export default function InventarioPage() {
     const result = await act(() => game.activateItem(item.id));
     setConfirmPortalId(null);
     if (result) router.push("/multiverso");
+  }
+
+  /** Liga o Buf: o item some e o cronômetro aparece no canto da tela. */
+  async function startBuff(item: InventoryItem) {
+    const result = await act(() => game.activateItem(item.id));
+    if (!result || result.effect.kind !== "buf") return;
+    const { buff } = result.effect;
+    flash(`${buff.icon} Buf de ${BUFF_LABELS[buff.kind]} ${buff.multiplier}x ligado por ${buff.minutes} minutos! Corre pras missões: o cronômetro está no canto da tela.`);
   }
 
   async function expandInventory(item: InventoryItem) {
@@ -418,6 +427,11 @@ export default function InventarioPage() {
               {item.slots && (
                 <span className="absolute right-2 top-2 rounded-full bg-teal-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">📦 +{item.slots}</span>
               )}
+              {item.buff && (
+                <span className="absolute right-2 top-2 rounded-full bg-gradient-to-r from-violet-500 to-amber-500 px-2 py-0.5 text-[10px] font-bold text-cg-onaccent">
+                  ⚡ {item.buff.multiplier}x • {item.buff.minutes} min
+                </span>
+              )}
               {item.cosmetic && !equipped && (
                 <span className="absolute right-2 top-2 rounded-full border border-violet-500/40 px-2 py-0.5 text-[10px] font-semibold text-violet-300">
                   {COSMETIC_SLOT_LABELS[item.cosmetic.slot]}
@@ -467,6 +481,16 @@ export default function InventarioPage() {
                 {item.slots && (
                   <button onClick={() => expandInventory(item)} className="rounded-lg bg-teal-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition-colors hover:bg-teal-400">
                     📦 Usar (+{item.slots} espaços)
+                  </button>
+                )}
+                {item.buff && (
+                  <button
+                    onClick={() => startBuff(item)}
+                    disabled={busy}
+                    title="O Buf liga na hora e o cronômetro começa a contar. Um de XP e um de Moedas podem valer juntos; dois do mesmo tipo, não."
+                    className="rounded-lg bg-gradient-to-r from-violet-500 to-amber-500 px-2 py-1.5 text-xs font-semibold text-cg-onaccent transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    ⚡ Ligar Buf ({item.buff.minutes} min)
                   </button>
                 )}
                 {item.xp > 0 && (

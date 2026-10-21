@@ -11,6 +11,7 @@
 // ============================================================================
 
 import { Cosmetic } from "./avatar";
+import { BuffEffect } from "./buffs";
 import { Rarity } from "./missions";
 
 export interface GiftItem {
@@ -23,6 +24,7 @@ export interface GiftItem {
   cosmetic?: Cosmetic;
   slots?: number;
   multiverse?: boolean; // Chave do Multiverso
+  buff?: BuffEffect; // Buf da Loja (só o ADM dá)
 }
 
 export interface Giver {

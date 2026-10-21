@@ -11,7 +11,7 @@ import { CosmeticCollection } from "./avatar";
 import { ShopItemData, ShopItemFromApi, forgetShopItems, saveShopItem } from "./shop";
 
 /**
- * Os dados como a API espera. Visual e espaço sem valor vão como null (o
+ * Os dados como a API espera. Visual, espaço e Buf sem valor vão como null (o
  * tipo do item sempre vem do formulário); o vínculo com o evento e a coleção
  * só vão quando existem (na edição, o que não vem continua como estava).
  */
@@ -20,6 +20,7 @@ function toBody(data: ShopItemData) {
     ...data,
     cosmetic: data.cosmetic ?? null,
     slots: data.slots ?? null,
+    buff: data.buff ?? null,
   };
 }
 

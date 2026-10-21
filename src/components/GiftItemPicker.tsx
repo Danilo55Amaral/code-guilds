@@ -39,10 +39,11 @@ function toGift(item: GiftItem): GiftItem {
     description: item.description,
     rarity: item.rarity,
     value: item.value,
-    xp: item.cosmetic || item.slots || item.multiverse ? 0 : item.xp,
+    xp: item.cosmetic || item.slots || item.multiverse || item.buff ? 0 : item.xp,
     ...(item.cosmetic && { cosmetic: item.cosmetic }),
     ...(item.slots && { slots: item.slots }),
     ...(item.multiverse && { multiverse: true }),
+    ...(item.buff && { buff: item.buff }),
   };
 }
 
@@ -67,6 +68,11 @@ function GiftPreview({ item, note }: { item: GiftItem; note?: string | null }) {
         {item.cosmetic && <p className="mt-1 text-[11px] text-violet-300">👕 Visual do avatar — quem já tiver ganha mais um (dá pra vender).</p>}
         {item.slots && <p className="mt-1 text-[11px] text-teal-300">📦 Item de espaço — ao usar, o inventário ganha +{item.slots} espaços.</p>}
         {item.multiverse && <p className="mt-1 text-[11px] text-fuchsia-300">🌀 Chave do Multiverso — usar abre a Sala do Multiverso uma vez.</p>}
+        {item.buff && (
+          <p className="mt-1 text-[11px] text-violet-300">
+            ⚡ Buf — ao usar, {item.buff.kind === "xp" ? "o XP" : "as moedas"} das missões e eventos vêm {item.buff.multiplier}x por {item.buff.minutes} minutos.
+          </p>
+        )}
         {note && <p className="mt-1 text-[11px] text-fuchsia-300">{note}</p>}
       </div>
     </div>
@@ -104,7 +110,8 @@ export default function GiftItemPicker({
   const [missionId, setMissionId] = useState("");
   const [eventKey, setEventKey] = useState("");
 
-  const availableShop = isAdmin ? shopItems : shopItems.filter((i) => !i.hidden && !i.slots);
+  // itens de espaço e Bufs só o ADM dá
+  const availableShop = isAdmin ? shopItems : shopItems.filter((i) => !i.hidden && !i.slots && !i.buff);
   const regularMissions = missions.filter((m) => !m.eventId);
   const eventMissions = missions.filter((m) => m.eventId);
 

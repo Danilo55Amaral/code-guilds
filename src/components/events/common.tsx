@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AvatarConfig } from "@/engine/avatar";
 import { EventReward } from "@/engine/specialEvents";
+import { useStudents } from "@/engine/store";
+import { rewardMultipliers } from "@/engine/buffs";
 import Avatar from "../Avatar";
 import { CoinIcon } from "../GameUI";
 
@@ -205,6 +207,10 @@ export function Rays({ color = "rgba(253,230,138,0.5)" }: { color?: string }) {
 
 /** Última cena do final (ou de uma fase): as recompensas aparecendo e o aluno com o visual novo. */
 export function RewardShowcase({ reward, avatar, ringColor = "#fbbf24" }: { reward: EventReward; avatar: AvatarConfig | null; ringColor?: string }) {
+  // os Bufs ligados agora multiplicam o XP e as moedas (quem decide de verdade é a API, ao fechar a cena)
+  const { activeStudent } = useStudents();
+  // (o aluno do cache chega logo depois da primeira renderização)
+  const multipliers = activeStudent ? rewardMultipliers(activeStudent) : { xp: 1, coins: 1 };
   return (
     <Stage className="!justify-start !items-center flex-col gap-4 pt-[2%]">
       <div className="flex flex-wrap justify-center gap-2 px-4">
@@ -212,10 +218,11 @@ export function RewardShowcase({ reward, avatar, ringColor = "#fbbf24" }: { rewa
           <span className="text-xl">{reward.item.icon}</span> {reward.item.name}
         </span>
         <span className="cg-anim-pop rounded-full border border-violet-300/70 bg-black/60 px-3 py-1.5 text-sm font-bold text-violet-200" style={{ animationDelay: "1.1s" }}>
-          ✦ +{reward.xp} XP
+          ✦ +{reward.xp * multipliers.xp} XP{multipliers.xp > 1 && ` (⚡ ${multipliers.xp}x)`}
         </span>
         <span className="cg-anim-pop flex items-center gap-1.5 rounded-full border border-amber-300/70 bg-black/60 px-3 py-1.5 text-sm font-bold text-amber-300" style={{ animationDelay: "1.4s" }}>
-          <CoinIcon size={16} /> +{reward.coins}
+          <CoinIcon size={16} /> +{reward.coins * multipliers.coins}
+          {multipliers.coins > 1 && ` (⚡ ${multipliers.coins}x)`}
         </span>
       </div>
       <div className="cg-anim-pop relative" style={{ animationDelay: "0.3s" }}>

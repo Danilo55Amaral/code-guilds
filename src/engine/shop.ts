@@ -17,6 +17,7 @@ import { Rarity } from "./missions";
 import { COLLECTIONS, Cosmetic, CosmeticCollection, sameCosmetic } from "./avatar";
 import { InventoryItem, Student, freeSlots, inventoryFullError, ownsCosmetic } from "./students";
 import { EVENT_ITEMS } from "./eventItems";
+import { BUFF_SHOP, BUFF_SHOP_PRICE, BuffEffect, isValidBuffEffect } from "./buffs";
 
 export interface ShopItem {
   id: string;
@@ -29,6 +30,7 @@ export interface ShopItem {
   xp: number; // XP ao usar (0 = não consumível); visuais nunca são consumíveis
   cosmetic?: Cosmetic; // presente = é um visual do avatar
   slots?: number; // presente = é um item de espaço: usar aumenta o inventário do aluno em tantos espaços
+  buff?: BuffEffect; // presente = é um Buf: usar liga o bônus de XP ou de moedas por alguns minutos (engine/buffs.ts)
   hidden?: boolean; // true = não aparece na Loja dos alunos (o ADM só dá de presente ou usa como recompensa)
   eventItemKey?: string; // item de um evento especial (engine/eventItems.ts): o que o ADM mudar aqui vale também no evento
   featured: boolean; // aparece no destaque do topo da Loja
@@ -107,6 +109,19 @@ export const ANCIENT_DRAGON_AURA_SHOP: Omit<ShopItem, "sold" | "createdAt"> = {
   cosmetic: { slot: "aura", value: "dragao-ancestral" },
   featured: true,
 };
+
+/**
+ * Os Bufs de XP e de Moedas (2x e 3x, de 5 e de 10 minutos), por 50.000 moedas cada. Entraram na Loja de
+ * quem já tinha itens pela migração 20261021120000 da API; numa Loja nova, vêm com os itens iniciais.
+ * Revenda = metade do preço, como nos outros itens. O ADM muda o preço (e o resto) quando quiser.
+ */
+export const BUFF_SHOP_ITEMS: Omit<ShopItem, "sold" | "createdAt">[] = BUFF_SHOP.map((b) => ({
+  ...b,
+  price: BUFF_SHOP_PRICE,
+  value: BUFF_SHOP_PRICE / 2,
+  xp: 0,
+  featured: false,
+}));
 
 /** Itens iniciais da Loja (o seed da API coloca à venda quando a Loja está vazia). */
 export const DEFAULT_SHOP: ShopItem[] = [
@@ -230,6 +245,7 @@ export const DEFAULT_SHOP: ShopItem[] = [
   },
   ...MAGO_DANILO_SHOP,
   ANCIENT_DRAGON_AURA_SHOP,
+  ...BUFF_SHOP_ITEMS,
 ].map((item) => ({ ...item, sold: 0, createdAt: SEED_DATE }) as ShopItem);
 
 function readAll(): ShopItem[] {
@@ -248,9 +264,10 @@ function writeAll(items: ShopItem[]) {
 }
 
 /** Item da Loja como a API manda: os campos opcionais vêm como null. */
-export type ShopItemFromApi = Omit<ShopItem, "cosmetic" | "slots" | "hidden" | "eventItemKey" | "collection"> & {
+export type ShopItemFromApi = Omit<ShopItem, "cosmetic" | "slots" | "buff" | "hidden" | "eventItemKey" | "collection"> & {
   cosmetic?: Cosmetic | null;
   slots?: number | null;
+  buff?: BuffEffect | null;
   hidden?: boolean | null;
   eventItemKey?: string | null;
   collection?: CosmeticCollection | null;
@@ -262,6 +279,7 @@ function fromApi(item: ShopItemFromApi): ShopItem {
     ...item,
     cosmetic: item.cosmetic ?? undefined,
     slots: item.slots ?? undefined,
+    buff: item.buff ?? undefined,
     hidden: item.hidden || undefined,
     eventItemKey: item.eventItemKey ?? undefined,
     collection: item.collection ?? undefined,
@@ -301,6 +319,7 @@ export function validateShopItem(data: ShopItemData, exceptId?: string): string 
   if (data.slots !== undefined && (!Number.isInteger(data.slots) || data.slots < 1 || data.slots > MAX_SPACE_SLOTS)) {
     return `O item de espaço precisa dar de 1 a ${MAX_SPACE_SLOTS} espaços.`;
   }
+  if (data.buff && !isValidBuffEffect(data.buff)) return "O Buf precisa ser de XP ou de Moedas, 2x ou 3x, de 5 ou de 10 minutos.";
   if (data.cosmetic && readAll().some((i) => i.id !== exceptId && sameCosmetic(i.cosmetic, data.cosmetic))) {
     return "Esse visual já está à venda na Loja.";
   }
@@ -954,9 +973,10 @@ export function applyPurchase(student: Student, shopItem: ShopItem, quantity = 1
     description: shopItem.description,
     rarity: shopItem.rarity,
     value: shopItem.value,
-    xp: shopItem.cosmetic || shopItem.slots ? 0 : shopItem.xp,
+    xp: shopItem.cosmetic || shopItem.slots || shopItem.buff ? 0 : shopItem.xp,
     ...(shopItem.cosmetic && { cosmetic: shopItem.cosmetic }),
     ...(shopItem.slots && { slots: shopItem.slots }),
+    ...(shopItem.buff && { buff: shopItem.buff }),
     obtainedAt: new Date(now).toISOString(),
   }));
 

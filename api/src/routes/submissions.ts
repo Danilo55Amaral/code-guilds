@@ -14,6 +14,7 @@ import { existsOrError, ForbiddenError, NotFoundError, ValidationError } from ".
 import { DB } from "../types/database";
 import { Mission, fileKindOf } from "../../../src/engine/missions";
 import { applyMissionReward } from "../../../src/engine/students";
+import { buffRewardNote } from "../../../src/engine/buffs";
 import { FEEDBACK_MAX, SUBMISSION_MAX_FILES, SUBMISSION_MAX_FILE_MB, SUBMISSION_TEXT_MAX, checkSubmission } from "../../../src/engine/submissions";
 import { PENDING_ITEM_NOTE, missionRewardMessage, taskApprovedNote, taskRedoMessage } from "../../../src/engine/messages";
 
@@ -378,12 +379,16 @@ export async function submissionsRoutes(app: FastifyInstance) {
         const result = await updateProgress(submission.studentId, (student) => {
             if (student.completedMissionIds.includes(mission.id)) return { student, rewarded: false }
 
-            const reward = applyMissionReward(student, mission)
+            // vale o Buf que estava ligado quando o aluno enviou a entrega (não o de agora)
+            const reward = applyMissionReward(student, mission, new Date(submission.submittedAt).getTime())
 
             return {
                 student: reward.student,
                 rewarded: true,
                 itemWaiting: reward.student.pendingItems.length > student.pendingItems.length,
+                xpGained: reward.xpGained,
+                coinsGained: reward.coinsGained,
+                multipliers: reward.multipliers,
             }
         }, async (trx, result) => {
             const updated = await markReviewed(trx)
@@ -391,12 +396,13 @@ export async function submissionsRoutes(app: FastifyInstance) {
             // Dois cliques ao mesmo tempo: o segundo encontra a entrega já corrigida e desfaz tudo
             if (Number(updated.numUpdatedRows) === 0) throw new ValidationError('Essa entrega já foi corrigida.')
 
-            if (!result.rewarded) return
+            if (!result.rewarded || !result.multipliers) return
 
             await sendMessages(trx, [{
                 studentId: submission.studentId,
                 kind: 'missao',
-                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: mission.rewardXp, coins: mission.rewardCoins }) +
+                body: missionRewardMessage({ mission, item: mission.rewardItem, xp: result.xpGained ?? mission.rewardXp, coins: result.coinsGained ?? mission.rewardCoins }) +
+                    buffRewardNote(result.multipliers) +
                     taskApprovedNote({ reviewerName: reviewer.label, feedback }) +
                     ('itemWaiting' in result && result.itemWaiting ? PENDING_ITEM_NOTE : ''),
             }])
