@@ -136,6 +136,7 @@ export default function ShopQuickEdit({
                         <span className="text-[10px] text-slate-500">
                           {item.collection ? `${COLLECTION_THEME[item.collection].emoji} ${COLLECTION_THEME[item.collection].title}` : "Ano todo"}
                           {item.cosmetic ? " • 👕 visual" : ""}
+                          {item.buff ? " • ⚡ Buf" : ""}
                         </span>
                       </span>
                     </span>
@@ -167,8 +168,8 @@ export default function ShopQuickEdit({
                       type="number"
                       min={0}
                       value={d.xp}
-                      disabled={!!item.cosmetic}
-                      title={item.cosmetic ? "Visual do avatar não é consumível — não dá XP ao usar" : undefined}
+                      disabled={!!item.cosmetic || !!item.buff}
+                      title={item.cosmetic ? "Visual do avatar não é consumível — não dá XP ao usar" : item.buff ? "O Buf não dá XP: ele multiplica o XP ou as moedas das missões" : undefined}
                       onChange={(e) => update(item, { xp: toInt(e.target.value) })}
                       className={inputClass}
                       aria-label={`XP de ${item.name}`}

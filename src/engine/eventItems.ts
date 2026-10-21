@@ -13,6 +13,7 @@
 
 import type { CosmeticCollection } from "./avatar";
 import type { RewardItem } from "./missions";
+import type { BuffEffect } from "./buffs";
 import { ACADEMY_EVENTS, EventId, eventPhases } from "./specialEvents";
 
 export interface EventItemEntry {
@@ -88,7 +89,7 @@ export function eventItemOfReward(item: { name: string; icon: string }): EventIt
 export function resolveEventItem(
   key: string,
   base: RewardItem,
-  shopItems: { eventItemKey?: string; name: string; icon: string; description: string; rarity: RewardItem["rarity"]; value: number; xp: number; cosmetic?: RewardItem["cosmetic"]; slots?: number }[],
+  shopItems: { eventItemKey?: string; name: string; icon: string; description: string; rarity: RewardItem["rarity"]; value: number; xp: number; cosmetic?: RewardItem["cosmetic"]; slots?: number; buff?: BuffEffect }[],
 ): RewardItem {
   const shop = shopItems.find((i) => i.eventItemKey === key);
   if (!shop) return base;
@@ -98,8 +99,9 @@ export function resolveEventItem(
     description: shop.description,
     rarity: shop.rarity,
     value: shop.value,
-    xp: shop.cosmetic || shop.slots ? 0 : shop.xp,
+    xp: shop.cosmetic || shop.slots || shop.buff ? 0 : shop.xp,
     ...(shop.cosmetic && { cosmetic: shop.cosmetic }),
     ...(shop.slots && { slots: shop.slots }),
+    ...(shop.buff && { buff: shop.buff }),
   };
 }

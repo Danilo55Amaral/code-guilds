@@ -31,6 +31,7 @@
 - [Dashboard do aluno](#dashboard-do-aluno)
 - [Recompensa diária](#recompensa-diária)
 - [Roleta da Sorte](#roleta-da-sorte)
+- [Bufs de XP e de Moedas](#bufs-de-xp-e-de-moedas)
 - [Build da aplicação](#build-da-aplicação)
 - [Deploy gratuito: Render + Neon](#deploy-gratuito-render--neon)
 - [O que mudou em relação ao front de hoje](#o-que-mudou-em-relação-ao-front-de-hoje)
@@ -1884,7 +1885,7 @@ Todas as rotas de aluno devolvem o **aluno atualizado** (`student`, no mesmo for
 
 | Método | Rota | Quem pode | O que faz |
 |---|---|---|---|
-| POST | `/inventory/:itemId/use` | Aluno | usa o item (consumível dá XP; item de espaço aumenta o inventário; a Chave abre o Multiverso) |
+| POST | `/inventory/:itemId/use` | Aluno | usa o item (consumível dá XP; item de espaço aumenta o inventário; a Chave abre o Multiverso; o Buf liga o bônus, ver [Bufs](#bufs-de-xp-e-de-moedas)) |
 | POST | `/inventory/:itemId/sell` | Aluno | vende o item pro sistema pelo valor dele |
 | DELETE | `/inventory/:itemId` | Aluno | descarta o item |
 | POST | `/inventory/:itemId/equip` | Aluno | equipa o visual no avatar |
@@ -1938,7 +1939,8 @@ POST /inventory/i_1759080000000_1234/use
 ```
 
 O `effect.kind` diz o que aconteceu: `"xp"` (consumível), `"espaco"` (com `slotsGained` e
-`claimed`, os itens que esperavam e entraram) ou `"multiverso"`. Item que não está no
+`claimed`, os itens que esperavam e entraram), `"multiverso"` ou `"buf"` (com o `buff` que
+ligou, veja [Bufs de XP e de Moedas](#bufs-de-xp-e-de-moedas)). Item que não está no
 inventário: `404`. Item que não pode ser usado (ex.: um visual): `400`.
 
 Na venda a resposta traz `coinsGained`; no `pending/claim`, `moved` (quantos entraram). Sem
@@ -2724,6 +2726,76 @@ de hoje **no banco local**:
 
 ```sql
 delete from lucky_wheel_spins where student_id = '<id do aluno>' and cost = 0 and day = (now() at time zone 'America/Sao_Paulo')::date;
+```
+
+## Bufs de XP e de Moedas
+
+Os Bufs são itens consumíveis da Loja que multiplicam, por um tempo, o que o aluno ganha nas
+missões e nos eventos. São 8, todos por **50.000 moedas** (o ADM muda o preço quando quiser, no
+Painel ADM → Loja, como qualquer item) e com revenda de 25.000:
+
+| Buf | Efeito | Duração |
+|---|---|---|
+| Buf de XP 2x | o XP das missões e eventos vem em dobro | 5 ou 10 minutos |
+| Buf de XP 3x | o XP vem triplicado | 5 ou 10 minutos |
+| Buf de Moedas 2x | as moedas vêm em dobro | 5 ou 10 minutos |
+| Buf de Moedas 3x | as moedas vêm triplicadas | 5 ou 10 minutos |
+
+As regras ficam em `src/engine/buffs.ts`, a mesma regra no site e na API:
+
+- **Usar** o Buf no Inventário (`POST /inventory/:itemId/use`) tira o item e liga o efeito, com
+  a hora em que começou e a hora em que acaba (`activateBuff`). A resposta traz
+  `effect: { kind: "buf", buff }`.
+- Um Buf de XP e um de Moedas **valem juntos**. Dois do **mesmo tipo**, não: o segundo responde
+  `400` ("Você já tem um Buf de XP 2x ligado (faltam 04:12)...") e o item continua no inventário.
+- Valem nas recompensas de **missão** (quiz e entrega aprovada) e de **fase de evento**. A
+  recompensa diária, a Roleta e os itens de XP **não** são multiplicados. O ranking dos eventos
+  também não muda (ele soma o XP das missões, não o que o aluno ganhou).
+- Na **entrega**, vale o Buf que estava ligado quando o aluno **enviou** (`submitted_at`), e não
+  na hora em que o professor aprova. Por isso os Bufs que acabaram ficam guardados por 30 dias
+  (`BUFF_HISTORY_MS`); os mais antigos saem sozinhos quando o progresso é salvo (`pruneBuffs`).
+- Tolerância de **2 minutos** depois do fim (`BUFF_GRACE_MS`): quem terminou o quiz (ou viu a
+  cena final do evento) com o cronômetro correndo e clicou em "Coletar" logo depois ainda ganha.
+- `applyMissionReward` e `finishPhase` multiplicam com `boostReward` e devolvem `xpGained`,
+  `coinsGained` e `multipliers`. As respostas do quiz e da fase trazem esses números, e a
+  mensagem 🏆 termina com "⚡ Seu Buf estava ligado: o XP veio 2x!".
+- Só o ADM dá Buf de presente (como os itens de espaço). O ADM também pode usar um Buf como
+  recompensa de missão e criar outros no editor da Loja (tipo **⚡ Buf**: XP ou Moedas, 2x ou 3x,
+  5 ou 10 minutos).
+
+### A migration
+
+`20261021120000_add-buffs` só **acrescenta**:
+
+```
+shop_items.buff   jsonb (pode ser nulo)   → { kind: "xp" | "moedas", multiplier: 2 | 3, minutes: 5 | 10 }
+students.buffs    jsonb, padrão '[]'      → os Bufs ligados: { kind, multiplier, minutes, name, icon, startedAt, endsAt }
+```
+
+e coloca os 8 Bufs à venda (numa Loja vazia quem coloca é o seed, com `BUFF_SHOP_ITEMS` de
+`src/engine/shop.ts`). Os itens que já existem ficam com `buff = null` e todos os alunos começam
+com `buffs = []`: nada do que os alunos já têm muda. O `down` tira os 8 itens e as duas colunas.
+
+### No site
+
+- **Loja**: seção própria **⚡ Bufs**, logo acima da vitrine, na ordem XP 2x, XP 3x, Moedas 2x,
+  Moedas 3x (5 e 10 minutos).
+- **Inventário**: o card do Buf tem o selo "⚡ 2x • 5 min" e o botão **⚡ Ligar Buf**.
+- **Cronômetro** (`src/components/BuffTimer.tsx`): fica no canto de baixo da tela em toda a
+  Academia (no layout `src/app/academia/layout.tsx`), por cima das missões, dos eventos e das
+  janelas, um por Buf ligado, com a contagem e uma barra que vai esvaziando. Pisca em vermelho
+  nos últimos 30 segundos e some quando acaba. Não pega cliques, então nunca atrapalha a tela.
+- **Vitória** da missão e **recompensa** do evento já mostram o XP e as moedas multiplicados,
+  com o selo "⚡ Buf 2x".
+
+### Testando
+
+Com a API e o banco local: dê moedas a um aluno de teste **no banco local**, compre um Buf na
+Loja, ligue no Inventário e faça uma missão. O XP (ou as moedas) da vitória e da mensagem 🏆 vem
+multiplicado, e o cronômetro some quando o tempo acaba.
+
+```sql
+update students set coins = 200000 where username = '<login do aluno de teste>';
 ```
 
 ## Build da aplicação

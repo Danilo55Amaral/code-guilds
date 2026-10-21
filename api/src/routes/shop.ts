@@ -8,6 +8,7 @@ import { shopPurchaseMessage } from "../../../src/engine/messages";
 import { studentsQuery } from "../utils/queries";
 import { ValidationError } from "../validation/validations";
 import { Json } from "../types/database";
+import { buffSchema } from "../validation/schemas";
 import { MAX_PURCHASE_QUANTITY, MAX_SPACE_SLOTS, SHOP_COLLECTIONS, ShopItem, applyPurchase, missingFromCollection } from "../../../src/engine/shop";
 import { COLLECTIONS, sameCosmetic } from "../../../src/engine/avatar";
 
@@ -33,6 +34,7 @@ function shopItemsQuery() {
             'xp',
             'cosmetic',
             'slots',
+            'buff',
             'hidden',
             'eventItemKey',
             'featured',
@@ -48,6 +50,7 @@ function toShopItem(row: Record<string, unknown>): ShopItem {
         ...(row as unknown as ShopItem),
         cosmetic: (row.cosmetic ?? undefined) as ShopItem['cosmetic'],
         slots: (row.slots ?? undefined) as number | undefined,
+        buff: (row.buff ?? undefined) as ShopItem['buff'],
         eventItemKey: (row.eventItemKey ?? undefined) as string | undefined,
         collection: (row.collection ?? undefined) as ShopItem['collection'],
         createdAt: row.createdAt instanceof Date ? row.createdAt.toISOString() : String(row.createdAt),
@@ -64,6 +67,7 @@ const shopItemBodySchema = z.object({
     xp: z.number().int().min(0).max(100000),
     cosmetic: z.record(z.string(), z.json()).nullable().optional(),
     slots: z.number().int().min(1).max(MAX_SPACE_SLOTS).nullable().optional(),
+    buff: buffSchema.nullable().optional(),
     hidden: z.boolean().optional(),
     eventItemKey: z.string().max(80).nullable().optional(),
     featured: z.boolean().default(false),
@@ -83,8 +87,8 @@ async function checkCosmeticIsFree(cosmetic: ShopItemBody['cosmetic'], exceptId?
     }
 }
 
-// Colunas pra salvar. Visual e item de espaço nunca dão XP.
-// O tipo do item (visual, espaço, "só presente") sempre vem do formulário;
+// Colunas pra salvar. Visual, item de espaço e Buf nunca dão XP.
+// O tipo do item (visual, espaço, Buf, "só presente") sempre vem do formulário;
 // o vínculo com o evento e a coleção, na edição, só mudam se vierem (o
 // editor da Loja não manda esses campos, e eles não podem se perder).
 function shopItemColumns(item: ShopItemBody) {
@@ -95,9 +99,10 @@ function shopItemColumns(item: ShopItemBody) {
         rarity: item.rarity,
         price: item.price,
         value: item.value,
-        xp: item.cosmetic || item.slots ? 0 : item.xp,
+        xp: item.cosmetic || item.slots || item.buff ? 0 : item.xp,
         cosmetic: item.cosmetic ? (JSON.stringify(item.cosmetic) as Json) : null,
         slots: item.slots ?? null,
+        buff: item.buff ? (JSON.stringify(item.buff) as Json) : null,
         hidden: item.hidden ?? false,
         featured: item.featured,
         ...(item.eventItemKey !== undefined && { eventItemKey: item.eventItemKey }),

@@ -20,6 +20,7 @@
 import { HouseId, getHouse } from "./houses";
 import { Mission, Rarity, DEFAULT_ITEM_ICON, ITEM_DESCRIPTION_MAX_LENGTH, normalizeRewardItem, normalizeSearch } from "./missions";
 import { AvatarConfig, Cosmetic, CosmeticSlot, applyCosmetic, normalizeAvatar, sameCosmetic } from "./avatar";
+import { ActiveBuff, BuffEffect, boostReward } from "./buffs";
 
 export interface InventoryItem {
   id: string;
@@ -29,6 +30,7 @@ export interface InventoryItem {
   cosmetic?: Cosmetic; // item de visual do avatar (vem da Loja) — pode ser equipado
   slots?: number; // item de espaço (criado pelo ADM na Loja): usar aumenta o inventário em tantos espaços
   multiverse?: boolean; // Chave do Multiverso: usar abre a Sala do Multiverso uma vez (engine/multiverse.ts)
+  buff?: BuffEffect; // Buf da Loja: usar liga o bônus de XP ou de moedas por alguns minutos (engine/buffs.ts)
   rarity: Rarity;
   value: number; // moedas que o sistema paga por ele
   xp: number; // XP ao usar; 0 = não é consumível
@@ -65,6 +67,7 @@ export interface Student {
   bonusSlots: number; // espaços extras no inventário, ganhos usando itens de espaço (além dos BASE_INVENTORY_SLOTS)
   pendingItems: InventoryItem[]; // itens ganhos com o inventário cheio, esperando espaço (nada se perde)
   multiverseAccess?: string; // usou uma Chave do Multiverso e ainda não entrou na sala (o passe é gasto ao entrar)
+  buffs?: ActiveBuff[]; // Bufs usados (os ligados e os que acabaram há pouco), engine/buffs.ts
   createdAt: string;
 }
 
@@ -207,6 +210,7 @@ export interface StudentAccount {
   events?: Record<string, EventProgress>;
   bonusSlots?: number;
   multiverseAccess?: string | null;
+  buffs?: ActiveBuff[];
 }
 
 /** Presente de boas-vindas que todo aluno ganha ao criar a conta. */
@@ -265,6 +269,7 @@ export function saveStudentAccounts(accounts: StudentAccount[]) {
       bonusSlots: account.bonusSlots ?? base.bonusSlots,
       // null = a API disse que não tem passe; undefined = a API não mandou (fica o do cache)
       multiverseAccess: account.multiverseAccess === undefined ? old?.multiverseAccess : account.multiverseAccess ?? undefined,
+      buffs: account.buffs ?? old?.buffs ?? [],
       id: account.id,
       teacherId: account.teacherId,
       name: account.name,
@@ -440,7 +445,7 @@ export function applySpaceItem(student: Student, itemId: string): SpaceItemResul
 /** Dá um item ao aluno (nome vazio vira "Item Misterioso", igual ao editor de missões). Sem espaço, ele fica esperando espaço. */
 export function grantItem(
   student: Student,
-  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic; slots?: number; multiverse?: boolean },
+  item: { name: string; icon: string; description: string; rarity: Rarity; value: number; xp: number; cosmetic?: Cosmetic; slots?: number; multiverse?: boolean; buff?: BuffEffect },
 ): Student {
   const newItem: InventoryItem = {
     // item da Loja doado pelo ADM: se for visual, o aluno pode equipar (e visual não é consumível)
@@ -449,13 +454,15 @@ export function grantItem(
     ...(item.slots && item.slots > 0 && { slots: Math.round(item.slots) }),
     // Chave do Multiverso: usar abre a Sala do Multiverso (e não dá XP)
     ...(item.multiverse && { multiverse: true }),
+    // Buf: usar liga o bônus de XP ou de moedas (e não dá XP)
+    ...(item.buff && { buff: item.buff }),
     id: `i_${Date.now()}_${Math.round(Math.random() * 9999)}`,
     name: item.name.trim() || "Item Misterioso",
     icon: item.icon.trim() || DEFAULT_ITEM_ICON,
     description: item.description.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
     rarity: item.rarity,
     value: Math.max(0, Math.round(item.value)),
-    xp: item.cosmetic || item.slots || item.multiverse ? 0 : Math.max(0, Math.round(item.xp)),
+    xp: item.cosmetic || item.slots || item.multiverse || item.buff ? 0 : Math.max(0, Math.round(item.xp)),
     obtainedAt: new Date().toISOString(),
   };
   return storeItems(student, [newItem]);
@@ -537,11 +544,19 @@ export interface MissionRewardResult {
   student: Student;
   leveledUp: boolean;
   newLevel: number;
+  xpGained: number; // o XP da missão, multiplicado pelo Buf de XP (se estava ligado)
+  coinsGained: number; // as moedas da missão, multiplicadas pelo Buf de Moedas
+  multipliers: { xp: number; coins: number }; // 1 = sem Buf
 }
 
-/** Aplica as recompensas de uma missão concluída (XP, moedas, item) ao aluno. */
-export function applyMissionReward(student: Student, mission: Mission): MissionRewardResult {
-  const { level, xp } = addXp(student, mission.rewardXp);
+/**
+ * Aplica as recompensas de uma missão concluída (XP, moedas, item) ao aluno.
+ * `at` = o momento em que o aluno fez a missão (na entrega, quando enviou):
+ * os Bufs ligados nessa hora multiplicam o XP e as moedas (engine/buffs.ts).
+ */
+export function applyMissionReward(student: Student, mission: Mission, at = Date.now()): MissionRewardResult {
+  const boosted = boostReward(student, { xp: mission.rewardXp, coins: mission.rewardCoins }, at);
+  const { level, xp } = addXp(student, boosted.xp);
   const leveledUp = level > student.level;
 
   const newItem: InventoryItem = {
@@ -551,13 +566,15 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     description: mission.rewardItem.description,
     rarity: mission.rewardItem.rarity,
     value: mission.rewardItem.value,
-    xp: mission.rewardItem.cosmetic || mission.rewardItem.slots || mission.rewardItem.multiverse ? 0 : mission.rewardItem.xp,
+    xp: mission.rewardItem.cosmetic || mission.rewardItem.slots || mission.rewardItem.multiverse || mission.rewardItem.buff ? 0 : mission.rewardItem.xp,
     // recompensa que é item de visual da Loja: o aluno pode equipar
     ...(mission.rewardItem.cosmetic && { cosmetic: mission.rewardItem.cosmetic }),
     // recompensa que é item de espaço da Loja: usar aumenta o inventário
     ...(mission.rewardItem.slots && { slots: mission.rewardItem.slots }),
     // recompensa que é Chave do Multiverso: usar abre a Sala do Multiverso
     ...(mission.rewardItem.multiverse && { multiverse: true }),
+    // recompensa que é um Buf da Loja: usar liga o bônus
+    ...(mission.rewardItem.buff && { buff: mission.rewardItem.buff }),
     obtainedAt: new Date().toISOString(),
   };
 
@@ -566,11 +583,11 @@ export function applyMissionReward(student: Student, mission: Mission): MissionR
     ...storeItems(student, [newItem]),
     level,
     xp,
-    coins: student.coins + mission.rewardCoins,
+    coins: student.coins + boosted.coins,
     completedMissionIds: student.completedMissionIds.includes(mission.id)
       ? student.completedMissionIds
       : [...student.completedMissionIds, mission.id],
   };
 
-  return { student: updated, leveledUp, newLevel: level };
+  return { student: updated, leveledUp, newLevel: level, xpGained: boosted.xp, coinsGained: boosted.coins, multipliers: boosted.multipliers };
 }

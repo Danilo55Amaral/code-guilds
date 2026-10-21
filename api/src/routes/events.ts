@@ -23,6 +23,7 @@ import {
     phaseStatuses,
 } from "../../../src/engine/specialEvents";
 import { eventRewardKey, resolveEventItem } from "../../../src/engine/eventItems";
+import { BuffEffect, buffRewardNote } from "../../../src/engine/buffs";
 import type { EventRuns } from "../../../src/engine/eventSchedule";
 
 // ============================================================================
@@ -304,7 +305,7 @@ export async function eventsRoutes(app: FastifyInstance) {
         const key = eventRewardKey(eventId, phase)
         const shopItem = await db
             .selectFrom('shopItems')
-            .select(['eventItemKey', 'name', 'icon', 'description', 'rarity', 'value', 'xp', 'cosmetic', 'slots'])
+            .select(['eventItemKey', 'name', 'icon', 'description', 'rarity', 'value', 'xp', 'cosmetic', 'slots', 'buff'])
             .where('eventItemKey', '=', key)
             .executeTakeFirst()
         const item: RewardItem = resolveEventItem(key, reward.item, shopItem
@@ -314,6 +315,7 @@ export async function eventsRoutes(app: FastifyInstance) {
                 rarity: shopItem.rarity as RewardItem['rarity'],
                 cosmetic: (shopItem.cosmetic ?? undefined) as RewardItem['cosmetic'],
                 slots: shopItem.slots ?? undefined,
+                buff: (shopItem.buff ?? undefined) as BuffEffect | undefined,
             }]
             : [])
 
@@ -324,6 +326,7 @@ export async function eventsRoutes(app: FastifyInstance) {
                 throw new ValidationError('Conclua todas as missões da fase antes de finalizar.')
             }
 
+            // os Bufs ligados agora multiplicam o XP e as moedas da fase
             const finished = finishPhase(student, event, phase, item)
 
             return {
@@ -331,6 +334,9 @@ export async function eventsRoutes(app: FastifyInstance) {
                 leveledUp: finished.leveledUp,
                 fromLevel: student.level,
                 newLevel: finished.newLevel,
+                xp: finished.xpGained,
+                coins: finished.coinsGained,
+                multipliers: finished.multipliers,
                 // o item não coube no inventário e ficou esperando espaço
                 itemWaiting: finished.student.pendingItems.length > student.pendingItems.length,
             }
@@ -338,14 +344,14 @@ export async function eventsRoutes(app: FastifyInstance) {
             // 🏆 a mensagem da recompensa: do evento inteiro (última fase) ou da fase
             const totalPhases = eventPhases(event).length
             const body = phase === totalPhases
-                ? eventRewardMessage({ event, item, xp: reward.xp, coins: reward.coins })
-                : eventPhaseRewardMessage({ event, phase: getPhase(event, phase), totalPhases, item, xp: reward.xp, coins: reward.coins })
+                ? eventRewardMessage({ event, item, xp: result.xp, coins: result.coins })
+                : eventPhaseRewardMessage({ event, phase: getPhase(event, phase), totalPhases, item, xp: result.xp, coins: result.coins })
 
-            await sendMessages(trx, [{ studentId: user.id, kind: 'missao', body: body + (result.itemWaiting ? PENDING_ITEM_NOTE : '') }])
+            await sendMessages(trx, [{ studentId: user.id, kind: 'missao', body: body + buffRewardNote(result.multipliers) + (result.itemWaiting ? PENDING_ITEM_NOTE : '') }])
         })
 
         const { student: _unused, ...outcome } = result
 
-        return { student: await findStudent(user.id), ...outcome, item, xp: reward.xp, coins: reward.coins }
+        return { student: await findStudent(user.id), ...outcome, item }
     })
 }

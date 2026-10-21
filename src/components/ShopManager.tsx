@@ -175,6 +175,11 @@ export default function ShopManager() {
                 <div className={`relative flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-xl bg-cg-tile text-2xl ${item.hidden ? "opacity-60" : ""}`}>
                   {item.icon}
                   {item.slots && <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-teal-500 px-1.5 text-[10px] font-black text-cg-onaccent">+{item.slots}</span>}
+                  {item.buff && (
+                    <span className="absolute -bottom-1.5 -right-1.5 rounded-full bg-gradient-to-r from-violet-500 to-amber-500 px-1.5 text-[10px] font-black text-cg-onaccent">
+                      {item.buff.multiplier}x
+                    </span>
+                  )}
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -191,7 +196,13 @@ export default function ShopManager() {
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-slate-500">
-                  {item.cosmetic ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}` : item.slots ? `📦 +${item.slots} espaços no inventário` : "🧪 Item comum"} • {item.sold}{" "}
+                  {item.cosmetic
+                    ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}`
+                    : item.buff
+                      ? `⚡ Buf de ${item.buff.kind === "xp" ? "XP" : "Moedas"} ${item.buff.multiplier}x por ${item.buff.minutes} min`
+                      : item.slots
+                        ? `📦 +${item.slots} espaços no inventário`
+                        : "🧪 Item comum"} • {item.sold}{" "}
                   {item.sold === 1 ? "vendido" : "vendidos"}
                 </p>
                 {item.hidden && <p className="mt-0.5 text-[11px] font-semibold text-slate-400">🔒 Fora da vitrine (só presente ou recompensa)</p>}

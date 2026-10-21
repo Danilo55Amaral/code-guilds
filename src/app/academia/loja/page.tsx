@@ -165,7 +165,11 @@ export default function LojaPage() {
   // Cada coleção temática tem seção própria — os itens dela não repetem nos destaques nem na vitrine.
   const collectionItems = (c: CosmeticCollection) =>
     items.filter((i) => i.collection === c).sort((a, b) => Number(b.featured) - Number(a.featured) || b.price - a.price);
-  const regular = items.filter((i) => !i.collection);
+  // Os Bufs também têm seção própria, logo acima da vitrine
+  // na ordem: XP antes de Moedas, 2x antes de 3x, 5 antes de 10 minutos
+  const buffOrder = (i: ShopItem) => (i.buff!.kind === "xp" ? 0 : 100) + i.buff!.multiplier * 10 + i.buff!.minutes;
+  const buffs = items.filter((i) => !i.collection && i.buff).sort((a, b) => buffOrder(a) - buffOrder(b));
+  const regular = items.filter((i) => !i.collection && !i.buff);
   const featured = regular.filter((i) => i.featured);
   const visible = regular
     .filter((i) => (tab === "visuais" ? !!i.cosmetic : tab === "itens" ? !i.cosmetic : true))
@@ -249,7 +253,9 @@ export default function LojaPage() {
             <span className="text-slate-500">
               {item.cosmetic
                 ? `👕 ${COSMETIC_SLOT_LABELS[item.cosmetic.slot]}`
-                : item.slots
+                : item.buff
+                  ? `⏱ ${item.buff.minutes} min`
+                  : item.slots
                   ? `📦 +${item.slots} espaços no inventário`
                   : item.xp > 0
                     ? `✨ +${item.xp} XP ao usar`
@@ -501,6 +507,22 @@ export default function LojaPage() {
             </div>
           )}
 
+          {/* ===== BUFS ===== */}
+          {buffs.length > 0 && (
+            <div className="cg-dark-scope relative mb-8 overflow-hidden rounded-3xl border border-violet-500/40 bg-[radial-gradient(80%_120%_at_0%_0%,rgba(139,92,246,0.35),transparent),radial-gradient(80%_120%_at_100%_100%,rgba(245,158,11,0.3),transparent),#0b0a1a] p-5 sm:p-6">
+              <div className="relative mb-4 text-center sm:text-left">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-violet-200/80">Ganhe mais por alguns minutos</p>
+                <h2 className="mt-1 text-2xl font-black uppercase tracking-wide text-white sm:text-3xl" style={{ textShadow: "0 0 24px rgba(167,139,250,0.7)" }}>
+                  ⚡ Bufs
+                </h2>
+                <p className="mt-1 text-sm text-violet-100/80">
+                  Ligue no Inventário e, enquanto o cronômetro corre, o XP ou as moedas das missões e dos eventos vêm em dobro (2x) ou triplicados (3x).
+                </p>
+              </div>
+              <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">{buffs.map((item, i) => card(item, i))}</div>
+            </div>
+          )}
+
           {/* ===== VITRINE ===== */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div className="inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-slate-800 bg-cg-card p-1">
@@ -589,6 +611,11 @@ export default function LojaPage() {
                   </div>
                 )}
               </div>
+              {confirming.buff && (
+                <p className="mt-3 rounded-xl border border-violet-500/40 bg-violet-500/10 px-3 py-2 text-xs text-violet-100">
+                  ⚡ O Buf vai pro Inventário: ligue lá quando for fazer as missões. Ele dura {confirming.buff.minutes} minutos e o cronômetro aparece no canto da tela.
+                </p>
+              )}
               {confirming.slots && (
                 <p className="mt-3 rounded-xl border border-teal-500/40 bg-teal-500/10 px-3 py-2 text-xs text-teal-100">
                   📦 Use no Inventário pra ganhar +{confirming.slots} espaços pra sempre (hoje cabem {inventoryCapacity(me)}).

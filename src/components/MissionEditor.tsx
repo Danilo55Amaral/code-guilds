@@ -18,6 +18,7 @@ import {
 } from "@/engine/missions";
 import { Teacher } from "@/engine/teachers";
 import { ShopItem } from "@/engine/shop";
+import { BuffEffect } from "@/engine/buffs";
 import { Cosmetic } from "@/engine/avatar";
 import ItemEconomyFields from "./ItemEconomyFields";
 import EmojiPicker from "./EmojiPicker";
@@ -55,6 +56,7 @@ interface MissionDraft {
   rewardItemCosmetic?: Cosmetic; // vem de um item de visual da Loja (só pelo Painel ADM)
   rewardItemSlots?: number; // vem de um item de espaço da Loja (só pelo Painel ADM)
   rewardItemMultiverse?: boolean; // Chave do Multiverso: usar abre a Sala do Multiverso
+  rewardItemBuff?: BuffEffect; // vem de um Buf da Loja (só pelo Painel ADM)
   questions: QuestionDraft[];
   // missão de entrega
   taskPrompt: string;
@@ -115,6 +117,7 @@ function missionToDraft(m: Mission): MissionDraft {
     rewardItemCosmetic: m.rewardItem.cosmetic,
     rewardItemSlots: m.rewardItem.slots,
     rewardItemMultiverse: m.rewardItem.multiverse,
+    rewardItemBuff: m.rewardItem.buff,
     questions: m.questions.map((q) => ({
       prompt: q.prompt,
       code: q.code ?? "",
@@ -151,11 +154,12 @@ function draftToMission(d: MissionDraft, kind: MissionKind): MissionContent {
       description: d.rewardItemDescription.trim().slice(0, ITEM_DESCRIPTION_MAX_LENGTH),
       rarity: d.rewardItemRarity,
       value: d.rewardItemValue,
-      // visual do avatar e item de espaço não dão XP
-      xp: d.rewardItemCosmetic || d.rewardItemSlots || d.rewardItemMultiverse ? 0 : d.rewardItemXp,
+      // visual do avatar, item de espaço e Buf não dão XP
+      xp: d.rewardItemCosmetic || d.rewardItemSlots || d.rewardItemMultiverse || d.rewardItemBuff ? 0 : d.rewardItemXp,
       ...(d.rewardItemCosmetic && { cosmetic: d.rewardItemCosmetic }),
       ...(d.rewardItemSlots && { slots: d.rewardItemSlots }),
       ...(d.rewardItemMultiverse && { multiverse: true }),
+      ...(d.rewardItemBuff && { buff: d.rewardItemBuff }),
     },
     // missão de entrega: sem perguntas, com o enunciado e o que o aluno pode enviar
     ...(isTask && {
@@ -243,7 +247,7 @@ export default function MissionEditor({
     const item = shopItems?.find((i) => i.id === id);
     if (!item) {
       // "nenhum": os campos ficam como estão, mas o visual da Loja deixa de ir junto
-      setDraft((d) => ({ ...d, rewardItemCosmetic: undefined, rewardItemSlots: undefined }));
+      setDraft((d) => ({ ...d, rewardItemCosmetic: undefined, rewardItemSlots: undefined, rewardItemBuff: undefined }));
       return;
     }
     setDraft((d) => ({
@@ -253,9 +257,10 @@ export default function MissionEditor({
       rewardItemDescription: item.description,
       rewardItemRarity: item.rarity,
       rewardItemValue: item.value,
-      rewardItemXp: item.cosmetic || item.slots ? 0 : item.xp,
+      rewardItemXp: item.cosmetic || item.slots || item.buff ? 0 : item.xp,
       rewardItemCosmetic: item.cosmetic,
       rewardItemSlots: item.slots,
+      rewardItemBuff: item.buff,
     }));
   }
 

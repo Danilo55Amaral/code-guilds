@@ -12,6 +12,7 @@
 
 import { Mission, MissionContent, RewardItem } from "./missions";
 import { EventProgress, Student, addXp, grantItem } from "./students";
+import { boostReward } from "./buffs";
 import { HOUSES, HouseId } from "./houses";
 import { ASTRONOMIA_FASE1_MISSIONS, ASTRONOMIA_FASE2_MISSIONS, ASTRONOMIA_FASE3_MISSIONS } from "./astronomyMissions";
 
@@ -2736,26 +2737,34 @@ export interface FinishEventResult {
   student: Student;
   leveledUp: boolean;
   newLevel: number;
+  xpGained: number; // o XP da fase, multiplicado pelo Buf de XP (se estava ligado)
+  coinsGained: number; // as moedas da fase, multiplicadas pelo Buf de Moedas
+  multipliers: { xp: number; coins: number }; // 1 = sem Buf
 }
 
 /**
  * Aplica a recompensa da fase (XP, moedas e item) e marca a fase como finalizada. No evento comum, é a recompensa final.
  * `item` = o item com as alterações que o ADM fez na Loja (engine/eventItems.ts); sem ele, vale o item original do evento.
+ * Os Bufs ligados agora multiplicam o XP e as moedas (engine/buffs.ts).
  */
-export function finishPhase(student: Student, event: AcademyEvent, phase: number, item?: RewardItem): FinishEventResult {
+export function finishPhase(student: Student, event: AcademyEvent, phase: number, item?: RewardItem, at = Date.now()): FinishEventResult {
   const { reward } = getPhase(event, phase);
-  const { level, xp } = addXp(student, reward.xp);
+  const boosted = boostReward(student, reward, at);
+  const { level, xp } = addXp(student, boosted.xp);
   const withItem = grantItem(student, item ?? reward.item);
   return {
     student: {
       ...withItem,
       level,
       xp,
-      coins: student.coins + reward.coins,
+      coins: student.coins + boosted.coins,
       events: { ...student.events, [phaseKey(event, phase)]: { ...phaseProgress(student, event, phase), finishedAt: new Date().toISOString() } },
     },
     leveledUp: level > student.level,
     newLevel: level,
+    xpGained: boosted.xp,
+    coinsGained: boosted.coins,
+    multipliers: boosted.multipliers,
   };
 }
 

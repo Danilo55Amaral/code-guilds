@@ -7,6 +7,7 @@ import AcademyHeader from "@/components/AcademyHeader";
 import AcademySidebar from "@/components/AcademySidebar";
 import DailyReward from "@/components/DailyReward";
 import SocialAlerts from "@/components/SocialAlerts";
+import BuffTimer from "@/components/BuffTimer";
 
 export default function AcademiaLayout({ children }: { children: React.ReactNode }) {
   const { activeStudent, ready } = useStudents();
@@ -36,6 +37,8 @@ export default function AcademiaLayout({ children }: { children: React.ReactNode
       <DailyReward student={activeStudent} />
       {/* o aviso animado de pedido de amizade e de mensagem de amigo */}
       <SocialAlerts student={activeStudent} />
+      {/* o cronômetro dos Bufs ligados, visível em toda a Academia */}
+      <BuffTimer student={activeStudent} />
     </div>
   );
 }

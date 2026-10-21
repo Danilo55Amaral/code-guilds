@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Mission, RARITY_META, PASS_THRESHOLD_PERCENT } from "@/engine/missions";
 import { playDeathSound, playVictoryFanfare } from "@/engine/sfx";
+import { useStudents } from "@/engine/store";
+import { rewardMultipliers } from "@/engine/buffs";
 import { CoinIcon, ItemStats, RarityBadge } from "./GameUI";
 import { SoundToggleButton, useSceneSound } from "./SceneSound";
 
@@ -158,8 +160,12 @@ export function VictoryScreen({
   percent: number;
   onBack: () => void;
 }) {
-  const xp = useCountUp(mission.rewardXp, 1700);
-  const coins = useCountUp(mission.rewardCoins, 1850);
+  // os Bufs ligados agora multiplicam o XP e as moedas (quem decide de verdade é a API, ao coletar)
+  const { activeStudent } = useStudents();
+  // (o aluno do cache chega logo depois da primeira renderização)
+  const multipliers = activeStudent ? rewardMultipliers(activeStudent) : { xp: 1, coins: 1 };
+  const xp = useCountUp(mission.rewardXp * multipliers.xp, 1700);
+  const coins = useCountUp(mission.rewardCoins * multipliers.coins, 1850);
   const rarity = RARITY_META[mission.rewardItem.rarity];
   const sound = useSceneSound(playVictoryFanfare);
 
@@ -185,12 +191,14 @@ export function VictoryScreen({
             <div className="cg-anim-rise rounded-xl border border-violet-500/30 bg-violet-500/10 p-3" style={{ animationDelay: "1.6s" }}>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">XP</p>
               <p className="mt-1 text-lg font-bold tabular-nums text-violet-300">+{xp}</p>
+              {multipliers.xp > 1 && <p className="mt-0.5 text-[10px] font-black text-violet-200">⚡ Buf {multipliers.xp}x</p>}
             </div>
             <div className="cg-anim-rise rounded-xl border border-amber-500/30 bg-amber-500/10 p-3" style={{ animationDelay: "1.75s" }}>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Moedas</p>
               <p className="mt-1 flex items-center justify-center gap-1 text-lg font-bold tabular-nums text-amber-300">
                 <CoinIcon size={18} /> +{coins}
               </p>
+              {multipliers.coins > 1 && <p className="mt-0.5 text-[10px] font-black text-amber-200">⚡ Buf {multipliers.coins}x</p>}
             </div>
             <div className={`cg-anim-rise rounded-xl border bg-cg-sunken p-3 ${rarity.borderClass}`} style={{ animationDelay: "1.9s" }}>
               <p className="text-[10px] uppercase tracking-wider text-slate-400">Item</p>

@@ -3,6 +3,7 @@ import { db } from "../database";
 import { DB, Json } from "../types/database";
 import { NotFoundError } from "../validation/validations";
 import { Student } from "../../../src/engine/students";
+import { ActiveBuff, pruneBuffs } from "../../../src/engine/buffs";
 
 // ============================================================================
 // PROGRESSO DO ALUNO NO SERVIDOR (fase 3)
@@ -55,6 +56,7 @@ export function toStudent(row: NonNullable<StudentRow>): Student {
         bonusSlots: row.bonusSlots,
         pendingItems: row.pendingItems as unknown as Student['pendingItems'],
         multiverseAccess: row.multiverseAccess?.toISOString(),
+        buffs: row.buffs as unknown as ActiveBuff[],
         createdAt: row.createdAt.toISOString(),
     }
 }
@@ -74,6 +76,8 @@ export function progressColumns(student: Student) {
         equipped: JSON.stringify(student.equipped) as Json,
         completedMissionIds: JSON.stringify(student.completedMissionIds) as Json,
         events: JSON.stringify(student.events) as Json,
+        // os Bufs que acabaram há muito tempo saem (engine/buffs.ts)
+        buffs: JSON.stringify(pruneBuffs(student.buffs)) as Json,
     }
 }
 

@@ -15,6 +15,7 @@ import {
     unequipItem,
 } from "../../../src/engine/students";
 import { openMultiversePatch } from "../../../src/engine/multiverse";
+import { activateBuff } from "../../../src/engine/buffs";
 
 // ============================================================================
 // INVENTÁRIO — as ações do aluno com os próprios itens. Todas passam pelo
@@ -44,6 +45,7 @@ export async function inventoryRoutes(app: FastifyInstance) {
     // Usando um item. Cada tipo de item tem um efeito:
     // - item de espaço: o inventário cresce (e guarda os itens que esperavam espaço);
     // - Chave do Multiverso: some e abre o passe da Sala do Multiverso;
+    // - Buf: some e liga o bônus de XP ou de moedas por alguns minutos (um de cada tipo por vez);
     // - consumível: some e o aluno ganha o XP dele (pode subir de nível).
     app.post('/:itemId/use', { preHandler: ensureStudent }, async (request) => {
         const { itemId } = itemParamsSchema.parse(request.params)
@@ -60,6 +62,14 @@ export async function inventoryRoutes(app: FastifyInstance) {
             if (item.multiverse) {
                 const patch = openMultiversePatch(student, itemId)!
                 return { student: { ...student, ...patch }, effect: { kind: 'multiverso' } }
+            }
+
+            if (item.buff) {
+                const activation = activateBuff(student, item)
+
+                if (!activation.ok) throw new ValidationError(activation.error)
+
+                return { student: activation.student, effect: { kind: 'buf', buff: activation.buff } }
             }
 
             const consumed = consumeItem(student, itemId)

@@ -61,6 +61,8 @@ export default function ItemDetailsModal({ item, onClose }: { item: RewardItem &
             <p>
               {item.multiverse
                 ? "🌀 Chave do Multiverso — usar abre a Sala do Multiverso uma única vez."
+                : item.buff
+                ? `⚡ Buf — usar liga ${item.buff.multiplier}x ${item.buff.kind === "xp" ? "o XP" : "as moedas"} das missões e eventos por ${item.buff.minutes} minutos.`
                 : item.slots
                 ? `📦 Item de espaço — usar aumenta o seu inventário em +${item.slots} espaços, pra sempre.`
                 : item.xp > 0

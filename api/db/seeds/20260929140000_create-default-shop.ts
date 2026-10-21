@@ -26,6 +26,7 @@ export async function seed(db: Kysely<any>): Promise<void> {
                 xp: item.xp,
                 cosmetic: item.cosmetic ? JSON.stringify(item.cosmetic) : null,
                 slots: item.slots ?? null,
+                buff: item.buff ? JSON.stringify(item.buff) : null,
                 hidden: item.hidden ?? false,
                 event_item_key: item.eventItemKey ?? null,
                 featured: item.featured,

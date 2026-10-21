@@ -31,6 +31,7 @@ export function studentsQuery() {
             'tutorialDone',
             'bonusSlots',
             'multiverseAccess',
+            'buffs',
             'inventory',
             'pendingItems',
             'equipped',
