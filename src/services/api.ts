@@ -36,6 +36,27 @@ function errorMessage(body: ErrorBody | null, status: number): string {
   return issue ? `${body.message} ${issue.message}` : body.message;
 }
 
+// ---------------------------------------------------------------------------
+// Relógio do servidor. Computador de escola com o relógio errado (horas
+// adiantado ou atrasado) faria o cronômetro dos Bufs mostrar o tempo errado,
+// porque os horários (endsAt...) vêm do servidor. Toda resposta da API traz o
+// cabeçalho Date com a hora do servidor: guardamos a diferença e as telas
+// usam serverNow() no lugar de Date.now() quando comparam com esses horários.
+// ---------------------------------------------------------------------------
+
+let clockOffsetMs = 0;
+
+function syncServerClock(dateHeader: string | null) {
+  const serverTime = dateHeader ? Date.parse(dateHeader) : NaN;
+  // o cabeçalho tem precisão de segundos: +500ms é o meio do segundo
+  if (!Number.isNaN(serverTime)) clockOffsetMs = serverTime + 500 - Date.now();
+}
+
+/** A hora agora, no relógio do servidor (em ms, como Date.now()). */
+export function serverNow(): number {
+  return Date.now() + clockOffsetMs;
+}
+
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   let response: Response;
   try {
@@ -49,6 +70,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   } catch {
     throw new ApiError(OFFLINE_MESSAGE, 0);
   }
+
+  syncServerClock(response.headers.get("date"));
 
   // A API sempre responde JSON (ou nada). Outra coisa (ex.: a página 404 do
   // Next quando o rewrite não existe) vira null.

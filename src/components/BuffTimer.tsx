@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ActiveBuff, BUFF_LABELS, activeBuffs, formatCountdown } from "@/engine/buffs";
 import { Student } from "@/engine/students";
+import { serverNow } from "@/services/api";
 
 const THEME: Record<ActiveBuff["kind"], { ring: string; text: string; bar: string }> = {
   xp: { ring: "border-violet-400/70 shadow-violet-500/40", text: "text-violet-200", bar: "bg-violet-400" },
@@ -18,20 +19,21 @@ const ENDING_MS = 30_000;
  * some quando o Buf acaba. Não pega cliques, pra nunca atrapalhar a tela de baixo.
  */
 export default function BuffTimer({ student }: { student: Student }) {
-  const [now, setNow] = useState(() => Date.now());
+  // a hora do servidor (o relógio do computador pode estar errado)
+  const [now, setNow] = useState(() => serverNow());
   const running = activeBuffs(student, now);
   const hasRunning = running.length > 0;
 
   // só fica contando enquanto tem Buf ligado
   useEffect(() => {
     if (!hasRunning) return;
-    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    const timer = window.setInterval(() => setNow(serverNow()), 1000);
     return () => window.clearInterval(timer);
   }, [hasRunning]);
 
   // um Buf novo (usado agora no Inventário) aparece na hora
   useEffect(() => {
-    setNow(Date.now());
+    setNow(serverNow());
   }, [student.buffs]);
 
   if (!hasRunning) return null;
