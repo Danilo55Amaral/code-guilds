@@ -237,9 +237,9 @@ export function useInboxPolling(intervalMs: number = messagesApi.INBOX_POLL_MS) 
 
 /**
  * Status online: manda o sinal de vida (aluno) ou consulta quem está online
- * (professor/ADM) a cada 30 segundos. Fica montado no layout raiz
- * (PresenceHeartbeat), então vale em todas as telas. Ao entrar ou sair de uma
- * conta, atualiza na hora.
+ * (professor/ADM) a cada 30 segundos, só com a aba visível. Fica montado no
+ * layout raiz (PresenceHeartbeat), então vale em todas as telas. Ao entrar ou
+ * sair de uma conta, ou ao voltar pra aba, atualiza na hora.
  */
 export function usePresencePolling() {
   const [account, setAccount] = useState<string | null>(null);
@@ -253,7 +253,14 @@ export function usePresencePolling() {
   useEffect(() => {
     void presenceApi.refreshPresence();
     const timer = window.setInterval(() => void presenceApi.refreshPresence(), presenceApi.PRESENCE_POLL_MS);
-    return () => window.clearInterval(timer);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void presenceApi.refreshPresence();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [account]);
 }
 

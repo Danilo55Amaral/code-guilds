@@ -2,10 +2,12 @@
 // PRESENCE API — o status online pela API.
 //
 // - Aluno logado: manda o sinal de vida (POST /presence), que já devolve quem
-//   está online. Ele manda mesmo com a aba em segundo plano: o aluno continua
-//   na plataforma. (O navegador atrasa os timers dessas abas, e a API dá folga
-//   pra isso.)
-// - Professor/ADM: só consulta (GET /presence), e só com a aba visível.
+//   está online.
+// - Professor/ADM: só consulta (GET /presence).
+// Os dois só com a aba visível. Uma aba esquecida aberta mandando sinal o dia
+// todo não deixava o banco (Neon) dormir e gastava as horas de processamento
+// do plano gratuito até o banco parar. Quem volta pra aba manda o sinal na
+// hora (usePresencePolling, em store.ts).
 // ============================================================================
 
 import { api } from "@/services/api";
@@ -37,8 +39,8 @@ async function loadPresence() {
     return;
   }
 
-  // professor com a aba escondida: não precisa atualizar agora
-  if (!studentId && document.visibilityState !== "visible") return;
+  // aba escondida: não manda sinal nem consulta (deixa o banco dormir)
+  if (document.visibilityState !== "visible") return;
 
   try {
     const { online } = studentId
