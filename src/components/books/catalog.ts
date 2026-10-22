@@ -10,6 +10,10 @@ import { HISTORIA_INFO } from "./historia/meta";
 import { MATEMATICA_INFO } from "./matematica/meta";
 import { INGLES_INFO } from "./ingles/meta";
 import { SCRATCH_INFO } from "./scratch/meta";
+import { GEOGRAFIA_INFO } from "./geografia/meta";
+import { HISTORIA_BRASIL_INFO } from "./historia-brasil/meta";
+import { INFORMATICA_INFO } from "./informatica/meta";
+import { PROGRAMACAO_INFO } from "./programacao/meta";
 
 // ============================================================================
 // O CATÁLOGO DA BIBLIOTECA VIRTUAL — os livros que já estão prontos. A ficha
@@ -29,6 +33,10 @@ export const BOOK_INFO: Partial<Record<SubjectId, BookInfo>> = {
   matematica: MATEMATICA_INFO,
   ingles: INGLES_INFO,
   scratch: SCRATCH_INFO,
+  geografia: GEOGRAFIA_INFO,
+  "historia-brasil": HISTORIA_BRASIL_INFO,
+  informatica: INFORMATICA_INFO,
+  programacao: PROGRAMACAO_INFO,
 };
 
 export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>> = {
@@ -42,4 +50,8 @@ export const BOOK_LOADERS: Partial<Record<SubjectId, () => Promise<BookContent>>
   matematica: () => import("./matematica").then((m) => m.default),
   ingles: () => import("./ingles").then((m) => m.default),
   scratch: () => import("./scratch").then((m) => m.default),
+  geografia: () => import("./geografia").then((m) => m.default),
+  "historia-brasil": () => import("./historia-brasil").then((m) => m.default),
+  informatica: () => import("./informatica").then((m) => m.default),
+  programacao: () => import("./programacao").then((m) => m.default),
 };
