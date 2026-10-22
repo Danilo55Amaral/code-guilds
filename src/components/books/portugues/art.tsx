@@ -66,7 +66,7 @@ export function ChoiceGame({ items, color = "#7c3aed", title }: { items: ChoiceI
           <p className="text-[0.75em] font-bold text-[#8a7146]">
             {index + 1} de {items.length}
           </p>
-          <p className="text-[0.95em] font-bold leading-[1.4] text-[#2b2113]">{item.prompt}</p>
+          <div className="text-[0.95em] font-bold leading-[1.4] text-[#2b2113]">{item.prompt}</div>
           <div className="mt-[0.35em] flex flex-wrap gap-[0.3em]">
             {item.options.map((opt, i) => {
               const state = picked === null ? "idle" : i === item.answer && right ? "right" : i === picked ? "wrong" : "idle";
