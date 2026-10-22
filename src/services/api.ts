@@ -83,9 +83,15 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     data = null;
   }
 
+  // Erro 500 pode ser o banco fora do ar: a tela de manutenção confere (MaintenanceScreen.tsx)
+  if (response.status === 500) window.dispatchEvent(new Event(SERVER_ERROR_EVENT));
+
   if (!response.ok) throw new ApiError(errorMessage(data as ErrorBody | null, response.status), response.status);
   return data as T;
 }
+
+/** Evento disparado quando alguma chamada da API dá erro 500. */
+export const SERVER_ERROR_EVENT = "cg:server-error";
 
 export const api = {
   get: <T>(path: string) => request<T>("GET", path),
